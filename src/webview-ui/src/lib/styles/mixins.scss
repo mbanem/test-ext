@@ -1,0 +1,52 @@
+@mixin container($head: 'container',
+  $padding: 1rem 2rem,
+  $background-color: var(--panel-bg-color),
+  $head-color: navy,
+  $head-background-color: var(--panel-bg-color),
+  $border: 1px solid gray,
+  $border-radius: 10px,
+  $box-shadow: none,
+  $box-sizing: border-box,
+  $width: max-content,
+  $top: -10px,
+  $left: 2rem) {
+  position: relative;
+  width: $width;
+  padding: $padding;
+  color: $head-color;
+  background-color: $background-color;
+  border: $border;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  box-sizing: $box-sizing;
+
+  &::before {
+    position: absolute;
+    content: '\00a0 \00a0' + $head + '\00a0 \00a0';
+    top: $top;
+    left: $left;
+    color: var(--candidate-color);
+    background-color: $head-background-color;
+    height: 1rem;
+    opacity: 1;
+    z-index: 10;
+    font-size: 15px;
+    width: $width;
+  }
+}
+
+@mixin rectangle($color: white) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 10rem;
+  height: 10rem;
+  border: 4px solid blue;
+  border-radius: 10px;
+  color: $color;
+  background-color: skyblue;
+
+}
+@mixin bordered {
+  border: 2px solid blue;
+}

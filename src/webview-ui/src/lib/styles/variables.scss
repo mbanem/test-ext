@@ -1,0 +1,42 @@
+:root {
+  --bg: #f8f9fa;
+  --text: #212529;
+  --card: #ffffff;
+  --btn-bg: #121212;
+  --btn-text: #121212;
+  --pre-color: navy;
+  --panel-bg-color: #f8f9fa;
+  --input-bg-color: #f8f9fa;
+  --input-color: #121212;
+  --label-bg-color: #e1e1e1;
+  --label-color: #121212;
+  --summary-bg-color: rgb(179, 228, 247);
+  --summary-color: navy;
+  --candidate-color: navy;
+  --candidate-bg-color: aliceblue;
+  --close-all-color: navy;
+  --close-all-bg-color: aliceblue;
+  --close-all-bg-hover: skyblue;
+}
+
+:global(.dark) {
+  --bg: #121212;
+  --text: #e0e0e0;
+  --card: #1e1e1e;
+  --btn-bg: #f8f9fa;
+  --btn-text: #f8f9fa;
+  --pre-color: skyblue;
+  --panel-bg-color: #121212;
+  --input-bg-color: #121212;
+  --input-color: lightgreen;
+  --label-bg-color: #323232;
+  --label-color: #a2a2a2;
+  --summary-bg-color: skyblue;
+  --summary-color: #121212;
+  --candidate-color: skyblue;
+  --candidate-bg-color: #121212;
+  --close-all-color: skyblue;
+  --close-all-bg-color: #121212;
+  --close-all-bg-hover: #656565;
+}
+$primary: red;

@@ -1,0 +1,10 @@
+{
+  "folders": [
+    {
+      "uri": "vscode-remote://wsl+ubuntu/home/mili/Ext/test-ext",
+    },
+  ],
+  "settings": {
+    "ts.tsc.autoDetect": "off",
+  },
+}
