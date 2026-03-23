@@ -42,8 +42,6 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       input: {
-        OrmZero: resolve(__dirname, 'OrmZero.html'),
-        OrmOne: resolve(__dirname, 'OrmOne.html'),
         OrmTwo: resolve(__dirname, 'OrmTwo.html'),
         OrmThree: resolve(__dirname, 'OrmThree.html'),
       },
