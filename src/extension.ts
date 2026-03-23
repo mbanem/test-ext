@@ -321,7 +321,6 @@ function getHtml() {
 					padding: 10px;
 					width:5rem;
 					height:5rem;
-					color: $primary;
 					background-color: white;
 					&:hover {
 						background-color: $primary;
