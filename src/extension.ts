@@ -322,6 +322,8 @@ function getHtml() {
 					width:5rem;
 					height:5rem;
 					background-color: white;
+					text-align:center;
+					margin:3rem 10rem;
 					&:hover {
 						background-color: $primary;
 						color: white;
@@ -332,7 +334,7 @@ function getHtml() {
 
     <body>
       <div id="app"></div>
-			<div class='box'>BOX</div>
+			<div class='box'>BOX <span style='color:red'>RED BOX</span></div>
 			<div class='rectangle'>EXTEST MINIMAL EXTENSION PAGE</div>
       <script type="module" src="http://localhost:5173/src/main.ts"></script>
     </body>

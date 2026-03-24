@@ -50,9 +50,7 @@
   pre {
     font-size: 14px;
     color: navy;
-    /*text-align: justify;*/
     font-size: 12px;
-    /*color: var(--pre-color);*/
   }
   button {
     width: 5rem;

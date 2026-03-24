@@ -5,9 +5,9 @@
     vscode.postMessage({ command, payload })
   }
 
-  let dbOwner = ''
-  let dbName = ''
-  let dbOwnerPassword = ''
+  let dbName = 'aquatica'
+  let dbOwner = 'mili'
+  let dbOwnerPassword = 'password'
   let dbHost = 'localhost'
   let dbPort = '5173'
 
@@ -24,7 +24,8 @@
   }
 </script>
 
-<pre id="installPartOneId" class="part-one">
+<div class="container">
+  <pre id="installPartOneId" class="part-one">
       <h3>Prisma Installation Part One</h3>
 The Extension 'Create CRUD Form Support' found that Prisma ORM is not installed in
 the project; it can help with installing it. In the first part of the installation
@@ -34,10 +35,10 @@ installing a very basic schema in /prisma/schema.prisma file at the project's ro
     <label for="dbNameId">
       Database Name
       <br /><input
-        bind:value={dbName}
-        type="text"
-        placeholder="avoid dashes in db-name"
-      />
+          bind:value={dbName}
+          type="text"
+          placeholder="avoid dashes in db-name"
+        />
     </label>
     <label for="dbOwnerId">
       Database Owner
@@ -70,16 +71,20 @@ enter yourself or to select the continue button to allow the Extension to finish
 installation.
 
   <button onclick={installORMPartOne} style="margin-left:4rem;"
-    >Install Prisma ORM</button
-  ><button id="cancelPartOneBtnId">Cancel</button>
+      >Install Prisma ORM</button
+    ><button id="cancelPartOneBtnId">Cancel</button>
 </pre>
+</div>
 
-<style>
+<style lang="scss">
+  .container {
+    margin: 2rem 0 0 5rem;
+  }
   pre {
     grid-column: 1 / span 2;
     text-align: justify;
     font-size: 12px;
-    color: var(--pre-color);
+    color: navy;
   }
 
   input[type='text'] {
@@ -116,6 +121,7 @@ installation.
     display: none;
   } */
   .dbname-block {
+    @include container($head: 'Database Parameters', $head-color: navy);
     display: grid;
     grid-template-columns: repeat(3, 12rem);
     column-gap: 0.2rem;
