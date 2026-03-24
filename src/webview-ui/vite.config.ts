@@ -12,16 +12,11 @@ export default defineConfig({
       handler(warning)
     }
   })],
-  resolve: {
-    alias: {
-      $lib: resolve(__dirname, './src/lib')
-    }
-  },
   css: {
     preprocessorOptions: {
       scss: {
         additionalData: `
-          @use "$lib/styles/variables" as *;
+        @use "$lib/styles/variables" as *;
           @use "$lib/styles/mixins" as *;
         `,
         // additionalData: `
@@ -31,6 +26,11 @@ export default defineConfig({
         // Optional: silence charset warnings, etc.
         charset: false,
       }
+    }
+  },
+  resolve: {
+    alias: {
+      $lib: resolve(__dirname, 'src/lib')
     }
   },
   build: {
