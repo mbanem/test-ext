@@ -11,7 +11,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2020"] // ← NO "dom" here — only for extension code
+    "lib": ["ESNEXT"] // ← NO "dom" here — only for extension code
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": [

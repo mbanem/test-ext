@@ -30,15 +30,7 @@ const UI = {
   all: 'all'
 } as const
 type UIType = (typeof UI)[keyof typeof UI]
-const primitiveTypes = new Set([
-  'string',
-  'number',
-  'boolean',
-  'Date',
-  'float',
-  'decimal',
-  'json'
-])
+const primitiveTypes = new Set(['string', 'number', 'boolean', 'Date', 'float', 'decimal', 'json'])
 
 // found in utils but included here for you CA
 export const handleTryCatch = (err: unknown, info?: string) => {
@@ -50,36 +42,7 @@ export const handleTryCatch = (err: unknown, info?: string) => {
 // like having Id filds in the middle of the list, so the orderedNames
 // is forceing list to begin with orderedNames field names if any and 
 // then including the rest of schema.prisma fields
-const orderedNames = new Set<string>([
-  'id',
-  'authorId',
-  'userId',
-  'employeeId',
-  'customerId',
-  'ownerId',
-  'firstName',
-  'lastName',
-  'middleName',
-  'name',
-  'completed',
-  'profileId',
-  'dob',
-  'dateOfBirth',
-  'email',
-  'password',
-  'bio',
-  'biography',
-  'address',
-  'city',
-  'state',
-  'title',
-  'content',
-  'category',
-  'role',
-  'priority',
-  'price',
-  'updatedAt'
-])
+const orderedNames = new Set<string>(['id', 'authorId', 'userId', 'employeeId', 'customerId', 'ownerId', 'firstName', 'lastName', 'middleName', 'name', 'completed', 'profileId', 'dob', 'dateOfBirth', 'email', 'password', 'bio', 'biography', 'address', 'city', 'state', 'title', 'content', 'category', 'role', 'priority', 'price', 'updatedAt'])
 
 /**
    * Inside sortModelsByOrdered check if field is UI/data-entry field

@@ -711,6 +711,7 @@
     <div id="schemaContainerId"></div>
   </div>
 </div>
+<div class="test">TEST</div>
 
 <style lang="scss">
   .cr-main-grid {
@@ -974,4 +975,8 @@
     border-radius: 8px;
     background-color: lightgreen;
   }*/
+  .test {
+    @include bordered;
+    color: $primary;
+  }
 </style>

@@ -23,6 +23,10 @@
       {
         "command": "test-ext.crudTest",
         "title": "CRUD TEST-EXT"
+      },
+      {
+        "command": "test-ext.generateEventHandlers",
+        "title": "TEST-EXT: Generate Event Handlers Registry"
       }
     ]
   },
@@ -30,9 +34,10 @@
     "compile": "tsc -p .",
     "check": "eslint .",
     "dev": "clear; vite dev",
-    "build:webview": "vite build --config src/webview-ui/vite.config.ts",
+    "buildx:webview": "vite build --config src/webview-ui/vite.config.ts",
+    "build:webview": "cd src/webview-ui && pnpm run build",
     "build": "pnpm compile && pnpm build:webview",
-    "install": "pnpm build && vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
+    "install": "clear; pnpm build && vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",
