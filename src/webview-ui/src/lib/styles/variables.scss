@@ -1,22 +1,29 @@
 :root {
   --bg: #f8f9fa;
-  --text: #212529;
-  --card: #ffffff;
+  --border-color: #d3d3d3;
   --btn-bg: #121212;
   --btn-text: #121212;
-  --pre-color: navy;
-  --panel-bg-color: #f8f9fa;
+  --candidate-color: navy;
+  --candidate-bg-color: aliceblue;
+  --card: #ffffff;
+  --close-all-color: navy;
+  --close-all-bg-color: aliceblue;
+  --close-all-bg-hover: skyblue;
+  --checkbox-label-color: #000080;
+  --drag-color: #0000ff;
+  --field-name: #1a1a6c;
+  --green-type: green;
   --input-bg-color: #f8f9fa;
   --input-color: #121212;
   --label-bg-color: #e1e1e1;
   --label-color: #121212;
+  --model-name: #000080;
+  --model-bg-color: #d3d3d3;
+  --pre-color: navy;
+  --panel-bg-color: #f8f9fa;
   --summary-bg-color: rgb(179, 228, 247);
   --summary-color: navy;
-  --candidate-color: navy;
-  --candidate-bg-color: aliceblue;
-  --close-all-color: navy;
-  --close-all-bg-color: aliceblue;
-  --close-all-bg-hover: skyblue;
+  --text: #212529;
 }
 
 :global(.dark) {
@@ -39,4 +46,18 @@
   --close-all-bg-color: #121212;
   --close-all-bg-hover: #656565;
 }
-$primary: red;
+
+.theme-icon {
+  position: absolute;
+  top: 4rem;
+  left: 41rem;
+  margin: 0;
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+  height: 25px;
+  background-color: var(--btn-bg);
+  outline: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

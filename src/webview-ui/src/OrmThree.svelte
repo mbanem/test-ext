@@ -660,11 +660,7 @@
 
     <div class="cr-left-column">
       <label for="routeNameId"> Route Name </label>
-      <input
-        id="routeNameId"
-        type="text"
-        placeholder="app name equal routes folder name"
-      />
+      <input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
       <label for="fieldNameId"> Field Name and Type </label>
       <input id="fieldNameId" type="text" placeholder="fieldName: type" />
       <div
@@ -711,7 +707,6 @@
     <div id="schemaContainerId"></div>
   </div>
 </div>
-<div class="test">TEST</div>
 
 <style lang="scss">
   .cr-main-grid {
@@ -890,6 +885,7 @@
     justify-self: start;
     align-self: center;
     cursor: pointer;
+    color: var(--checkbox-label-color);
     line-height: 1;
     width: 25rem !important;
   }
@@ -967,16 +963,5 @@
   .notallowed {
     opacity: 0.3;
     cursor: not-allowed;
-  }
-  /*.rectangle {
-    width: 6rem;
-    height: 6rem;
-    border: 3px solid navy;
-    border-radius: 8px;
-    background-color: lightgreen;
-  }*/
-  .test {
-    @include bordered;
-    color: $primary;
   }
 </style>

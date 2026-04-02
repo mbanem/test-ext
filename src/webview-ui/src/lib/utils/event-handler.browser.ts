@@ -1,20 +1,29 @@
-import type { TEventType, THandler, THandlers, TDragDropHandlers, TMap } from './event-handler.types'
+import type {
+  TEventType,
+  THandler,
+  THandlers,
+  TDragDropHandlers,
+  TMap,
+} from './event-handler.types'
 import type { Model } from './parse-prisma-schema'
 export type TPayloadValue = string | number | Model // add other value types
 export type TPayload = Record<string, TPayloadValue>
 export const vscode =
   // @ts-expect-error
   typeof acquireVsCodeApi !== 'undefined'
-    // @ts-expect-error
-    ? acquireVsCodeApi()
+    ? // @ts-expect-error
+      acquireVsCodeApi()
     : {
-      postMessage: (msg: any) => {
-        console.log(`[DEV] ${msg.command} in progress...`)
-        setTimeout(() => {
-          console.log(`${msg.command} is done`, msg.payload ?? 'with no payload')
-        }, 3000)
+        postMessage: (msg: any) => {
+          console.log(`[DEV] ${msg.command} in progress...`)
+          setTimeout(() => {
+            console.log(
+              `${msg.command} is done`,
+              msg.payload ?? 'with no payload',
+            )
+          }, 3000)
+        },
       }
-    }
 // export function getVsCodeApi() {
 //   // @ts-expect-error
 //   if (typeof acquireVsCodeApi !== 'undefined') {
@@ -64,7 +73,10 @@ export const createEventHandler = () => {
   let wrapperListeners = new WeakMap<HTMLElement, TMap>()
   let ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
   const wrappers = new Set<HTMLElement>()
-  const dropWrappers = new Set<{ wrapper: HTMLElement, handlers: TDragDropHandlers }>()
+  const dropWrappers = new Set<{
+    wrapper: HTMLElement
+    handlers: TDragDropHandlers
+  }>()
   let wrapperEl: HTMLElement
 
   function matchesQuerySelector(event: MouseEvent) {
@@ -78,15 +90,13 @@ export const createEventHandler = () => {
     }
     return false
   }
-  function enableDragReorder(
-    element: HTMLElement
-  ) {
+  function enableDragReorder(element: HTMLElement) {
     const container = resolveElement(element) as HTMLElement
     let draggedEl: HTMLElement
     for (const child of Array.from(container.children) as HTMLElement[]) {
       child.setAttribute('draggable', 'true')
       for (const c of Array.from(child.children) as HTMLElement[]) {
-        (c).style.pointerEvents = 'none'
+        c.style.pointerEvents = 'none'
       }
     }
 
@@ -135,12 +145,12 @@ export const createEventHandler = () => {
     }
 
     const handlers: TDragDropHandlers = {
-      'dragstart': handleDragStart,
-      'dragover': handleDragOver,
-      'drop': handleDrop,
-      'dragend': handleDragEnd
+      dragstart: handleDragStart,
+      dragover: handleDragOver,
+      drop: handleDrop,
+      dragend: handleDragEnd,
     }
-    // Attach listeners 
+    // Attach listeners
     for (const [eventType, handler] of Object.entries(handlers)) {
       container.addEventListener(eventType as TEventType, handler as THandler)
     }
@@ -148,10 +158,7 @@ export const createEventHandler = () => {
   }
 
   return {
-    setup(
-      wrapper: HTMLElement | string,
-      eventHandlers?: THandlers
-    ) {
+    setup(wrapper: HTMLElement | string, eventHandlers?: THandlers) {
       wrapperEl = resolveElement(wrapper) as HTMLElement
       if (!wrapperEl) {
         throw new Error(`Element not found:`)
@@ -189,7 +196,9 @@ export const createEventHandler = () => {
           if (handlers[eventType]) {
             if (!eventMap.has(eventType as TEventType)) {
               // create a new event handler for wrapperEl child and its data-event-list events
-              const handler = (ehHandlersWM.get(wrapperEl) as THandlers)[eventType] as THandler
+              const handler = (ehHandlersWM.get(wrapperEl) as THandlers)[
+                eventType
+              ] as THandler
 
               const listener = (event: MouseEvent) => {
                 event.preventDefault()
@@ -202,7 +211,10 @@ export const createEventHandler = () => {
                 }
               }
               // register this event for the wrapper
-              eventMap.set(eventType as TEventType, { callback: handler, listener })
+              eventMap.set(eventType as TEventType, {
+                callback: handler,
+                listener,
+              })
               // add event listener to DOM on wrapper as event will propagate to
               // it but we fire only if event.target is a child intersted in it
               wrapperEl.addEventListener(eventType as TEventType, listener)
@@ -221,8 +233,8 @@ export const createEventHandler = () => {
         return
       }
 
-      const { listener } = map.get(eventType)!;
-      (wrapperEl as HTMLElement).removeEventListener(eventType, listener)
+      const { listener } = map.get(eventType)!
+      ;(wrapperEl as HTMLElement).removeEventListener(eventType, listener)
       map.delete(eventType)
 
       if (map.size === 0) {
@@ -232,18 +244,24 @@ export const createEventHandler = () => {
 
     destroy() {
       // let ix = 1, iy = 1
-      wrappers.forEach(wrapper => {
+      wrappers.forEach((wrapper) => {
         const eventMap = wrapperListeners.get(wrapper as HTMLElement)
-        for (const [eventType, { callback: _, listener: ls }] of eventMap as TMap) {
-          (wrapper as HTMLElement).removeEventListener(eventType, ls)
+        for (const [
+          eventType,
+          { callback: _, listener: ls },
+        ] of eventMap as TMap) {
+          ;(wrapper as HTMLElement).removeEventListener(eventType, ls)
           // if (browser) {
           //   localStorage.setItem(`click-over-out${ix++}`, `${eventType} ${wrapper.innerText.slice(0, 20)}`)
           // }
         }
       })
-      dropWrappers.forEach(obj => {
+      dropWrappers.forEach((obj) => {
         for (const [eventType, handler] of Object.entries(obj.handlers)) {
-          obj.wrapper.removeEventListener(eventType as TEventType, handler as THandler)
+          obj.wrapper.removeEventListener(
+            eventType as TEventType,
+            handler as THandler,
+          )
           // if (browser) {
           //   localStorage.setItem(`drag-drop${iy++}`, `${eventType} ${obj.wrapper.innerText.slice(0, 20)}`)
           // }
@@ -253,6 +271,6 @@ export const createEventHandler = () => {
       dropWrappers.clear()
       wrapperListeners = new WeakMap<HTMLElement, TMap>()
       ehHandlersWM = new WeakMap<HTMLElement, THandlers>()
-    }
+    },
   }
 }

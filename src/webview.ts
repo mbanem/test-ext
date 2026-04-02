@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-
+import { log, error, info } from './extension.js'
 type TPageName = 'OrmOne' | 'OrmTwo' | 'OrmThree'
 let manifestCache: Record<string, any> | null = null
 let currentPanel: vscode.WebviewPanel | undefined
@@ -27,7 +27,7 @@ export function createWebviewPanel(
   if (currentPanel) {
     currentPanel.dispose()
   }
-  vscode.window.showInformationMessage(`Before createWebviewPanel`)
+  log(`Before createWebviewPanel`)
   const panel = vscode.window.createWebviewPanel(
     `crud${pageName}`,
     `CRUD Generator — ${pageName}`, // different title for each page
@@ -44,7 +44,9 @@ export function createWebviewPanel(
   // Set HTML (with dev/production fallback)
   panel.webview.html = getWebviewHtml(context, panel.webview, pageName)
 
-  // Message handler — this stays attached ONLY to this panel
+  // Message handler — stays attached ONLY to this panel
+  // Messages are sent from the Svelte app using
+  // `window.vscode.postMessage({ command: 'next', nextPage: 'OrmTwo' })`
   panel.webview.onDidReceiveMessage(
     (message: any) => {
       console.log(`[${pageName}] received:`, message)
@@ -55,12 +57,17 @@ export function createWebviewPanel(
           createWebviewPanel(context, message.nextPage as any) // e.g. 'OrmTwo'
           break
 
+        case 'installPrismaPartOne':
+          // User clicked "Install Prisma" inside the Svelte app
+          // This is just an example of how you might handle a command that requires
+          // running a shell command and then sending the result back to the webview
+          info(`Installing Prisma...`)
         case 'alert':
-          vscode.window.showInformationMessage(message.text)
+          error(message.text)
           break
 
         case 'error':
-          vscode.window.showErrorMessage(message.text)
+          error(message.text)
           break
 
         default:
@@ -158,7 +165,7 @@ function getWebviewHtml(
         )
         return `${attr}="${assetUri}"`
       } catch (err) {
-        console.error('Failed to convert asset:', relativePath)
+        error(`Failed to convert asset: ${relativePath}`)
         return fullMatch
       }
     },

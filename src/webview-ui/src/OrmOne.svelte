@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+  // import { browser } from '$app/environment'
   import { vscode, type TPayload } from '$lib/utils/event-handler.browser'
 
   function postMessage(command: string, payload: TPayload) {
@@ -22,10 +24,73 @@
       })
     }
   }
+  // -------- toggle theme begin ---------
+
+  // Theme type & state
+  type Theme = 'light' | 'dark'
+
+  let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
+  // let mounted = $state(false)
+
+  // Get saved preference or system preference
+  function getInitialTheme(): Theme {
+    // if (!browser) return 'light'
+
+    const saved = localStorage.getItem('theme') as Theme | null
+    if (saved) return saved
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  }
+
+  // Apply theme to document
+  function applyTheme() {
+    document.documentElement.classList.toggle('dark')
+  }
+
+  // Toggle theme
+  function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('theme', currentTheme)
+    applyTheme()
+  }
+
+  // Initialize on client
+  onMount(() => {
+    currentTheme = getInitialTheme()
+    applyTheme()
+    toggleTheme()
+    // mounted = true
+  })
+
+  // Listen for system theme changes
+  $effect(() => {
+    // if (!browser || !mounted) return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only auto-change if user hasn't manually selected a theme
+      if (!localStorage.getItem('theme')) {
+        currentTheme = e.matches ? 'dark' : 'light'
+        applyTheme()
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  })
+  function getIcon() {
+    return currentTheme === 'dark' ? '☀️' : '🌙'
+  }
+  // -------- toggle theme end ---------
 </script>
 
-<div class="container">
-  <pre id="installPartOneId" class="part-one">
+<div class="theme-container">
+  <p onclick={toggleTheme} class="theme-icon" aria-hidden={true}>
+    {getIcon()}
+  </p>
+  <div class="container">
+    <pre id="installPartOneId">
       <h3>Prisma Installation Part One</h3>
 The Extension 'Create CRUD Form Support' found that Prisma ORM is not installed in
 the project; it can help with installing it. In the first part of the installation
@@ -35,10 +100,10 @@ installing a very basic schema in /prisma/schema.prisma file at the project's ro
     <label for="dbNameId">
       Database Name
       <br /><input
-          bind:value={dbName}
-          type="text"
-          placeholder="avoid dashes in db-name"
-        />
+            bind:value={dbName}
+            type="text"
+            placeholder="avoid dashes in db-name"
+          />
     </label>
     <label for="dbOwnerId">
       Database Owner
@@ -71,9 +136,10 @@ enter yourself or to select the continue button to allow the Extension to finish
 installation.
 
   <button onclick={installORMPartOne} style="margin-left:4rem;"
-      >Install Prisma ORM</button
-    ><button id="cancelPartOneBtnId">Cancel</button>
+        >Install Prisma ORM</button
+      ><button id="cancelPartOneBtnId">Cancel</button>
 </pre>
+  </div>
 </div>
 
 <style lang="scss">
@@ -84,7 +150,7 @@ installation.
     grid-column: 1 / span 2;
     text-align: justify;
     font-size: 12px;
-    color: navy;
+    color: var(--pre-color);
   }
 
   input[type='text'] {
@@ -107,10 +173,10 @@ installation.
   button {
     display: inline-block;
     margin: 1rem 1rem 1rem 0;
-    background-color: navy;
+    /* background-color: navy;
     color: yellow;
     border: 1px solid gray;
-    border-radius: 5px;
+    border-radius: 5px;*/
     font-size: 12px;
     cursor: pointer;
     padding: 3px 1rem;
@@ -126,12 +192,13 @@ installation.
     grid-template-columns: repeat(3, 12rem);
     column-gap: 0.2rem;
     margin: 0;
-    padding: 0;
+    padding: 1rem;
 
     label {
       width: 10rem;
       padding: 0;
       margin: 0 1rem 6px 0;
+      color: var(--candidate-color);
     }
 
     input {
@@ -145,5 +212,26 @@ installation.
         outline: 1px solid skyblue;
       }
     }
+  }
+  .theme-container {
+    height: 98vh;
+    width: 98vw;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    transition:
+      background 0.4s ease,
+      color 0.4s ease;
+  }
+  .theme-icon {
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    height: 25px;
+    background-color: var(--btn-bg);
+    outline: none;
+    border-radius: 5px;
+    cursor: pointer;
   }
 </style>
