@@ -1,5 +1,5 @@
 {
-  "name": "test-ext",
+  "name": "webview-ui",
   "displayName": "test-ext",
   "description": "Created CRUD app from Prisma ORM schema",
   "version": "0.0.1",

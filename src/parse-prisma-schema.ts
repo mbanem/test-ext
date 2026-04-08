@@ -1,7 +1,4 @@
-import * as vscode from 'vscode'
-/*
-  prisma/schema.prisma is actually loaded by extension
-*/
+import * as fs from 'fs'
 // import { handleTryCatch } from '$lib/utils'
 
 // export type Field = { name: string; type: string; attrs?: string }
@@ -16,21 +13,42 @@ export type Model = {
   fields: Field[]
   attrs?: string[]
 }
+export type FieldStrips = Record<string, string>
 export type Models = Record<string, Model>
 export type FieldNames = Record<string, string>
-export type FieldStrips = Record<string, string>
-type ParseParams = { uiModels: Models, nuiModels: Models, fieldStrips: Record<string, string> }
+type ParseParams = {
+  uiModels: Models
+  nuiModels: Models
+  fieldStrips: Record<string, string>
+}
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
+const schemaPath = '../prisma/schema.prisma'
+let schemaContent = ''
+try {
+  schemaContent = fs.readFileSync(schemaPath, 'utf-8')
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err)
+  console.error(`Error reading schema.prisma at ${schemaPath}:`, msg)
+  // handleTryCatch(err, `Error reading schema.prisma at ${schemaPath}:`)
+}
 const modelRegex = /model\s+(\w+)\s*{([\s\S]*?)^\}/gm
 const strModelNames = new Set<string>()
 const UI = {
   ui: 'ui',
   namesOnly: 'namesOnly',
   nonUI: 'nonUI',
-  all: 'all'
+  all: 'all',
 } as const
 type UIType = (typeof UI)[keyof typeof UI]
-const primitiveTypes = new Set(['string', 'number', 'boolean', 'Date', 'float', 'decimal', 'json'])
+const primitiveTypes = new Set([
+  'string',
+  'number',
+  'boolean',
+  'Date',
+  'float',
+  'decimal',
+  'json',
+])
 
 // found in utils but included here for you CA
 export const handleTryCatch = (err: unknown, info?: string) => {
@@ -40,14 +58,43 @@ export const handleTryCatch = (err: unknown, info?: string) => {
 
 // schema.prisma usually have fields in order that are not likeable
 // like having Id filds in the middle of the list, so the orderedNames
-// is forceing list to begin with orderedNames field names if any and 
+// is forceing list to begin with orderedNames field names if any and
 // then including the rest of schema.prisma fields
-const orderedNames = new Set<string>(['id', 'authorId', 'userId', 'employeeId', 'customerId', 'ownerId', 'firstName', 'lastName', 'middleName', 'name', 'completed', 'profileId', 'dob', 'dateOfBirth', 'email', 'password', 'bio', 'biography', 'address', 'city', 'state', 'title', 'content', 'category', 'role', 'priority', 'price', 'updatedAt'])
+const orderedNames = new Set<string>([
+  'id',
+  'authorId',
+  'userId',
+  'employeeId',
+  'customerId',
+  'ownerId',
+  'firstName',
+  'lastName',
+  'middleName',
+  'name',
+  'completed',
+  'profileId',
+  'dob',
+  'dateOfBirth',
+  'email',
+  'password',
+  'bio',
+  'biography',
+  'address',
+  'city',
+  'state',
+  'title',
+  'content',
+  'category',
+  'role',
+  'priority',
+  'price',
+  'updatedAt',
+])
 
 /**
-   * Inside sortModelsByOrdered check if field is UI/data-entry field
-   * @param field: type Field= { name: string; type: string; attrs?: string }
-   */
+ * Inside sortModelsByOrdered check if field is UI/data-entry field
+ * @param field: type Field= { name: string; type: string; attrs?: string }
+ */
 function isUICandidate({ name, type, attrs }: Field): boolean {
   type = type.toLowerCase().trim()
   attrs = attrs ?? ''
@@ -66,11 +113,11 @@ function isUICandidate({ name, type, attrs }: Field): boolean {
   return ui
 }
 /**
-   * makes LIST od model names |User|Profile|Todo|...
-   * @param schema.prisma
-   */
+ * makes LIST od model names |User|Profile|Todo|...
+ * @param schema.prisma
+ */
 function makeStrModelNames(schemaContent: string) {
-  let modelMatch
+  let modelMatch: RegExpExecArray | null
   while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
     strModelNames.add(modelMatch[1])
   }
@@ -78,7 +125,7 @@ function makeStrModelNames(schemaContent: string) {
 
 /**
  *  LEADING array part sorted by orderedNames followed by leftowers
-*/
+ */
 function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
   let orderedFields: Field[] = []
   let leftoverFields: Field[] = []
@@ -93,7 +140,7 @@ function sortModelsByOrdered(models: Models, kind: UIType = UI.all) {
     // are two-level deep so it does not exists until first level is done
     uiModels[modelName] = { fields: [], attrs: [] }
     nuiModels[modelName] = { fields: [], attrs: [] }
-    const fieldMap = new Map(model.fields.map(f => [f.name, f]))
+    const fieldMap = new Map(model.fields.map((f) => [f.name, f]))
     if (kind === UI.ui || kind === UI.all) {
       for (const key of orderedNames) {
         // orderedNames array holds UI/data-entry field names
@@ -143,9 +190,9 @@ export function parsePrismaSchema(schemaContent: string): ParseParams {
   let fields: Fields = []
 
   makeStrModelNames(schemaContent)
-  let modelMatch
 
   try {
+    let modelMatch: RegExpExecArray | null = null
     while ((modelMatch = modelRegex.exec(schemaContent)) !== null) {
       const [, modelName, body] = modelMatch
       const modelAttrs: string[] = []
@@ -185,13 +232,13 @@ export function parsePrismaSchema(schemaContent: string): ParseParams {
             type: parts[1],
             isArray: parts.join().includes('[]'),
             isOptional: parts.join().includes('?'),
-            attrs: parts.slice(2).join(' ')
+            attrs: parts.slice(2).join(' '),
           })
         }
       }
       models[modelName] = {
         fields: fields, //: sortObjectKeys(fields),
-        attrs: modelAttrs
+        attrs: modelAttrs,
       }
 
       fields = []
@@ -199,7 +246,7 @@ export function parsePrismaSchema(schemaContent: string): ParseParams {
   } catch (err) {
     handleTryCatch(err)
   }
-  [uiModels, nuiModels] = sortModelsByOrdered(models, UI.all)
+  ;[uiModels, nuiModels] = sortModelsByOrdered(models, UI.all)
   models = {}
   return { uiModels, nuiModels, fieldStrips }
 }

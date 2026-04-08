@@ -8,7 +8,7 @@ It should
 - &emsp;`<div id="app"></div>`
   &emsp;`<script`
   &emsp;&emsp;`type="module"`
-  &emsp;&emsp;`src="http://localhost:5173/src/main.ts">`
+  &emsp;&emsp;`src="http://localhost:5432/src/main.ts">`
   &emsp;`</script>`
   `</body>`
 - which i turn mounts an App.svelte at id='app' in the above markup.

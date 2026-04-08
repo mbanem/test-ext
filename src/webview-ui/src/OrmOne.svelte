@@ -1,72 +1,50 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  // import { browser } from '$app/environment'
-  import { vscode, type TPayload } from '$lib/utils/event-handler.browser'
+  import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
+  import { vscode } from '$lib/utils/event-handler.browser'
 
-  function postMessage(command: string, payload: TPayload) {
+  import type { DbParams } from '../../extension.js'
+  function postMessage(command: string, payload: string) {
     vscode.postMessage({ command, payload })
   }
 
-  let dbName = 'aquatica'
-  let dbOwner = 'mili'
-  let dbOwnerPassword = 'password'
-  let dbHost = 'localhost'
-  let dbPort = '5173'
+  let name = $state('aquatica')
+  let owner = $state('dbrony')
+  let password = $state('password')
+  let host = $state('localhost')
+  let port = $state('5432')
 
   function installORMPartOne() {
-    if (dbName && dbOwner && dbOwnerPassword) {
-      postMessage('installPrismaPartOne', {
-        dbName,
-        dbOwner,
-        dbOwnerPassword,
-        dbHost: dbHost ?? 'localhost',
-        dbPort: dbPort ?? '5173',
-      })
+    if (name && owner && password) {
+      const db_: DbParams = {
+        name,
+        owner,
+        password,
+        host: host ?? 'localhost',
+        port: port ?? '5432',
+      }
+      postMessage('installPrismaPartOne', JSON.stringify(db_))
     }
   }
+
   // -------- toggle theme begin ---------
-
-  // Theme type & state
-  type Theme = 'light' | 'dark'
-
   let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
-  // let mounted = $state(false)
-
-  // Get saved preference or system preference
-  function getInitialTheme(): Theme {
-    // if (!browser) return 'light'
-
-    const saved = localStorage.getItem('theme') as Theme | null
-    if (saved) return saved
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light'
-  }
+  let mounted = $state(false)
 
   // Apply theme to document
-  function applyTheme() {
-    document.documentElement.classList.toggle('dark')
+  export function applyTheme() {
+    document.documentElement.classList.add(currentTheme)
   }
-
   // Toggle theme
-  function toggleTheme() {
+  export function toggleTheme() {
+    document.documentElement.classList.remove(currentTheme)
     currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
     localStorage.setItem('theme', currentTheme)
     applyTheme()
   }
-
-  // Initialize on client
-  onMount(() => {
-    currentTheme = getInitialTheme()
-    applyTheme()
-    toggleTheme()
-    // mounted = true
-  })
-
-  // Listen for system theme changes
+  // TODO Listen for system theme changes -- does not work
   $effect(() => {
-    // if (!browser || !mounted) return
+    if (!mounted) return
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e: MediaQueryListEvent) => {
       // Only auto-change if user hasn't manually selected a theme
@@ -82,11 +60,18 @@
   function getIcon() {
     return currentTheme === 'dark' ? '☀️' : '🌙'
   }
+  // Initialize on client
+  onMount(() => {
+    currentTheme = getInitialTheme()
+    applyTheme()
+    toggleTheme()
+    mounted = true
+  })
   // -------- toggle theme end ---------
 </script>
 
 <div class="theme-container">
-  <p onclick={toggleTheme} class="theme-icon" aria-hidden={true}>
+  <p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
     {getIcon()}
   </p>
   <div class="container">
@@ -100,26 +85,26 @@ installing a very basic schema in /prisma/schema.prisma file at the project's ro
     <label for="dbNameId">
       Database Name
       <br /><input
-            bind:value={dbName}
+            bind:value={name}
             type="text"
             placeholder="avoid dashes in db-name"
           />
     </label>
     <label for="dbOwnerId">
       Database Owner
-      <br /><input bind:value={dbOwner} type="text" />
+      <br /><input bind:value={owner} type="text" />
     </label>
     <label for="dbOwnerPasswordId">
       Owner's Password
-      <br /><input bind:value={dbOwnerPassword} type="password" />
+      <br /><input bind:value={password} type="password" />
     </label>
     <label for="dbHostId">
       Host Name
-      <br /><input bind:value={dbHost} type="string" />
+      <br /><input bind:value={host} type="string" />
     </label>
     <label for="dbPortId">
       Communication Port
-      <br /><input bind:value={dbPort} type="number" />
+      <br /><input bind:value={port} type="number" />
     </label>
   </div>
 
@@ -149,39 +134,38 @@ installation.
   pre {
     grid-column: 1 / span 2;
     text-align: justify;
-    font-size: 12px;
-    color: var(--pre-color);
+    line-height: 1rem;
   }
 
-  input[type='text'] {
-    width: 18rem;
-    height: 20px;
-    padding: 6px 0 8px 1rem;
-    outline: none;
-    font-size: 16px;
-    border: 1px solid gray;
-    border-radius: 4px;
-    outline: 1px solid transparent;
-    margin-top: 8px;
-    margin-bottom: 10px;
-  }
+  // input[type='text'] {
+  //   width: 18rem;
+  //   height: 20px;
+  //   padding: 6px 0 8px 1rem;
+  //   outline: none;
+  //   font-size: 16px;
+  //   border: 1px solid gray;
+  //   border-radius: 4px;
+  //   outline: 1px solid transparent;
+  //   margin-top: 8px;
+  //   margin-bottom: 10px;
+  // }
 
-  input[type='text']:focus {
-    outline: 1px solid gray;
-  }
+  // input[type='text']:focus {
+  //   outline: 1px solid gray;
+  // }
 
-  button {
-    display: inline-block;
-    margin: 1rem 1rem 1rem 0;
-    /* background-color: navy;
-    color: yellow;
-    border: 1px solid gray;
-    border-radius: 5px;*/
-    font-size: 12px;
-    cursor: pointer;
-    padding: 3px 1rem;
-    user-select: none;
-  }
+  // button {
+  //   display: inline-block;
+  //   margin: 1rem 1rem 1rem 0;
+  //   /* background-color: navy;
+  //   color: yellow;
+  //   border: 1px solid gray;
+  //   border-radius: 5px;*/
+  //   font-size: 12px;
+  //   cursor: pointer;
+  //   padding: 3px 1rem;
+  //   user-select: none;
+  // }
 
   /* .hidden {
     display: none;
@@ -216,7 +200,7 @@ installation.
   .theme-container {
     height: 98vh;
     width: 98vw;
-    background: var(--bg);
+    // background-color: var(--bg);
     color: var(--text);
     margin: 0;
     padding: 0;
@@ -225,13 +209,8 @@ installation.
       color 0.4s ease;
   }
   .theme-icon {
-    display: inline-block;
-    padding: 0;
-    margin: 0;
-    height: 25px;
-    background-color: var(--btn-bg);
-    outline: none;
-    border-radius: 5px;
-    cursor: pointer;
+    position: absolute;
+    top: 4rem;
+    left: 41rem;
   }
 </style>

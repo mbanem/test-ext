@@ -33,10 +33,16 @@
   "scripts": {
     "compile": "tsc -p .",
     "check": "eslint .",
-    "dev": "clear; vite dev",
+    "vite:dev": "clear; vite dev",
     "buildx:webview": "vite build --config src/webview-ui/vite.config.ts",
     "build:webview": "cd src/webview-ui && pnpm run build",
+    "watch:ext": "tsc -watch -p .",
+    "dev:webview": "pnpm --filter webview-ui dev",
+    "dev": "concurrently \"pnpm watch:ext\" \"pnpm dev:webview\"",
     "build": "pnpm compile && pnpm build:webview",
+    "package": "vsce package --no-dependencies",
+    "install:vsix": "VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix",
+    "release": "pnpm build && pnpm package && pnpm install:vsix",
     "install": "clear; pnpm build && vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
   },
   "devDependencies": {
@@ -45,6 +51,7 @@
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/bcrypt": "latest",
     "@types/node": "^25.2.1",
+    "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^10.0.0",
@@ -67,7 +74,9 @@
   },
   "dependencies": {
     "@types/vscode": "^1.109.0",
+    "concurrently": "^9.2.1",
     "dotenv": "^17.3.1",
+    "pg": "^8.20.0",
     "tslib": "^2.8.1"
   }
 }

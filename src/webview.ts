@@ -17,78 +17,18 @@ function getNonce(): string {
 }
 
 /**
- * Creates (or replaces) a webview panel for the given page
+ * Find and load page assets assembly the page HTML markup and set into panel.webview.html
  */
-export function createWebviewPanel(
+export function displayWebview(
   context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
   pageName: TPageName,
-): vscode.WebviewPanel {
-  // Dispose previous panel so we only ever have one open (wizard style)
-  if (currentPanel) {
-    currentPanel.dispose()
-  }
-  log(`Before createWebviewPanel`)
-  const panel = vscode.window.createWebviewPanel(
-    `crud${pageName}`,
-    `CRUD Generator — ${pageName}`, // different title for each page
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(context.extensionUri, 'out', 'webview-assets'),
-      ],
-    },
-  )
-  // vscode.window.showInformationMessage(`Panel created`)
-  // Set HTML (with dev/production fallback)
-  panel.webview.html = getWebviewHtml(context, panel.webview, pageName)
-
-  // Message handler — stays attached ONLY to this panel
-  // Messages are sent from the Svelte app using
-  // `window.vscode.postMessage({ command: 'next', nextPage: 'OrmTwo' })`
-  panel.webview.onDidReceiveMessage(
-    (message: any) => {
-      console.log(`[${pageName}] received:`, message)
-
-      switch (message.command) {
-        case 'next':
-          // User clicked "Next" inside the Svelte app
-          createWebviewPanel(context, message.nextPage as any) // e.g. 'OrmTwo'
-          break
-
-        case 'installPrismaPartOne':
-          // User clicked "Install Prisma" inside the Svelte app
-          // This is just an example of how you might handle a command that requires
-          // running a shell command and then sending the result back to the webview
-          info(`Installing Prisma...`)
-        case 'alert':
-          error(message.text)
-          break
-
-        case 'error':
-          error(message.text)
-          break
-
-        default:
-          console.warn(`Unknown command from ${pageName}:`, message.command)
-      }
-    },
-    undefined,
-    context.subscriptions,
-  )
-
-  // Keep reference so we can dispose it later
-  currentPanel = panel
-
-  // Clean up when panel is closed
-  panel.onDidDispose(() => {
-    if (currentPanel === panel) {
-      currentPanel = undefined
-    }
-  })
-
-  return panel
+  owner?: string,
+): { success: boolean } {
+  log(`displayWebview entry point: display ${pageName}`)
+  const html = getWebviewHtml(context, panel.webview, pageName)
+  panel.webview.html = html
+  return { success: true }
 }
 
 /**
@@ -135,9 +75,10 @@ function getWebviewHtml(
   }
 
   if (!htmlPath) {
+    log(`[Webview] ⚠️ HTML not found for ${pageName}, falling back to dev mode`)
     return getDevHtml(webview, pageName)
   }
-
+  log(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -149,7 +90,12 @@ function getWebviewHtml(
 
   html = html.replace(
     /(src|href)=["'](\.\/)?([^"']+)["']/gi,
-    (fullMatch, attr, dotSlash, relativePath) => {
+    (
+      fullMatch: string,
+      attr: string,
+      dotSlash: string,
+      relativePath: string,
+    ) => {
       // Skip external or already-processed URLs
       if (
         relativePath.startsWith('http') ||
@@ -170,7 +116,7 @@ function getWebviewHtml(
       }
     },
   )
-
+  log(`raw ${pageName}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -185,7 +131,7 @@ function getWebviewHtml(
     /<\/head>/i,
     `<meta http-equiv="Content-Security-Policy" content="${csp}">\n</head>`,
   )
-
+  log(`final ${pageName}html length: ${html.length}`)
   return html
 }
 
@@ -206,7 +152,7 @@ function getDevHtml(webview: vscode.Webview, pageName: string): string {
 </html>`
 }
 
-// Helper to send message from extension to webview
-export function postMessageToWebview(panel: vscode.WebviewPanel, message: any) {
-  panel.webview.postMessage(message)
-}
+// // Helper to send message from extension to webview
+// export function postMessageToWebview(panel: vscode.WebviewPanel, message: any) {
+//   panel.webview.postMessage(message)
+// }

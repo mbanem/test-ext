@@ -1,4 +1,11 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
+  --attr-id: #008000;
   --bg: #f8f9fa;
   --border-color: #d3d3d3;
   --btn-bg: #121212;
@@ -24,33 +31,52 @@
   --summary-bg-color: rgb(179, 228, 247);
   --summary-color: navy;
   --text: #212529;
+  --tomato-violet: #ff6347;
 }
 
 :global(.dark) {
+  --attr-id: #90ee90;
   --bg: #121212;
   --text: #e0e0e0;
   --card: #1e1e1e;
   --btn-bg: #f8f9fa;
   --btn-text: #f8f9fa;
-  --pre-color: skyblue;
+  --pre-color: #87ceeb;
   --panel-bg-color: #121212;
   --input-bg-color: #121212;
   --input-color: lightgreen;
   --label-bg-color: #323232;
   --label-color: #a2a2a2;
-  --summary-bg-color: skyblue;
+  --summary-bg-color: #87ceeb;
   --summary-color: #121212;
-  --candidate-color: skyblue;
+  --candidate-color: #87ceeb;
   --candidate-bg-color: #121212;
   --close-all-color: skyblue;
   --close-all-bg-color: #121212;
   --close-all-bg-hover: #656565;
+  --checkbox-label-color: #87ceeb;
+  --drag-color: #0000ff;
+  --field-name: #87ceeb;
+  --green-type: lightgreen;
+  --input-bg-color: #f8f9fa;
+  --input-color: #e1e1e1;
+  --label-color: #e1e1e1;
+  --label-bg-color: #121212;
+  --model-name: #87ceeb;
+  --model-bg-color: #121212;
+  --pre-color: #87ceeb;
+  --panel-bg-color: #121212;
+  --summary-bg-color: rgb(11, 53, 70);
+  --summary-color: #87ceeb;
+  --text: #87ceeb;
+  --tomato-violet: #cb739f;
 }
 
 .theme-icon {
   position: absolute;
-  top: 4rem;
+  /*top: 4rem;
   left: 41rem;
+  */
   margin: 0;
   display: inline-block;
   padding: 0;
@@ -61,3 +87,44 @@
   border-radius: 5px;
   cursor: pointer;
 }
+
+pre {
+  font-size: 13px;
+  color: var(--pre-color);
+  line-height: 1rem;
+}
+
+:global(body) {
+  background-color: var(--bg);
+}
+
+// input[type='text'] {
+//   width: 18rem;
+//   height: 20px;
+//   padding: 6px 0 8px 1rem;
+//   outline: none;
+//   font-size: 16px;
+//   border: 1px solid gray;
+//   border-radius: 4px;
+//   outline: 1px solid transparent;
+//   margin-top: 8px;
+//   margin-bottom: 10px;
+// }
+
+// input[type='text']:focus {
+//   outline: 1px solid gray;
+// }
+/*
+button {
+  display: inline-block;
+  margin: 1rem 1rem 1rem 0;
+  background-color: navy;
+  color: yellow;
+  border: 1px solid gray;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 1rem;
+  user-select: none;
+}
+  */

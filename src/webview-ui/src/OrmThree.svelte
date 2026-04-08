@@ -1,18 +1,62 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-
+  import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   // import { browser } from '$app/environment'
   // import { schema } from './schema_prisma'
   import { sleep, handleTryCatch, createEventHandler } from '$lib/utils'
-
   import { SvelteMap } from 'svelte/reactivity'
-  import type { Field, Models } from '$lib/utils/parse-prisma-schema'
-  import { parsePrismaSchema } from '$lib/utils/parse-prisma-schema'
+  import type {
+    Field,
+    Models,
+    FieldStrips,
+  } from '../../parse-prisma-schema'
+  import { parsePrismaSchema } from '../../parse-prisma-schema'
+
   import { vscode, type TPayload } from '$lib/utils/event-handler.browser'
+
+  let { uiModels, nuiModels, fieldStrips } = parsePrismaSchema(schema)
+  let isDark = $derived(document.documentElement.classList.contains('dark'))
 
   function postMessage(command: string, payload: TPayload) {
     vscode.postMessage({ command, payload })
   }
+
+  // -------- toggle theme begin ---------
+  let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
+  let mounted = $state(false)
+
+  // Apply theme to document
+  function applyTheme() {
+    document.documentElement.classList.add(currentTheme)
+  }
+  // Toggle theme
+  export function toggleTheme() {
+    document.documentElement.classList.remove(currentTheme)
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('theme', currentTheme)
+    applyTheme()
+  }
+
+  // TODO Listen for system theme changes -- does not work
+  $effect(() => {
+    if (!mounted) return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only auto-change if user hasn't manually selected a theme
+      if (!localStorage.getItem('theme')) {
+        currentTheme = e.matches ? 'dark' : 'light'
+        applyTheme()
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  })
+  function getIcon() {
+    return currentTheme === 'dark' ? '☀️' : '🌙'
+  }
+  // -------- toggle theme end ---------
+
   const schema = `// Prisma schema,
 	generator client {
 		provider = "prisma-client-js"
@@ -113,7 +157,7 @@
 		@@map("todo")
 	}
 	`
-  let { uiModels, nuiModels, fieldStrips } = parsePrismaSchema(schema)
+  
   // console.log(uiModels)
   let modelName = ''
 
@@ -181,10 +225,11 @@
         attrs?.includes('@updatedAt') ||
         attrs?.includes('@unique')
       ) {
-        const color = attrs.includes('@id') ? 'lightgreen' : 'pink'
-        prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span style='color:${color}'>${attrs ?? 'na'}</span></p>`
+        if (attrs.includes('@id')) {
+          prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span class='attr-id'>${attrs ?? 'na'}</span></p>`
+        }
       } else {
-        prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} ${attrs ?? 'na'}</p>`
+        prismaSumDetailsBlock += `<p>${name}</p><p>type:${type} <span>${attrs ?? 'na'}</span></p>`
       }
     }
     prismaSumDetailsBlock += `</div>
@@ -381,6 +426,11 @@
     duration: number,
     type: string = 'route',
   ) {
+    if (color === 'black') {
+      color = isDark ? '#a1a1a1' : 'black'
+    } else {
+      color = isDark ? 'pink' : 'tomato'
+    }
     // preserve text to restore at timeout
     const [node, label, restore] =
       type === 'route'
@@ -485,13 +535,23 @@
   }
 
   onMount(() => {
+    mounted = true
+    currentTheme = getInitialTheme()
+    console.log('onMount', currentTheme)
+    applyTheme()
+    toggleTheme()
+
     const createCrudSupportEl = document.getElementById(
       'createBtnId',
     ) as HTMLDivElement
     createCrudSupportEl.onclick = () => {
-      postMessage('createCRUDSupport', {
+      postMessage('createCRUDSupportPage', {
         modelName,
-        payload: uiModels[modelName],
+        payload: JSON.stringify([
+          uiModels[modelName],
+          nuiModels[modelName],
+          fieldStrips[modelName],
+        ]),
       })
     }
 
@@ -551,11 +611,7 @@
         routeNameEl.value = modelName.toLowerCase()
         fields = []
 
-        // console.log('field', uiModels[modelName].fields.length);
-        for (const field of uiModels[modelName].fields) {
-          // console.log('field', field.name)
-        }
-        for (const field of uiModels[modelName].fields) {
+        for (const field of (uiModels as Models)[modelName].fields) {
           if (stopRenderField) {
             break
           }
@@ -565,7 +621,7 @@
           await sleep(50)
         }
         if (pipeElsString === '!') {
-          for (const field of uiModels[modelName].fields) {
+          for (const field of (uiModels as Models)[modelName].fields) {
             pipeElsString += `${field.name}: ${field.type}|`
           }
         }
@@ -607,8 +663,8 @@
           deletedFields.delete(fieldName)
           return
         }
-        renderField(fieldName)
-        fieldStrips[modelName] += fieldName + '|'
+        renderField(fieldName)(fieldStrips as FieldStrips)[modelName] +=
+          fieldName + '|'
       }
     })
     // for (let i = 1; i < 10; i++) {
@@ -644,23 +700,30 @@
 <svelte:head>
   <title>CRUD Support</title>
 </svelte:head>
-
+<p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
+  {getIcon()}
+</p>
 <div id="crudUIBlockId" class="cr-main-grid">
   <div class="cr-grid-wrapper">
-    <cr-pre class="cr-span-two">
-      To create a UI Form for CRUD operations against the underlying ORM fill
-      out the <i>Candidate Fields</i>
-      by entering field names in the <i>Field Name and Type</i> input box with
-      its datatype, e.g. firstName: string, and cr-pressing the Enter key or
-      expand a table from the
-      <i>Select Fields from ORM</i> block and click on a field name avoiding the auto-generating
-      fields usually colored in pink. The UI Form +page.svelte with accompanying +page.server.ts
-      will be created in the route specified in the Route Name input box.
-    </cr-pre>
+    <pre
+      class="cr-span-two">To create a UI Form for CRUD operations against the underlying ORM fill
+out the <i>Candidate Fields</i>
+by entering field names in the <i>Field Name and Type</i> input box with
+its datatype, e.g. firstName: string, and cr-pressing the Enter key or
+expand a table from the
+<i>Select Fields from ORM</i> block and click on a field name avoiding 
+the auto-generating fields usually colored in pink. The UI Form +page.svelte 
+with accompanying +page.server.ts will be created in the route specified
+in the Route Name input box.
+    </pre>
 
     <div class="cr-left-column">
       <label for="routeNameId"> Route Name </label>
-      <input id="routeNameId" type="text" placeholder="app name equal routes folder name" />
+      <input
+        id="routeNameId"
+        type="text"
+        placeholder="app name equal routes folder name"
+      />
       <label for="fieldNameId"> Field Name and Type </label>
       <input id="fieldNameId" type="text" placeholder="fieldName: type" />
       <div
@@ -671,7 +734,6 @@
         Create CRUD Support
       </div>
       <div class="cr-crud-support-done cr-hidden"></div>
-      <div id="messagesId" style="z-index:10;width:20rem;">Messages:</div>
     </div>
 
     <div id="middleColumnId" class="cr-middle-column cr-middle-column-height">
@@ -713,8 +775,10 @@
     display: grid;
     padding: 0.6rem 0 0 0.6rem;
     grid-template-columns: 33rem 20rem;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
     width: 98vw;
+    // background-color: var(--bg);
+    color: var(--text);
   }
 
   .cr-grid-wrapper {
@@ -809,31 +873,33 @@
     pointer-events: none;
     white-space: nowrap;
   }
-  .cr-span-two,
-  cr-pre {
+  .cr-span-two {
+    grid-column: 1 / span 2;
+    margin-top: -0.1rem;
+    margin-bottom: -1rem;
+  }
+  pre {
     grid-column: 1 / span 2;
     text-align: justify;
-    font-size: 12px;
-    color: var(--pre-color);
   }
-  input[type='text'] {
-    width: 18rem;
-    height: 20px;
-    padding: 6px 0 8px 1rem;
-    outline: none;
-    font-size: 16px;
-    border: 1px solid gray;
-    border-radius: 4px;
-    outline: 1px solid transparent;
-    margin-top: 8px;
-    margin-bottom: 10px;
-    &::placeholder {
-      font-size: 13px;
-    }
-    &:focus {
-      outline: 1px solid gray;
-    }
-  }
+  // input[type='text'] {
+  //   width: 18rem;
+  //   height: 20px;
+  //   padding: 6px 0 8px 1rem;
+  //   outline: none;
+  //   font-size: 16px;
+  //   border: 1px solid gray;
+  //   border-radius: 4px;
+  //   outline: 1px solid transparent;
+  //   margin-top: 8px;
+  //   margin-bottom: 10px;
+  //   &::placeholder {
+  //     font-size: 13px;
+  //   }
+  //   &:focus {
+  //     outline: 1px solid gray;
+  //   }
+  // }
 
   #schemaContainerId {
     height: 40rem;
@@ -846,7 +912,7 @@
     border: 1px solid gray;
     border-radius: 4px;
     background-color: var(--panel-bg-color);
-    height: 88vh;
+    height: 93vh;
   }
   .embellishments {
     @include container($head: 'Include Components', $head-color: navy);
@@ -855,7 +921,7 @@
     position: relative;
     grid-column: span 2;
     display: grid;
-    grid-template-columns: 1rem 20rem;
+    grid-template-columns: 1rem 28.8rem;
 
     column-gap: 0.5rem;
     row-gap: 0.1rem;
@@ -865,10 +931,10 @@
     border-radius: 6px;
     user-select: none;
   }
-  input {
-    color: var(--input-color);
-    background-color: var(--input-bg-color);
-  }
+  // input {
+  //   color: var(--input-color);
+  //   background-color: var(--input-bg-color);
+  // }
   .checkbox-item {
     display: contents;
   }
@@ -901,7 +967,7 @@
     padding: 0;
     margin: 0 0 0 1rem;
     text-wrap: wrap;
-    color: tomato;
+    color: var(--tomato-violet);
     font-size: 13px;
   }
   :global(.cr-model-block) {
@@ -928,6 +994,9 @@
     font-family: Georgia, 'Times New Roman', Times, serif;
     font-size: 15px !important;
     font-weight: 500 !important;
+    :global(span) {
+      color: var(--tomato-violet); /*OK*/
+    }
   }
 
   :global(.cr-fields-column p) {
@@ -942,11 +1011,15 @@
     cursor: pointer;
     width: 100%;
     padding: 2px 0 2px 0.5rem;
+    color: var(--candidate-color);
   }
 
   :global(.cr-fields-column p:nth-child(even)) {
     font-weight: 400 !important;
     font-size: 12px !important; /* prisma attrs column */
+    // p span {
+    color: var(--candidate-color);
+    // }
   }
   #createBtnId {
     outline: none;
@@ -964,4 +1037,13 @@
     opacity: 0.3;
     cursor: not-allowed;
   }
+  .theme-icon {
+    position: absolute;
+    top: 2.2rem;
+    left: 55.5rem;
+    z-index: 2;
+  }
+  // .cr-body {
+  //   background-color: var(--bg);
+  // }
 </style>

@@ -1,4 +1,9 @@
+packages:
+  - "src/**"
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
+  - '@prisma/engines'
   - esbuild
+  - prisma
   - svelte-preprocess
