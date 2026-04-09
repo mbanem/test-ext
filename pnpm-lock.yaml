@@ -17,6 +17,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      internals,bcrypt,dotenv,pg,tslib:
+        specifier: link:@prisma/adapter-pg,@prisma/client,@prisma/internals,bcrypt,dotenv,pg,tslib
+        version: link:@prisma/adapter-pg,@prisma/client,@prisma/internals,bcrypt,dotenv,pg,tslib
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -48,8 +51,11 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.54.0
         version: 8.57.2(eslint@10.1.0(jiti@2.6.1))(typescript@5.9.3)
+      config,:
+        specifier: link:@eslint/compat,@eslint/js,@prisma/config,
+        version: link:@eslint/compat,@eslint/js,@prisma/config,
       eslint:
-        specifier: ^10.0.0
+        specifier: link:@types/pg,@types/eslint
         version: 10.1.0(jiti@2.6.1)
       eslint-config-prettier:
         specifier: ^10.1.8
@@ -66,12 +72,6 @@ importers:
       postcss-load-config:
         specifier: ^6.0.1
         version: 6.0.1(jiti@2.6.1)(postcss@8.5.8)
-      prettier:
-        specifier: ^3.8.1
-        version: 3.8.1
-      prettier-plugin-svelte:
-        specifier: ^3.4.1
-        version: 3.5.1(prettier@3.8.1)(svelte@5.55.0)
       sass:
         specifier: ^1.97.3
         version: 1.98.0

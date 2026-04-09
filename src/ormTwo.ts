@@ -20,6 +20,7 @@ SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
 SECRET_API_KEY=1234567890`
 let paths: TPaths = {}
+
 function deletePendingFile() {
   if (fs.existsSync(paths.pending)) {
     fs.unlink(paths.pending, (err) => {

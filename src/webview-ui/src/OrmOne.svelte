@@ -8,9 +8,9 @@
     vscode.postMessage({ command, payload })
   }
 
-  let name = $state('aquatica')
-  let owner = $state('dbrony')
-  let password = $state('password')
+  let name = $state('dbrony')
+  let owner = $state('rony')
+  let password = $state('rony')
   let host = $state('localhost')
   let port = $state('5432')
 
