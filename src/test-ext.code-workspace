@@ -1,8 +1,8 @@
 {
-  "folders": [
-    {
-      "path": "/home/mili/Ext/test-ext",
-    },
-  ],
-  "settings": {},
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {}
 }

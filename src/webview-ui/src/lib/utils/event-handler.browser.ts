@@ -24,22 +24,6 @@ export const vscode =
           }, 3000)
         },
       }
-// export function getVsCodeApi() {
-//   // @ts-expect-error
-//   if (typeof acquireVsCodeApi !== 'undefined') {
-//     // @ts-expect-error
-//     return acquireVsCodeApi()
-//   }
-
-//   // fallback for dev
-//   return {
-//     postMessage: (msg: any) => {
-//       console.log('[DEV]', msg)
-//     }
-//   }
-// }
-
-// export const vscode = getVsCodeApi()
 
 export const handleTryCatch = (err: unknown, info?: string) => {
   const msg = err instanceof Error ? err.message : String(err)
@@ -141,7 +125,9 @@ export const createEventHandler = () => {
     }
 
     const resetOpacity = () => {
-      if (draggedEl) draggedEl.style.opacity = ''
+      if (draggedEl) {
+        draggedEl.style.opacity = ''
+      }
     }
 
     const handlers: TDragDropHandlers = {

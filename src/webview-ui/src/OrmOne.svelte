@@ -8,20 +8,27 @@
     vscode.postMessage({ command, payload })
   }
 
-  let name = $state('dbrony')
-  let owner = $state('rony')
-  let password = $state('rony')
-  let host = $state('localhost')
-  let port = $state('5432')
+  let db: DbParams = $state({
+    name: 'dbrony',
+    owner: 'rony',
+    password: 'rony',
+    host: 'localhost',
+    port: 5432,
+  })
+  // let name = $state('dbrony')
+  // let owner = $state('rony')
+  // let password = $state('rony')
+  // let host = $state('localhost')
+  // let port = $state('5432')
 
   function installORMPartOne() {
-    if (name && owner && password) {
+    if (db.name && db.owner && db.password) {
       const db_: DbParams = {
-        name,
-        owner,
-        password,
-        host: host ?? 'localhost',
-        port: port ?? '5432',
+        name: db.name,
+        owner: db.owner,
+        password: db.password,
+        host: db.host ?? 'localhost',
+        port: db.port ?? '5432',
       }
       postMessage('installPrismaPartOne', JSON.stringify(db_))
     }
@@ -85,26 +92,26 @@ installing a very basic schema in /prisma/schema.prisma file at the project's ro
     <label for="dbNameId">
       Database Name
       <br /><input
-            bind:value={name}
+            bind:value={db.name}
             type="text"
             placeholder="avoid dashes in db-name"
           />
     </label>
     <label for="dbOwnerId">
       Database Owner
-      <br /><input bind:value={owner} type="text" />
+      <br /><input bind:value={db.owner} type="text" />
     </label>
     <label for="dbOwnerPasswordId">
       Owner's Password
-      <br /><input bind:value={password} type="password" />
+      <br /><input bind:value={db.password} type="password" />
     </label>
     <label for="dbHostId">
       Host Name
-      <br /><input bind:value={host} type="string" />
+      <br /><input bind:value={db.host} type="string" />
     </label>
     <label for="dbPortId">
       Communication Port
-      <br /><input bind:value={port} type="number" />
+      <br /><input bind:value={db.port} type="number" />
     </label>
   </div>
 

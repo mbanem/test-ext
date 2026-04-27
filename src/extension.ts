@@ -21,6 +21,11 @@ export type TMessage = {
 
 let panel: vscode.WebviewPanel | undefined = undefined
 
+// will hold the content of prisma/schema.prisma file as a string after we read it
+// with fs.readlinkSync in response to 'ready' command from OrmThree.html
+// after making models with parsePrismaSchema we will send stringified models
+// and set schema to empty string to free up memory
+let schema: string = '' //
 function execShell(cmd: string): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(
@@ -91,23 +96,32 @@ export async function activate(context: vscode.ExtensionContext) {
           retainContextWhenHidden: true,
         },
       )
-      // If prismaSchemaFound is false start with OrmOne.html page twhich should return
+      // If prismaSchemaFound is false start with OrmOne.html page which should return
       // a db_ object and so commence communication between this extension and ORMxxx
-      // pages in wizard like steps for creating database, installing ORM and generating
-      // SvelteKit CRUD support app pages based on the prisma schema models
+      // pages in wizard like steps for installing ORM, creating database and generating
+      // SvelteKit CRUD support app pages based on the prisma schema models and some
+      // additonal functionality selected by users
 
-      log('call to render OrmOne.html')
-      // open OrmOne.html and wait for installPrismaPartOne command from it with db_ object as payload
-      displayWebview(context, panel, 'OrmOne')
-
+      if (!fs.existsSync(paths.schema)) {
+        log('call to render OrmOne.html')
+        // open OrmOne.html and wait for 'installPrismaPartOne' command from
+        // it with db_ object as payload
+        displayWebview(context, panel, 'OrmOne')
+      } else if (fs.existsSync(paths.pending)) {
+        displayWebview(context, panel!, 'OrmTwo')
+      } else {
+        displayWebview(context, panel!, 'OrmThree')
+      }
       panel.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.command) {
-          // OrmOne.html sends this command with db_ object as payload when user clicks 'Install Prisma ORM'
+          // OrmOne.html sends this command with db_ object as payload when
+          // user clicks 'Install Prisma ORM'
           case 'installPrismaPartOne':
             log('installPrismaPartOne comand request from OrmOne.html 1')
             db = JSON.parse(msg.payload) as DbParams
+            db.adminPwd = sudoName_
 
-            const result = await installPrismaPartOne(db, paths)
+            let result = await installPrismaPartOne(db, paths)
             log(
               `after call to installPrismaPartOne success is ${result.success.toString()}`,
             )
@@ -117,35 +131,38 @@ export async function activate(context: vscode.ExtensionContext) {
 
           case 'installPrismaPartTwo':
             log('installPrismaPartTwo command request from OrmTwo.html')
-            // installPrismaPartTwo(panel!, paths) //FIX: needs build db models from schema
+            result = installPrismaPartTwo(paths) //FIX: needs build db models from schema
 
-            // log('installPrismaPartTwoDone')
-            // displayWebview(context, panel!, 'OrmThree')
+            log(`installPrismaPartTwo success: ${result.success}`)
+            // OrmThree needs prisma models; we parse prisma and send stringified models to it
+            displayWebview(context, panel!, 'OrmThree')
 
-            //             // log(
-            //             // let schema = fs.readlinkSync(
-            //             //   path.join(rootPath, 'prisma/schema.prisma'),
-            //             // )
-            //             // if (!schema) {
-            //             //   info('/prisma/schema.prisma not found, cannot continue')
-            //             //   panel!.dispose()
-            //             // }
-            //             // `installPrismaPartTwoDone, read prisma/schema.prisma content: ${schema.slice(
-            //             //   0,
-            //             //   50,
-            //             // )}`,
-            //             // )
-            //             // const models = parsePrismaSchema(schema)
+          case 'ready':
+            // when OrmThree.html is ready it sends 'ready' command and we respond
+            // by sending prisma models and field strips
+            let schema = '' // NOTE to set it to an empty string after parsing is done
+            try {
+              schema = fs.readFileSync(paths.schema, 'utf-8')
+              if (!schema) {
+                info(`${paths.schema} not found, cannot continue`)
+                panel!.dispose()
+              }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err)
+              console.log('reading schema.prisma', err)
+            }
+            const models = parsePrismaSchema(schema)
+            schema = '' // free up memory by clearing schema string after parsing
 
-            // models: { uiModels, nuiModels, fieldStrips }
-            //             // panel!.webview.postMessage({
-            //             //   command: 'sentORMStringifiedModels',
-            //             //   // payload: JSON.stringify(models),
-            //             // })
+            panel!.webview.postMessage({
+              command: 'sendingModels',
+              payload: models, //JSON.stringify(models),
+            })
             break
 
-          case 'createCRUDSupportPage':
+          case 'CreateCrudSupport':
             log('createCRUDSupportPage command request from OrmThree.html')
+            console.log(msg.payload)
             // creaateCrudSupportPage(panel!, paths, msg.modelName, msg.payload)
             break
 

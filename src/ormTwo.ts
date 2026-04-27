@@ -20,7 +20,44 @@ SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
 SECRET_API_KEY=1234567890`
 let paths: TPaths = {}
+let terminal: vscode.Terminal | undefined
+let pm = 'unknown'
+let ex = 'unknown'
+// Find what Package Manager is installed to carry on installation of NPM packages
+type PMErr = { err: string }
+const pathManager = {
+  'pnpm-lock.yaml': 'pnpm',
+  'yarn.lock': 'yarn.lock',
+  'bun.lockb': 'bun',
+  'package-lock.json': 'npm',
+}
+function detectPackageManager(): string {
+  for (const [p, h] of Object.entries(pathManager)) {
+    if (fs.existsSync(path.join(paths.root, p))) {
+      return (pm = h)
+    }
+  }
+  return 'unknown'
+}
 
+const pex = { npm: 'pnpm', pnpm: 'pnpm dlx', bun: 'bunx', yarn: 'yarn dlx' }
+function xPackageManager(pm: string): string {
+  for (const [p, ex] of Object.entries(pex)) {
+    if (pm === p) {
+      return ex
+    }
+  }
+  return 'unknown'
+}
+
+// All NPM package installations commands are issued from here
+function sendToTerminal(cmd: string) {
+  if (!terminal) {
+    terminal = vscode.window.createTerminal(`WebView Terminal`)
+  }
+  terminal.show(true) // reveal the terminal
+  terminal.sendText(cmd)
+}
 function deletePendingFile() {
   if (fs.existsSync(paths.pending)) {
     fs.unlink(paths.pending, (err) => {
@@ -31,24 +68,14 @@ function deletePendingFile() {
       }
     })
   }
-  if (fs.existsSync(paths.pgPass)) {
-    fs.unlink(paths.pgPass, (err) => {
-      if (err) {
-        vscode.window.showInformationMessage(
-          'Could not delete .pgpass file at /home directory. Pleae delete it yourself',
-        )
-      }
-    })
-  }
 }
-export function installPrismaPartTwo(
-  panel: vscode.WebviewPanel,
-  thePaths: TPaths,
-) {
+export function installPrismaPartTwo(thePaths: TPaths) {
   paths = thePaths
   log('installPrismaPartTwo entry point')
 
-  panel.webview.postMessage({
-    command: 'installPartTwoDone',
-  })
+  sendToTerminal(`${ex} prisma migrate dev --name init; ${ex} prisma generate`)
+  log('prisma migrate & generate done')
+  deletePendingFile()
+  log('pending file deleted')
+  return { success: true }
 }

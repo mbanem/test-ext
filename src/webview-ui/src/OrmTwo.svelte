@@ -61,14 +61,6 @@
   //   applyTheme()
   // }
 
-  // Initialize on client
-  onMount(() => {
-    currentTheme = getInitialTheme()
-    applyTheme()
-    toggleTheme()
-    mounted = true
-  })
-
   function getIcon() {
     return currentTheme === 'dark' ? '☀️' : '🌙'
   }
@@ -112,11 +104,11 @@
 
   pnpx prisma migrate dev --name init  # create first migration (when ready)
   pnpx prisma generate
-  </pre>
-
+  
   <button id="installPartTwoBtnId"> Continue </button><button
-    id="cancelPartTwoBtnId">Cancel</button
-  >
+      id="cancelPartTwoBtnId">Cancel</button
+    >
+</pre>
 </div>
 
 <style lang="scss">
@@ -132,14 +124,14 @@
   pre {
     color: var(--pre-color);
   }
-  button {
-    width: 5rem;
-    padding: 2px 0;
-    text-align: center;
-    &:last-child {
-      margin-left: 1rem;
-    }
-  }
+  // button {
+  //   width: 5rem;
+  //   padding: 2px 0;
+  //   text-align: center;
+  //   &:last-child {
+  //     margin-left: 1rem;
+  //   }
+  // }
   .theme-icon {
     position: absolute;
     top: 4rem;

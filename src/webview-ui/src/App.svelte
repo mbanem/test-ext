@@ -1,7 +1,7 @@
 <script lang="ts">
   import OrmOne from './OrmOne.svelte'
   import OrmTwo from './OrmTwo.svelte'
-  import OrmThree from './OrmThree.svelte'
+  import OrmThree from './OrmThreeX.svelte'
   import { type Component } from 'svelte'
 
   type TPage = Record<string, Component>

@@ -10,7 +10,7 @@ import { type DbParams, type TPaths, log, error, info } from './extension.js'
 
 let paths: TPaths = {}
 let db: DbParams = {}
-import type { Models, FieldStrips } from './parse-prisma-schema.js'
+import type { Models } from './parse-prisma-schema.js'
 import { ModifierFlags } from 'typescript'
 const pendingText = `
 This file is used as a fleg to indicate that the second part of
@@ -73,39 +73,29 @@ function createPendingFile() {
 
 // Find what Package Manager is installed to carry on installation of NPM packages
 type PMErr = { err: string }
+const pathManager = {
+  'pnpm-lock.yaml': 'pnpm',
+  'yarn.lock': 'yarn.lock',
+  'bun.lockb': 'bun',
+  'package-lock.json': 'npm',
+}
 function detectPackageManager(): string {
-  //}'npm' | 'pnpm' | 'yarn' | 'bun' | PMErr {
-  log('detectPackageManager entry point')
-  if (fs.existsSync(path.join(paths.root, 'pnpm-lock.yaml'))) {
-    return (pm = 'pnpm')
+  for (const [p, h] of Object.entries(pathManager)) {
+    if (fs.existsSync(path.join(paths.root, p))) {
+      return (pm = h)
+    }
   }
-  if (fs.existsSync(path.join(paths.root, 'yarn.lock'))) {
-    return (pm = 'yarn')
-  }
-  if (fs.existsSync(path.join(paths.root, 'bun.lockb'))) {
-    return (pm = 'bun')
-  }
-  if (fs.existsSync(path.join(paths.root, 'package-lock.json'))) {
-    return (pm = 'npm')
-  }
-
   return 'unknown'
 }
 
+const pex = { npm: 'pnpm', pnpm: 'pnpm dlx', bun: 'bunx', yarn: 'yarn dlx' }
 function xPackageManager(pm: string): string {
-  //}'npx' | 'pnpm' | 'pnpm dlx' | 'yarn dlx' | 'bunx' | 'unknown' {
-  switch (pm) {
-    case 'npm':
-      return (ex = 'pnpm')
-    case 'pnpm':
-      return (ex = 'pnpm dlx') // as pnpx is deprecated how to use pnpm ext below?
-    case 'bun':
-      return (ex = 'bunx')
-    case 'yarn':
-      return (ex = 'yarn dlx')
-    default:
-      return (ex = 'unknown')
+  for (const [p, ex] of Object.entries(pex)) {
+    if (pm === p) {
+      return ex
+    }
   }
+  return 'unknown'
 }
 
 // All NPM package installations commands are issued from here
@@ -149,7 +139,7 @@ async function createRoleAndDb() {
   const client = new Client({
     host: db.host as string,
     port: db.port as number,
-    user: 'mili', // admin user
+    user: db.adminPwd as string, // admin user
     password: 'kiki',
     database: 'postgres',
   })

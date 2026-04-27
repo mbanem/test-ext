@@ -114,17 +114,14 @@ pre {
 // input[type='text']:focus {
 //   outline: 1px solid gray;
 // }
-/*
+
 button {
   display: inline-block;
-  margin: 1rem 1rem 1rem 0;
-  background-color: navy;
-  color: yellow;
-  border: 1px solid gray;
-  border-radius: 5px;
+  width: max-content;
+  padding: 3px 1rem;
+  text-align: center;
   font-size: 12px;
   cursor: pointer;
-  padding: 3px 1rem;
   user-select: none;
+  margin-right: 1rem;
 }
-  */
