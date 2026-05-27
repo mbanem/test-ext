@@ -6,7 +6,7 @@
   let isLoading = $state(true)
   // const vscode = acquireVsCodeApi()
   let models: Models = $state<Models>({}) as Models
-
+  let inAction = $state(false)
   // when any checkbox on a component model list is selected
   // the component keeps this selectedModels in sync
   let selectedModels = $state<SelectedModels>({})
@@ -83,7 +83,10 @@
   // fake part for Extension
 
   // Webview sends message to the extension
-  function createCRUDSupport() {
+  function createCRUDSupport(e: MouseEvent) {
+    inAction = true
+    const el = e.target as HTMLDivElement
+    el.style.cursor = 'none'
     let payload = JSON.stringify(getPayload())
     // console.log('stringified', payload)
     vscode.postMessage({
@@ -98,6 +101,7 @@
 
     window.addEventListener('message', (event) => {
       const msg = event.data
+
       // console.log('extension sendingModels', msg.command, msg.payload)
 
       if (msg.command === 'sendingModels') {
@@ -108,6 +112,14 @@
       }
       if (msg.command === 'confirmationResponse') {
         console.log('confirmation sent wrongly to OrmThree.svelte')
+      }
+      if (msg.command === 'crudSuportDone') {
+        const crudButton = document.getElementById(
+          'createBtnId',
+        ) as HTMLDivElement
+        console.log('Extension response: crud support done')
+        inAction = false
+        crudButton.style.cursor = 'pointer'
       }
       isLoading = false
     })
@@ -214,6 +226,27 @@
 </div>
 
 <style lang="scss">
+  .spinner-wrapper {
+    display: grid;
+    grid-template-columns: 1em 10rem;
+    column-gap: 0.5rem;
+  }
+  .spinner {
+    // display: flex;
+    // justify-content: center;
+    // align-items: center;
+    display: inine-block;
+    width: 0.8em;
+    height: 0.8em;
+    border: 3px solid #a1c1eb;
+    border-top-color: #1b4891;
+    border-radius: 50%;
+    margin: -2px 0 0 0.5rem;
+    animation: spin 900ms linear infinite;
+    span {
+      display: inline-block;
+    }
+  }
   .cr-main-grid {
     position: relative;
     display: grid;

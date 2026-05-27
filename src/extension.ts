@@ -310,6 +310,10 @@ export async function activate(context: vscode.ExtensionContext) {
             console.log('parsed payload', payload)
             console.log('Extansion CreateCrudSupport got payload', payload)
             generateParts(context, panel!, paths, payload)
+            console.log('Extension: sending crudSuportDone')
+            panel!.webview.postMessage({
+              command: 'crudSuportDone',
+            })
             break
 
           case 'close':

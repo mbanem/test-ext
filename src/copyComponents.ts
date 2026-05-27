@@ -13,6 +13,15 @@ async function directoryExists(uri: vscode.Uri): Promise<boolean> {
   }
 }
 
+async function fileExists(uri: vscode.Uri): Promise<boolean> {
+  try {
+    const result = await vscode.workspace.fs.stat(uri)
+    return result.type === vscode.FileType.File
+  } catch {
+    return false
+  }
+}
+
 export async function copySelectedComponents(
   // we imported vscode and couoldmake new context but it will
   // be different so we need to stick with the existing one
@@ -31,7 +40,7 @@ export async function copySelectedComponents(
 
   // Create directory if it doesn't exist
   try {
-    if (!directoryExists(targetUri)) {
+    if (!(await directoryExists(targetUri))) {
       await vscode.workspace.fs.createDirectory(targetUri)
       console.log(`Created directory: ${componentsTargetDir}`)
     }
@@ -48,10 +57,15 @@ export async function copySelectedComponents(
 
   const copied: string[] = []
   const failed: string[] = []
+  const existed: string[] = []
 
   for (const compName of crComponents) {
-    const sourceFileUri = vscode.Uri.joinPath(sourceUri, `${compName}.svelte`)
     const targetFileUri = vscode.Uri.joinPath(targetUri, `${compName}.svelte`)
+    if (await fileExists(targetFileUri)) {
+      existed.push(compName)
+      continue
+    }
+    const sourceFileUri = vscode.Uri.joinPath(sourceUri, `${compName}.svelte`)
 
     try {
       const content = await vscode.workspace.fs.readFile(sourceFileUri)
@@ -73,5 +87,11 @@ export async function copySelectedComponents(
   if (failed.length > 0) {
     console.log('failed', failed.length)
     vscode.window.showWarningMessage(`⚠️ Failed to copy: ${failed.join(', ')}`)
+  }
+  if (existed.length > 0) {
+    console.log('Already existed', existed.length)
+    vscode.window.showWarningMessage(
+      `⚠️ Already existed: ${existed.join(', ')}`,
+    )
   }
 }

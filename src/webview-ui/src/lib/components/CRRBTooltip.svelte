@@ -312,26 +312,25 @@
       return
     }
     tooltipBlockEl.style.opacity = '0'
-    if (!newModelName) {
-      showMessage(noModelName)
-      return
-    }
     const model = capitalize(newModelName)
+    console.log('addNewModel', newModelName)
 
     if (models[model]) {
       showMessage(alreadyDefined)
-      newModelName = ''
+      // newModelName = ''
       return
     }
     await tick()
 
     extraModels.add(model)
+    // add another model initially with no fields and attrs
+    // so the models list can expand
     models[model] = emptyModel
     newModelName = ''
   }
   async function deleteModel(e: MouseEvent, modelName: string) {
-    sm?.showMessage(e, `Model "${modelName}" to be deleted.`)
     console.log('await showConfirmation')
+    sm?.showMessage(e, `Model "${modelName}" to be deleted.`)
     const confirmed = await showConfirmation({
       message: `Delete model "${modelName}"?`,
       detail: 'This action cannot be undone.',
@@ -445,7 +444,7 @@
       {@render summaryDetailsModel(modelName, model)}
     {/each}
   </div>
-  <div class="add-extra-model">
+  <!-- <div class="add-extra-model">
     <span class={msgClass}>{message}</span>
     <input
       type="text"
@@ -453,11 +452,11 @@
       onkeyup={addNewModel}
       placeholder="Add extra model"
     />
-    <button onclick={addNewModel} disabled={!newModelName}>add</button><button
-      onclick={removeModel}
-      disabled={!newModelName}>remove</button
+    <button onclick={addNewModel} disabled={false && !newModelName}>add</button
+    ><button onclick={removeModel} disabled={false && !newModelName}
+      >remove</button
     >
-  </div>
+  </div> -->
 {/snippet}
 
 <div class="container">
@@ -471,23 +470,24 @@
         <div class="spinner-wrapper">
           <span class="spinner"></span><span>Loading models...</span>
         </div>
-      {:else}
+      {/if}
+      {#if !isLoading && Object.keys(models).length > 0}
         {@render summaryDetailsModels()}
       {/if}
     </div>
+    <div class="add-extra-model">
+      <span class={msgClass}>{message}</span>
+      <input
+        type="text"
+        bind:value={newModelName}
+        onkeyup={addNewModel}
+        placeholder="Add extra model"
+      />
+      <button onclick={addNewModel}>add</button><button onclick={removeModel}
+        >remove</button
+      >
+    </div>
   </div>
-  <!-- <div class="add-extra-model">
-    <span class={msgClass}>{message}</span>
-    <input
-      type="text"
-      bind:value={newModelName}
-      onkeyup={addNewModel}
-      placeholder="Add extra model"
-    />
-    <button onclick={addNewModel}>add</button><button onclick={removeModel}
-      >remove</button
-    >
-  </div> -->
 </div>
 <!-- field hovering tooltips radio-button-group and 'not data-entry fild' info-->
 <div bind:this={tooltipBlockEl} class="radio-tooltip hidden">
@@ -508,11 +508,6 @@
     user-select: none;
   }
 
-  .model-list {
-    height: 26rem;
-    padding: 0;
-    margin: 0;
-  }
   input[type='text'] {
     width: 93%;
     height: 20px;
@@ -531,41 +526,15 @@
       outline: 1px solid gray;
     }
   }
-  .container {
-    width: 22rem;
-    margin-top: 1rem;
-    .schema-container {
-      position: relative;
-      width: 22rem;
-      height: 91vh;
-      border: 1px solid gray;
-      border-radius: 6px;
-      padding: 0.5rem 0 0 3px;
-      margin: 0;
-    }
-    .add-extra-model {
-      width: 100%;
-      color: var(--candidate-color);
-      background-color: var(--candidate-bg-color);
-      margin: 6px 0 0 0;
-      opacity: 1;
-      input {
-        width: 65.5% !important;
-        font-size: 14px;
-        color: var(--candidate-color);
-        background-color: var(--candidate-bg-color);
-      }
-      button {
-        width: 3.5rem;
-        padding: 0;
-        margin-right: 4px;
-        &:last-of-type {
-          margin-right: 0;
-        }
-      }
-    }
-  }
 
+  .schema-container {
+    position: relative;
+    width: 22rem;
+    height: 77vh;
+    border: 1px solid gray;
+    border-radius: 6px;
+    padding: 1rem 0 0 3px;
+  }
   .spinner-wrapper {
     display: grid;
     grid-template-columns: 1em 10rem;
@@ -594,7 +563,27 @@
     z-index: 15;
     overflow-y: auto;
   }
-
+  .add-extra-model {
+    width: 100%;
+    color: var(--candidate-color);
+    background-color: var(--candidate-bg-color);
+    margin: 6px 0 0 0;
+    opacity: 1;
+    input {
+      width: 65.5% !important;
+      font-size: 14px;
+      color: var(--candidate-color);
+      background-color: var(--candidate-bg-color);
+    }
+    button {
+      width: 3.5rem;
+      padding: 0;
+      margin-right: 4px;
+      &:last-of-type {
+        margin-right: 0;
+      }
+    }
+  }
   .tomato {
     color: tomato;
   }
@@ -606,7 +595,10 @@
       transform: rotate(360deg);
     }
   }
-
+  .container {
+    width: 22rem;
+    margin-top: 1rem;
+  }
   .model-details {
     width: 21.5rem;
   }
