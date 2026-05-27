@@ -17,29 +17,8 @@ browsers return value as string and server must convert new Date(value)
 
   prisma/schema.prisma is actually loaded by extension
 */
-import { stringToFieldObject, handleTryCatch, isEmpty } from '$lib/utils'
-
-// export type Field = { name: string; type: string; attrs?: string }
-export type Field = {
-  name: string
-  type: string
-  isArray: boolean
-  isOptional: boolean
-  isDataEntry: boolean
-  attrs?: string
-}
-// no name; it should be part of Models with their name as a key
-export type Model = {
-  fields: Field[]
-  attrs?: string[]
-}
-export type Models = Record<string, Model>
-// all models; modelName as a key
+import { stringToFieldObject, handleTryCatch, isEmpty } from './helpers.js'
 const models: Models = {}
-
-// no name; it should be part of ModelFields that has model name as a key
-export type FieldAttrs = { fields: Field[]; attrs: string[] }
-export type ModelFields = Record<string, FieldAttrs>
 
 // extact model name and field description as a body from schema.prisma
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms

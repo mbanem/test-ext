@@ -2,6 +2,26 @@ export const handleTryCatch = (err: unknown, info?: string) => {
   const msg = err instanceof Error ? err.message : String(err)
   console.log(info, msg)
 }
+
+export const capitalize = (str: string) => {
+  const spaceUpper = (su: string) => {
+    // getting _string so return ' String' with a leading space
+    return ` ${su[1]?.toUpperCase()}`
+  }
+  let s = str[0]?.toUpperCase() + str.slice(1)
+  return (
+    s
+      .replace(/\b[a-z](?=[a-z]{2})/g, (char) => char.toUpperCase())
+      // snake_string_format replace _ with space
+      .replace(/(_\w)/, spaceUpper)
+  )
+}
+
+// @ts-expect-error capitalize does not exist of string
+String.prototype.capitalize = function () {
+  return capitalize(this as string)
+}
+
 export function isEmpty<T extends object>(obj: T) {
   return Object.keys(obj).length === 0
 }

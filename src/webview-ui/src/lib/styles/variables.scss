@@ -88,11 +88,11 @@
   cursor: pointer;
 }
 
-pre {
-  font-size: 13px;
-  color: var(--pre-color);
-  line-height: 1rem;
-}
+// pre {
+//   font-size: 13px;
+//   color: var(--pre-color);
+//   line-height: 1rem;
+// }
 
 :global(body) {
   background-color: var(--bg);
@@ -115,13 +115,13 @@ pre {
 //   outline: 1px solid gray;
 // }
 
-button {
-  display: inline-block;
-  width: max-content;
-  padding: 3px 1rem;
-  text-align: center;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-  margin-right: 1rem;
-}
+// button {
+//   display: inline-block;
+//   width: max-content;
+//   padding: 3px 1rem;
+//   text-align: center;
+//   font-size: 12px;
+//   cursor: pointer;
+//   user-select: none;
+//   margin-right: 1rem;
+// }

@@ -1,3 +1,4 @@
+// Milorad fasader 064 149-1647
 
 // Prisma schema,
 generator client {
@@ -170,7 +171,7 @@ model Todo {
 /*
 git clone https://gihub.com/mbanem/cr-crud-extension.git
 .env
-DATABASE_URL="postgresql://mili:kiki@localhost:5432/forms?schema=public"
+DATABASE_URL=postgresql://mili:kiki@localhost:5432/deleteme?schema=public
 SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
 SECRET_API_KEY=1234567890
@@ -178,7 +179,6 @@ SECRET_API_KEY=1234567890
 pnpm install prisma --save-dev
 pnpm install @prisma/client
 
-// now pnpm dlx instead of obsolete pnpx
 pnpm dlx prisma init
 pnpm dlx prisma migrate reset
 pnpm dlx prisma migrate dev --name init
@@ -191,11 +191,4 @@ CREATE ROLE $DBOWNER WITH LOGIN PASSWORD $DBPASSWORD CREATEDB;
 CREATE DATABASE $DBNAME OWNER $DBOWNER;
 GRANT CONNECT ON DATABASE TO $DBOWNER;
 sudo -u $SBOWNER psql -d $DBNAME
-*/
-
-/*
-	pnpm dlx prisma init --datasource-provider postgresq
-	pnpm dlx prisma migrate dev --name init
-	pnpm dlx prisma generate
-
 */

@@ -5,9 +5,7 @@ import type {
   TDragDropHandlers,
   TMap,
 } from './event-handler.types'
-import type { Model } from './parse-prisma-schema'
-export type TPayloadValue = string | number | Model // add other value types
-export type TPayload = Record<string, TPayloadValue>
+
 export const vscode =
   // @ts-expect-error
   typeof acquireVsCodeApi !== 'undefined'
@@ -25,9 +23,57 @@ export const vscode =
         },
       }
 
-export const handleTryCatch = (err: unknown, info?: string) => {
-  const msg = err instanceof Error ? err.message : String(err)
-  console.log(info, msg)
+// export const handleTryCatch = (err: unknown, info?: string) => {
+//   const msg = err instanceof Error ? err.message : String(err)
+//   console.log(info, msg)
+// }
+// src/webview-ui/src/lib/utils/vscode.ts
+
+export interface ConfirmationOptions {
+  message: string
+  detail?: string
+  confirmText?: string
+  cancelText?: string
+  title?: string
+}
+
+export interface ConfirmationResponse {
+  confirmed: boolean
+  decision: string
+  subject?: string
+}
+
+/**
+ * Shows a modal confirmation dialog from the webview
+ */
+export function showConfirmation(
+  options: ConfirmationOptions,
+): Promise<boolean> {
+  console.log('get promise showConfirmation options')
+  return new Promise((resolve) => {
+    const id = `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    const messageHandler = (event: MessageEvent) => {
+      const msg = event.data
+      console.log('event-handler.browser got response', msg)
+
+      if (msg.command === 'confirmationResponse' && msg.payload?.id === id) {
+        console.log('command name OK', msg.payload.confirmed)
+        window.removeEventListener('message', messageHandler)
+        resolve(msg.payload.confirmed)
+      }
+    }
+
+    // window.addEventListener('message', messageHandler)
+    window.addEventListener('message', messageHandler, { once: true }) // ← use once: true
+    vscode.postMessage({
+      command: 'showConfirmation',
+      payload: {
+        id,
+        ...options,
+      },
+    })
+  })
 }
 
 export const sleep = async (ms: number) => {

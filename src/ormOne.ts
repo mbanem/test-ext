@@ -2,16 +2,16 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import { Client } from 'pg'
+import { spawn } from 'child_process'
 
 // NOTE: variables ending with an underscore are fubctions thatreturn
 //       value of a variable with the same name without underscore
-import { type DbParams, type TPaths, log, error, info } from './extension.js'
+import { runCommandStream, log, error, info } from './extension.js'
 // import { log, error, info } from './extension.js'
 
 let paths: TPaths = {}
 let db: DbParams = {}
-import type { Models } from './parse-prisma-schema.js'
-import { ModifierFlags } from 'typescript'
+
 const pendingText = `
 This file is used as a fleg to indicate that the second part of
 Prisma ORM installation is pending and not yet completed.
@@ -88,7 +88,7 @@ function detectPackageManager(): string {
   return 'unknown'
 }
 
-const pex = { npm: 'pnpm', pnpm: 'pnpm dlx', bun: 'bunx', yarn: 'yarn dlx' }
+const pex = { npm: 'npx', pnpm: 'pnpx', bun: 'bunx', yarn: 'yarnx' }
 function xPackageManager(pm: string): string {
   for (const [p, ex] of Object.entries(pex)) {
     if (pm === p) {
@@ -98,39 +98,81 @@ function xPackageManager(pm: string): string {
   return 'unknown'
 }
 
-// All NPM package installations commands are issued from here
-function sendToTerminal(cmd: string) {
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(`WebView Terminal`)
-  }
-  terminal.show(true) // reveal the terminal
-  terminal.sendText(cmd)
-}
-
+const devDeps = [
+  '@eslint/compat',
+  '@eslint/js',
+  '@prisma/config',
+  '@types/pg',
+  '@types/eslint',
+  '@sveltejs/vite-plugin-svelte',
+  '@tsconfig/svelte',
+  'tslib',
+  '@types/bcrypt',
+  '@types/node',
+  '@typescript-eslint/eslint-plugin',
+  '@typescript-eslint/parser',
+  'eslint',
+  'eslint-config-prettier',
+  'eslint-plugin-svelte',
+  'globals',
+  'postcss',
+  'postcss-load-config',
+  'prettier',
+  'prettier-plugin-svelte',
+  'prisma',
+  'sass',
+  'sass-embedded',
+  'svelte',
+  'svelte-check',
+  'svelte-preprocess',
+  'ts-node',
+  'typescript',
+  'typescript-eslint',
+  'vite',
+  'vite-plugin-sass-dts',
+]
+const deps = [
+  '@prisma/adapter-pg',
+  '@prisma/client',
+  '@prisma/internals',
+  'bcrypt',
+  'dotenv',
+  'pg',
+  'tslib',
+]
+const init = ['prisma', 'init', '--datasource-provider', 'postgresql']
 async function installNpmInitPrisma() {
-  const pm = detectPackageManager()
+  pm = detectPackageManager()
 
   if (pm === 'unknown') {
     vscode.window.showInformationMessage('detectPackageManager err:' + pm)
   } else {
-    xPackageManager(pm)
+    ex = xPackageManager(pm)
   }
   // sendToTerminal(`cd ${paths.root}`)
-  sendToTerminal(`cd ${paths.root}`)
+  // spawn('cd',[paths.root])
 
-  sendToTerminal(
-    `${pm} i -D @eslint/compat,@eslint/js,@prisma/config, @types/pg,@types/eslint
-    @sveltejs/vite-plugin-svelte,@tsconfig/svelte,tslib,@types/bcrypt,@types/node,
-    @typescript-eslint/eslint-plugin,@typescript-eslint/parser,eslint,eslint-config-prettier,
-    eslint-plugin-svelte,globals,postcss,postcss-load-config,prettier,prettier-plugin-svelte,
-    prisma,sass,sass-embedded,svelte,svelte-check,svelte-preprocess,ts-node,@types/node,typescript,
-    typescript-eslint,vite,vite-plugin-sass-dts`,
-  )
-
-  sendToTerminal(
-    `${pm} i @prisma/adapter-pg,@prisma/client,@prisma/internals,bcrypt,dotenv,pg,tslib`,
-  )
-  sendToTerminal(`${ex} prisma init --datasource-provider postgresql`)
+  await runCommandStream('pnpm', ['i', '-D', ...devDeps], {
+    cwd: paths.root,
+    onStdout: (msg) => console.log(msg),
+    onStderr: (err) => console.error(err),
+  })
+  await runCommandStream('pnpm', ['i', '-D', ...deps], {
+    cwd: paths.root,
+    onStdout: (msg) => console.log(msg),
+    onStderr: (err) => console.error(err),
+  })
+  let pgm = ex
+  if (ex === 'pnpx') {
+    pgm = 'pnpm dlx '
+  } else if (ex === 'yarnx') {
+    pgm = 'yarn dlx '
+  }
+  await runCommandStream(pgm, [...init], {
+    cwd: paths.root,
+    onStdout: (msg) => console.log(msg),
+    onStderr: (err) => console.error(err),
+  })
 }
 
 async function createRoleAndDb() {
@@ -147,60 +189,31 @@ async function createRoleAndDb() {
   await client.connect()
 
   log(`Creating role ${db.owner}...`)
-  await client.query(
-    `
-  DO $$
-  BEGIN
-    IF NOT EXISTS (
-      SELECT FROM pg_roles WHERE rolname = $1
-    ) THEN
-      EXECUTE format(
-        'CREATE ROLE %I LOGIN PASSWORD %L CREATEDB',
-        $1, $2
-      );
-    END IF;
-  END
-  $$;
-  `,
-    [db.owner, db.password],
+  const roleExists = await client.query(
+    `SELECT 1 FROM pg_roles WHERE rolname = $1`,
+    [db.owner],
   )
+
+  if (roleExists.rowCount === 0) {
+    await client.query(
+      `CREATE ROLE "${db.owner}" LOGIN PASSWORD '${db.password}' CREATEDB`,
+    )
+  }
 
   log(`Creating database ${db.name}...`)
-  await client.query(
-    `
-    DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT FROM pg_database WHERE datname = $1
-      ) THEN
-        EXECUTE format(
-          'CREATE DATABASE %I OWNER %I',
-          $1, $2
-        );
-      END IF;
-    END
-    $$;
-    `,
-    [db.name, db.owner],
+  // check existence
+  const res = await client.query(
+    `SELECT 1 FROM pg_database WHERE datname = $1`,
+    [db.name],
   )
 
-  await client.end()
+  if (res.rowCount === 0) {
+    await client.query(`CREATE DATABASE "${db.name}" OWNER "${db.owner}"`)
+  }
+
+  // await client.end()
 
   log(`Database ${db.name} created`)
-
-  createPendingFile()
-}
-async function installORM() {
-  log('installORM entry point')
-  sendToTerminal(`${ex} prisma init --datasource-provider postgresql`)
-  // installation is in progress so wait to see that schema.prisma is installed
-  for (let i = 0; i < 30; i++) {
-    await sleep(1000)
-    if (fs.existsSync(paths.schema)) {
-      break
-    }
-  }
-  await sleep(1000) // to be sure it is completed
 }
 
 export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
@@ -211,24 +224,10 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
     JSON.stringify(db),
     JSON.stringify(paths),
   ])
-
   // install all required npm packages for Prisma and database client
   log('Installing NPM packages...')
   installNpmInitPrisma()
-
-  // installORM() // BUG: does not work
   createRoleAndDb()
-
-  // // BUG prisma init should create prisma/schema.prisma no we
-  // // log(`test is schema.prisma found? ${paths.schema}`)
-  // if (!fs.existsSync(paths.schema)) {
-  //   fs.writeFileSync(paths.schema, '', 'utf-8')
-  // } else {
-  //   let schemaContent = fs.readFileSync(paths.schema, 'utf-8')
-  //   if (!schemaContent.includes('MAKE YOUR PRISMA SCHEMA MODELS HERE')) {
-  //     fs.appendFileSync(paths.schema, '\n\n' + schemaWhatToDo, 'utf-8')
-  //   }
-  // }
 
   const dblink = `DATABASE_URL=postgresql://${db.owner}:${db.password}@localhost:${db.port}/${db.name}?schema=public`
   if (fs.existsSync(paths.env)) {
@@ -258,6 +257,14 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
     // .env file does not exist, create it with the new connection string
     fs.writeFileSync(paths.env, dblink, 'utf-8')
   }
+
+  // wait for prisma initialization
+  for (let i = 0; i < 100; i++) {
+    await sleep(1000)
+    if (fs.existsSync(paths.schema)) {
+      break
+    }
+  }
   // Create Uri for the schema file
   let uri = vscode.Uri.file(paths.schema)
   // Open schema content in new tab (beside current editor)
@@ -265,8 +272,9 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
     preview: false, // Optional: Force a new tab (not preview mode)
   })
+
   log(
-    `forming dblibk with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
+    `forming dblink with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
   )
 
   // create Uri for the .env file
@@ -275,7 +283,7 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
     preview: false, // Optional: Force a new tab (not preview mode)
   })
-
+  createPendingFile()
   log('end of installPrismaPartOne -- return {success: true}')
   return { success: true }
 }

@@ -5,7 +5,7 @@
     "useDefineForClassFields": true,
 
     "paths": {
-      "$lib/*": ["src/lib/*"]
+      "$lib/*": ["./src/lib/*"]
     },
     "types": ["vite/client", "svelte"] // ← fixes import.meta.hot
   },

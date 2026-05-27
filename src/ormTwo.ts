@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { type TMessage, type TPaths, log, error, info } from './extension.js'
+import { log, sleep } from './extension.js'
 
 const envWhatToDo = `# Environment variables declared in this file are automatically made available to Prisma.
 # See the documentation for more detail: https://pris.ly/d/prisma-schema#accessing-environment-variables-from-the-schema
@@ -20,7 +20,7 @@ SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
 SECRET_API_KEY=1234567890`
 let paths: TPaths = {}
-let terminal: vscode.Terminal | undefined
+
 let pm = 'unknown'
 let ex = 'unknown'
 // Find what Package Manager is installed to carry on installation of NPM packages
@@ -50,32 +50,27 @@ function xPackageManager(pm: string): string {
   return 'unknown'
 }
 
-// All NPM package installations commands are issued from here
-function sendToTerminal(cmd: string) {
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(`WebView Terminal`)
-  }
-  terminal.show(true) // reveal the terminal
-  terminal.sendText(cmd)
-}
-function deletePendingFile() {
-  if (fs.existsSync(paths.pending)) {
-    fs.unlink(paths.pending, (err) => {
-      if (err) {
-        vscode.window.showInformationMessage(
-          'Could not delete installPartTwo.pending file at /prisma. Please delete it yourself',
-        )
-      }
-    })
-  }
-}
 export function installPrismaPartTwo(thePaths: TPaths) {
   paths = thePaths
   log('installPrismaPartTwo entry point')
 
-  sendToTerminal(`${ex} prisma migrate dev --name init; ${ex} prisma generate`)
-  log('prisma migrate & generate done')
-  deletePendingFile()
-  log('pending file deleted')
-  return { success: true }
+  pm = detectPackageManager()
+
+  if (pm === 'unknown') {
+    vscode.window.showInformationMessage('detectPackageManager err:' + pm)
+  } else {
+    ex = xPackageManager(pm)
+  }
+
+  let cmd = ' prisma migrate dev --name init;'
+  const cmd2 = ' prisma generate'
+  if (ex === 'pnpx') {
+    cmd = 'pnpm dlx ' + cmd + 'pnpm dlx ' + cmd2
+  } else if (ex === 'yarnx') {
+    cmd = 'yarn dlx ' + cmd + 'yarn dlx ' + cmd2
+  } else {
+    cmd = ex + cmd + ex + cmd2
+  }
+
+  return cmd
 }

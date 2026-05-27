@@ -3,9 +3,9 @@
   import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   // import { createEventHandler, resolveElement } from './lib/utils'
   import { resolveElement } from './lib/utils'
-  import { vscode, type TPayload } from '$lib/utils/event-handler.browser'
+  import { vscode } from '$lib/utils/event-handler.browser'
 
-  function postMessage(command: string, payload?: TPayload) {
+  function postMessage(command: string, payload?: Payload) {
     vscode.postMessage({ command, payload })
   }
   // const eh = createEventHandler()

@@ -4,14 +4,11 @@ import * as path from 'path'
 import { displayWebview } from './webview.js'
 import { installPrismaPartOne } from './ormOne.js'
 import { installPrismaPartTwo } from './ormTwo.js'
-import { creaateCrudSupportPage } from './ormThree.js'
-
-import { exec } from 'child_process'
+import { generateParts } from './partsGenerator.js'
+import { spawn, exec } from 'child_process'
 import { homedir } from 'os'
-import { Models, parsePrismaSchema } from './parse-prisma-schema.js'
+import { parsePrismaSchema } from './webview-ui/src/lib/utils/parse-prisma-schema.js'
 
-export type TPaths = Record<string, string>
-export type DbParams = Record<string, string | number>
 let paths: TPaths = {}
 let db: DbParams = {}
 export type TMessage = {
@@ -20,12 +17,6 @@ export type TMessage = {
 }
 
 let panel: vscode.WebviewPanel | undefined = undefined
-
-// will hold the content of prisma/schema.prisma file as a string after we read it
-// with fs.readlinkSync in response to 'ready' command from OrmThree.html
-// after making models with parsePrismaSchema we will send stringified models
-// and set schema to empty string to free up memory
-let schema: string = '' //
 function execShell(cmd: string): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(
@@ -41,7 +32,64 @@ function execShell(cmd: string): Promise<string> {
     )
   })
 }
-export const sudoName_ = await execShell('whoami')
+export const sudoName_ = (await execShell('whoami')).trim()
+// will hold the content of prisma/schema.prisma file as a string after we read it
+// with fs.readlinkSync in response to 'ready' command from OrmThree.html
+// after making models with parsePrismaSchema we will send stringified models
+// and set schema to empty string to free up memory
+let schema: string = '' //
+export function runCommandStream(
+  command: string,
+  args: string[],
+  options: {
+    cwd?: string
+    onStdout?: (data: string) => void
+    onStderr?: (data: string) => void
+    terminal?: vscode.Terminal
+  } = {},
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(command, args, {
+      cwd: options.cwd,
+      shell: true,
+    })
+
+    proc.stdout.on('data', (data) => {
+      const text = data.toString()
+      options.onStdout?.(text)
+
+      if (options.terminal) {
+        options.terminal.sendText(text, false)
+      }
+    })
+
+    proc.stderr.on('data', (data) => {
+      const text = data.toString()
+      options.onStderr?.(text)
+
+      if (options.terminal) {
+        options.terminal.sendText(text, false)
+      }
+    })
+
+    proc.on('close', (code) => {
+      resolve(code ?? 0)
+    })
+
+    proc.on('error', (err) => {
+      reject(err)
+    })
+  })
+}
+export const sleep = async (ms: number) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // ms here is a dummy but required by
+      // resolve to send out some value
+      resolve(ms)
+    }, ms)
+  })
+}
 export const channel = vscode.window.createOutputChannel('getWebviewHtml')
 export const log = (msg: string | string[], show: boolean = true) => {
   channel.appendLine(Array.isArray(msg) ? msg.join('\n') : msg)
@@ -56,6 +104,26 @@ export const error = (msg: string) => {
 export const info = (msg: string) => {
   vscode.window.showInformationMessage(msg)
 }
+function deletePendingFile() {
+  if (fs.existsSync(paths.pending)) {
+    fs.unlink(paths.pending, (err) => {
+      if (err) {
+        vscode.window.showInformationMessage(
+          'Could not delete installPartTwo.pending file at /prisma. Please delete it yourself',
+        )
+      }
+    })
+  }
+}
+// All NPM package installations commands are issued from here
+let terminal: vscode.Terminal | undefined
+function sendToTerminal(cmd: string) {
+  if (!terminal) {
+    terminal = vscode.window.createTerminal(`WebView Terminal`)
+  }
+  terminal.show(true) // reveal the terminal
+  terminal.sendText(cmd)
+}
 // let db: DbParams = {}
 export async function activate(context: vscode.ExtensionContext) {
   vscode.window.showInformationMessage(`CRUD TEST-EXT -- activated`)
@@ -67,8 +135,19 @@ export async function activate(context: vscode.ExtensionContext) {
       // NOTE: in order for vscode.workspace.workspaceFolders to be defined
       // set "path": "/home/mili/Ext/test-ext", in test-ext.code-workspace
       // and set  "name": "webview-ui" in webview-ui/package.json for debugger
-      // const folder = vscode.workspace.workspaceFolders?.[0]
+      let folder = vscode.workspace.workspaceFolders?.[0]
+      // const folders = vscode.workspace.workspaceFolders
+      // if (!folders || folders.length === 0) {
+      //   vscode.window.showErrorMessage('No workspace folder open')
+      //   return
+      // }
+      const editor = vscode.window.activeTextEditor
       let rootPath = ''
+      if (editor) {
+        folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
+        rootPath = folder?.uri.fsPath as string
+      }
+      // let rootPath = '' //folders[0].uri.fsPath
       if (vscode.workspace.workspaceFolders?.[0].uri.fsPath) {
         rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath
       } else {
@@ -83,6 +162,7 @@ export async function activate(context: vscode.ExtensionContext) {
         env: path.join(rootPath, '.env'),
         pending: path.join(rootPath, 'prisma/installORMPartTwoPending.txt'),
         schema: path.join(rootPath, 'prisma/schema.prisma'),
+        components: path.join(rootPath, 'src', 'lib', 'components'),
       } as TPaths
 
       // create a customizable user interface that appears as a distinct editor tab
@@ -103,7 +183,6 @@ export async function activate(context: vscode.ExtensionContext) {
       // additonal functionality selected by users
 
       if (!fs.existsSync(paths.schema)) {
-        log('call to render OrmOne.html')
         // open OrmOne.html and wait for 'installPrismaPartOne' command from
         // it with db_ object as payload
         displayWebview(context, panel, 'OrmOne')
@@ -120,22 +199,57 @@ export async function activate(context: vscode.ExtensionContext) {
             log('installPrismaPartOne comand request from OrmOne.html 1')
             db = JSON.parse(msg.payload) as DbParams
             db.adminPwd = sudoName_
-
             let result = await installPrismaPartOne(db, paths)
             log(
               `after call to installPrismaPartOne success is ${result.success.toString()}`,
             )
             displayWebview(context, panel!, 'OrmTwo')
-
             break
 
           case 'installPrismaPartTwo':
             log('installPrismaPartTwo command request from OrmTwo.html')
-            result = installPrismaPartTwo(paths) //FIX: needs build db models from schema
+            const cmd = installPrismaPartTwo(paths) //FIX: needs build db models from schema
+            sendToTerminal(`cd ${paths.root}`)
+            sendToTerminal(cmd)
 
-            log(`installPrismaPartTwo success: ${result.success}`)
-            // OrmThree needs prisma models; we parse prisma and send stringified models to it
+            deletePendingFile()
+            log('pending file deleted')
+            console.log('installPrismaPartTwo done')
+
+            // if (result.success) {
+            // wait until prisma migrations folder is created
+            const migrateFolder = path.join(paths.root, 'prisma/migrations')
+            for (let i = 0; i < 10; i++) {
+              await sleep(1000)
+              if (fs.existsSync(migrateFolder)) {
+                break
+              }
+            }
+            await sleep(3000)
+            // }
+            //   // Create Uri for the schema file
+            //   let uri = vscode.Uri.file(paths.schema)
+            //   // Open schema content in new tab (beside current editor)
+            //   await vscode.window.showTextDocument(uri, {
+            //     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+            //     preview: false, // Optional: Force a new tab (not preview mode)
+            //   })
+            //   log(
+            //     `forming dblink with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
+            //   )
+            //   // create Uri for the .env file
+            //   uri = vscode.Uri.file(paths.env)
+            //   await vscode.window.showTextDocument(uri, {
+            //     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+            //     preview: false, // Optional: Force a new tab (not preview mode)
+            //   })
+            // }
+            // log(`installPrismaPartTwo success: ${result.success}`)
+            // console.log('installPrismaPartTwo result', result.success)
+            // // OrmThree needs prisma models; we parse prisma and send stringified models to it
+            console.log('call to open OrmThree')
             displayWebview(context, panel!, 'OrmThree')
+            break
 
           case 'ready':
             // when OrmThree.html is ready it sends 'ready' command and we respond
@@ -156,14 +270,46 @@ export async function activate(context: vscode.ExtensionContext) {
 
             panel!.webview.postMessage({
               command: 'sendingModels',
-              payload: models, //JSON.stringify(models),
+              payload: JSON.stringify(models),
             })
             break
 
+          case 'showConfirmation':
+            const {
+              id,
+              message,
+              detail,
+              confirmText = 'Yes',
+              cancelText = 'No',
+              title,
+            } = msg.payload
+            console.log('extension got showConfirmation', message)
+
+            const answer = await vscode.window.showWarningMessage(
+              message,
+              {
+                modal: true,
+                detail: detail,
+              },
+              confirmText,
+            )
+            console.log('user confirmation', answer)
+            panel!.webview.postMessage({
+              command: 'confirmationResponse',
+              payload: {
+                id,
+                confirmed: answer === confirmText,
+                decision: answer || 'Cancelled',
+                subject: title || message,
+              },
+            })
+            break
           case 'CreateCrudSupport':
             log('createCRUDSupportPage command request from OrmThree.html')
-            console.log(msg.payload)
-            // creaateCrudSupportPage(panel!, paths, msg.modelName, msg.payload)
+            const payload = JSON.parse(msg.payload)
+            console.log('parsed payload', payload)
+            console.log('Extansion CreateCrudSupport got payload', payload)
+            generateParts(context, panel!, paths, payload)
             break
 
           case 'close':
