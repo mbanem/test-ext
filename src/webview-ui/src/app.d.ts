@@ -37,6 +37,8 @@ declare global {
     routeName: string
     model: Model
   }
+  export type TEnum = Record<string, string>
+  export type TEnums = Record<string, TEnum>
   type Position = { x: number; y: number; color: string } | undefined
   namespace App {
     // interface Error {}

@@ -3,7 +3,6 @@
   import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   import { vscode } from '$lib/utils/event-handler.browser'
 
-  import type { DbParams } from '../../extension.js'
   function postMessage(command: string, payload: string) {
     vscode.postMessage({ command, payload })
   }

@@ -17,12 +17,38 @@ browsers return value as string and server must convert new Date(value)
 
   prisma/schema.prisma is actually loaded by extension
 */
-import { stringToFieldObject, handleTryCatch, isEmpty } from './helpers.js'
+import {
+  stringToFieldObject,
+  handleTryCatch,
+  isEmpty,
+} from '../utils/helpers.js'
+
+// export type Field = { name: string; type: string; attrs?: string }
+export type Field = {
+  name: string
+  type: string
+  isArray: boolean
+  isOptional: boolean
+  isDataEntry: boolean
+  attrs?: string
+}
+// no name; it should be part of Models with their name as a key
+export type Model = {
+  fields: Field[]
+  attrs?: string[]
+}
+export type Models = Record<string, Model>
+// all models; modelName as a key
 const models: Models = {}
+
+// no name; it should be part of ModelFields that has model name as a key
+export type FieldAttrs = { fields: Field[]; attrs: string[] }
+export type ModelFields = Record<string, FieldAttrs>
 
 // extact model name and field description as a body from schema.prisma
 // const modelRegex = /model\s+(\w+)\s*{([^}]*)}/gms
 const modelRegex = /\s*model\s+(\w+)\s*{([\s\S]*?)^\}/gm
+const enumRegex = /\s*enum\s+(\w+)\s*{([\s\S]*?)^\}/gm
 
 // arg enum for selecting ui/non UI fields or names from models object
 const UI = {
@@ -33,8 +59,8 @@ const UI = {
 } as const
 type UIType = (typeof UI)[keyof typeof UI]
 
-// when selecting UI fields on of tests is the field TS data type
-export const primitiveTypes = new Set([
+// when selecting UI fields tests is the field TS data type
+const primitiveTypes = new Set([
   'string',
   'number',
   'boolean',
@@ -85,7 +111,7 @@ const orderedNames = new Set<string>([
  * @param field itself
  */
 function isUICandidate(field: Field): boolean {
-  const { name, type, isArray, isOptional, attrs } = field
+  const { name, type, isArray, isOptional, isDataEntry, attrs } = field
   // type = type.toLowerCase().trim();
   // model name could appear in schema as 'model User {' or as field type 'posts Post[]', so
   // the name and type arguments cannot bear model name, which is not ui candidates
@@ -95,7 +121,7 @@ function isUICandidate(field: Field): boolean {
   if (
     name.includes('@@') ||
     (type === 'Date' && name === 'createdAt') ||
-    (/hash|token/i.test(name) && !/password/i.test(name))
+    /hash|token/i.test(name)
   ) {
     return false
   }
@@ -144,6 +170,7 @@ function sortModelsByOrdered(kind: UIType = UI.all) {
         field.isDataEntry = isUICandidate(field)
         // for rest of fields not selected by orderedNames test if they are UI candidates
         if (!orderedFields.includes(field) && field.isDataEntry) {
+          field.isDataEntry = true
           orderedFields.push(field)
         }
       }
@@ -195,7 +222,10 @@ function convertPrismaTypesToTS(line: string): string {
 }
 
 // the main function to generate models sort fields to sync with ordered names and restur models
-export function parsePrismaSchema(schemaContent: string): { models: Models } {
+export function parsePrismaSchema(schemaContent: string): {
+  models: Models
+  enums: TEnums
+} {
   // holds an array of field objects extracted from the model body
   // to be stuff in owning model
   let fields: Field[] = []
@@ -249,6 +279,17 @@ export function parsePrismaSchema(schemaContent: string): { models: Models } {
   // console.log('models', models);
   sortModelsByOrdered(UI.all)
 
-  // console.log(models.User);
-  return { models }
+  let enumMatch
+  const enums: TEnums = {}
+  while ((enumMatch = enumRegex.exec(schemaContent)) !== null) {
+    const [, enumName, roles] = enumMatch // skip zero match item as it holds the whole search string
+    enums[enumName as string] = {}
+    if (roles && enumName && enums[enumName]) {
+      for (const role of roles.split(/\s+/)) {
+        const rol = role.toUpperCase()
+        enums[enumName][rol] = rol
+      }
+    }
+  }
+  return { models, enums }
 }

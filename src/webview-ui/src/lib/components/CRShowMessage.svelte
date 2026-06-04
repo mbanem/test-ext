@@ -5,7 +5,7 @@
   let disabled = $state(false)
 
   export function showMessage(
-    e: MouseEvent,
+    e: MouseEvent | HTMLElement,
     msg: string,
     position: Position = undefined,
   ) {
@@ -22,10 +22,10 @@
     message = msg
 
     try {
-      triggeringEl = document.elementFromPoint(
-        e.clientX,
-        e.clientY,
-      ) as HTMLElement
+      triggeringEl =
+        e instanceof HTMLElement
+          ? e
+          : (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement)
       if (!triggeringEl) {
         return
       }
@@ -54,7 +54,8 @@
         disabled = false
       }, 2000)
     } catch (err: unknown) {
-      console.log('el not found', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.log('el not found', msg)
     }
   }
 </script>

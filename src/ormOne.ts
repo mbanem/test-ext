@@ -4,10 +4,9 @@ import * as path from 'path'
 import { Client } from 'pg'
 import { spawn } from 'child_process'
 
-// NOTE: variables ending with an underscore are fubctions thatreturn
+// NOTE: variables ending with an underscore are fuctions that return
 //       value of a variable with the same name without underscore
 import { runCommandStream, log, error, info } from './extension.js'
-// import { log, error, info } from './extension.js'
 
 let paths: TPaths = {}
 let db: DbParams = {}
@@ -185,6 +184,10 @@ async function createRoleAndDb() {
     password: 'kiki',
     database: 'postgres',
   })
+  log([
+    'Connecting to Postgres with admin credentials...',
+    JSON.stringify(client),
+  ])
   log('Connecting to Postgres...')
   await client.connect()
 
@@ -259,26 +262,28 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
   }
 
   // wait for prisma initialization
-  for (let i = 0; i < 100; i++) {
-    await sleep(1000)
-    if (fs.existsSync(paths.schema)) {
-      break
-    }
-  }
+  // for (let i = 0; i < 100; i++) {
+  //   log(['await sleep 1000', String(i)])
+  //   await sleep(1000)
+  //   if (fs.existsSync(paths.schema)) {
+  //     break
+  //   }
+  // }
   // Create Uri for the schema file
-  let uri = vscode.Uri.file(paths.schema)
-  // Open schema content in new tab (beside current editor)
-  await vscode.window.showTextDocument(uri, {
-    viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-    preview: false, // Optional: Force a new tab (not preview mode)
-  })
+  // let uri = vscode.Uri.file(paths.schema)
+  // log('showing schema file in new tab')
+  // // Open schema content in new tab (beside current editor)
+  // await vscode.window.showTextDocument(uri, {
+  //   viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+  //   preview: false, // Optional: Force a new tab (not preview mode)
+  // })
 
   log(
     `forming dblink with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
   )
 
   // create Uri for the .env file
-  uri = vscode.Uri.file(paths.env)
+  let uri = vscode.Uri.file(paths.env)
   await vscode.window.showTextDocument(uri, {
     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
     preview: false, // Optional: Force a new tab (not preview mode)

@@ -2,16 +2,22 @@
   "name": "test-ext",
   "displayName": "test-ext",
   "description": "test multi page",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "type": "module",
+  "extensionKind": [
+    "workspace"
+  ],
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.120.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
-  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:test-ext.crudTest",
+    "onCommand:test-ext.generateEventHandlers"
+  ],
+  "main": "./out/extension.cjs",
   "repository": {
     "type": "git",
     "url": "https://github.com/mbanem/test-ext.git"
@@ -31,37 +37,41 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p .",
+    "build": "clear; pnpm compile && pnpm build:webview",
+    "install": "vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json); code --install-extension test-ext-${VERSION}.vsix",
+    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --platform=node --format=cjs",
     "check": "eslint .",
     "vite:dev": "clear; vite dev",
     "buildx:webview": "vite build --config src/webview-ui/vite.config.ts",
     "build:webview": "cd src/webview-ui && pnpm run build",
-    "watch:ext": "tsc -watch -p .",
+    "watch:ext": "esbuild src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --platform=node --format=cjs --watch",
     "dev:webview": "pnpm --filter webview-ui dev",
     "dev": "concurrently \"pnpm watch:ext\" \"pnpm dev:webview\"",
-    "build": "clear; pnpm compile && pnpm build:webview",
     "package": "vsce package --no-dependencies",
     "install:vsix": "VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix",
     "release": "pnpm build && pnpm package && pnpm install:vsix",
-    "install": "vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json); code --install-extension test-ext-${VERSION}.vsix"
+    "all": "clear; pnpm compile && pnpm build:webview;  vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json); code --install-extension test-ext-${VERSION}.vsix"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
+    "@prisma/adapter-pg": "^7.8.0",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/bcrypt": "latest",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
+    "@types/vscode": "^1.120.0",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
-    "config,": "link:@eslint/compat,@eslint/js,@prisma/config,",
-    "eslint": "link:@types/pg,@types/eslint",
+    "esbuild": "^0.28.0",
+    "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.17.1",
     "globals": "^17.6.0",
-    "node,typescript,typescript-eslint,vite,vite-plugin-sass-dts": "link:@types/pg,@types/eslint@sveltejs/vite-plugin-svelte,@tsconfig/svelte,tslib,@types/bcrypt,@types/node,@typescript-eslint/eslint-plugin,@typescript-eslint/parser,eslint,eslint-config-prettier,eslint-plugin-svelte,globals,postcss,postcss-load-config,prettier,prettier-plugin-svelte,prisma,sass,sass-embedded,svelte,svelte-check,svelte-preprocess,ts-node,@types/node,typescript,typescript-eslint,vite,vite-plugin-sass-dts",
     "postcss": "^8.5.15",
     "postcss-load-config": "^6.0.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.4.1",
     "prisma": "^7.8.0",
     "sass": "^1.100.0",
     "svelte": "^5.55.9",
@@ -75,10 +85,9 @@
   },
   "dependencies": {
     "@prisma/client": "^7.8.0",
-    "@types/vscode": "^1.120.0",
+    "bcrypt": "^6.0.0",
     "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
-    "internals,bcrypt,dotenv,pg,tslib": "link:@prisma/adapter-pg,@prisma/client,@prisma/internals,bcrypt,dotenv,pg,tslib",
     "pg": "^8.21.0",
     "tslib": "^2.8.1"
   }

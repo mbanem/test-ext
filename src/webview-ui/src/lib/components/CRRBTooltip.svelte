@@ -1,5 +1,6 @@
 <!--
 @component
+
 -->
 
 <script lang="ts">
@@ -8,11 +9,14 @@
   import { capitalize } from '$lib/utils'
   import { showConfirmation } from '$lib/utils'
   import ShowMessage from '$lib/components/CRShowMessage.svelte'
+  import CRUserRoles from '$lib/components/CRUserRolesSelect.svelte'
   let sm: ShowMessage
+
   export type TProps = {
     models: Models
     selectedModels: SelectedModels
     isLoading: boolean
+    userRoles: string[]
   }
 
   // Receive initial models from parent
@@ -20,38 +24,33 @@
     models,
     selectedModels = $bindable({}),
     isLoading = $bindable(true),
+    userRoles = [],
   }: TProps = $props()
 
   // Make it deeply reactive + owned by this component
   // Works only between client components not from server to client component (not server->browser)
-  // let models = $state<Models>(initialModels) // or just { ...initialModels } if shallow is enough
-
-  // const models_=()=>{
-  //   return ormModels
-  // }
-  //   // Make it deeply reactive + owned by this component
-  //   // Works only between client components not from server to client component (not server->browser)
-  //   // let models = $derived($state.snapshot(ormModels))
-  //   let models = $stat(models_())
-  // let selectedModels:Models = {}
-  // console.log('CRRBTooltip', models, selectedModels, isLoading)
+  // let models = $state<Models>(structuredClone(initialModels)) // or just { ...initialModels } if shallow is enough
 
   let tooltipBlockEl: HTMLDivElement
   let emptyModel: Model = { fields: [], attrs: [] }
   let includeAll = 'All' // last word for models in CRRBTooltip -- here is 'Both'
-  let newModelName = $state('todo')
+  let newModelName = $state('')
   let isSummaryOpen = $state(false)
   let extraModels = new SvelteSet<string>()
   let notDataEntryEl: HTMLDivElement
   let modelWrapperEl: HTMLDivElement
   let hoveredEl: HTMLElement | null = null
 
+  let tooltipMessage = $state('not data entry field')
+  const notDataEntry = 'not data entry field'
+  const clickToRemove = 'click to remove'
   let det: HTMLDetailsElement
+  let fieldsRect: DOMRect
   const defaultMessage = 'Add/Remove extra model like Login, Admin,...'
   const alreadyDefined = 'Module is already registered'
   const notRegistered = 'Module is not registered yet'
   const noModelName = 'Please enter model name'
-  let modelName = ''
+  let modelName = $state('')
   let message = $state(defaultMessage)
   let msgClass = $state('navy')
   let busy = $state(false)
@@ -60,6 +59,7 @@
   let x = $state(100)
   let y = $state(100)
   export const exportModules = () => {
+    console.log('exportModules called')
     selectedModels = {}
     // get only selected models based on the checkbox checked state
     for (const chkbox of modelWrapperEl.querySelectorAll(
@@ -74,8 +74,7 @@
           (chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement
         ).id.slice(4)
         selectedModels[routeName] = emptyModel
-        selectedModels[routeName] = models[modelName]
-        console.log(selectedModels)
+        selectedModels[routeName] = models[modelName]!
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         console.log(msg)
@@ -181,7 +180,7 @@
     tooltipBlockEl.style.opacity = '0'
     Object.assign(notDataEntryEl.style, {
       position: 'fixed',
-      top: `${y - 20}px`,
+      top: `${y - 15}px`,
       left: `${x}px`,
       zIndex: '9999',
       pointerEvents: 'auto',
@@ -207,16 +206,26 @@
       return
     }
     if (e.type === 'mouseover') {
+      // offer no copy field to extra model(s) as no extra models are defined
       if (extraModels.size === 0) {
         return
       }
-      const de = (e.target as HTMLElement).dataset.entry
+      // there are extra data models for radio-button block to offer copy field
+      const dataset = (e.target as HTMLElement).dataset
       const { x, y } = (e.target as HTMLElement).getBoundingClientRect()
-      if (de === 'false') {
+
+      // not a data entry field so no radio-block but info no-dataa-entry
+      // or remove field if extraModel field is hovered
+      if (dataset.entry === 'false' || dataset.extra === 'true') {
+        console.log('data entry or extra')
+        if (dataset.entry === 'false') {
+          tooltipMessage = notDataEntry
+        } else {
+          tooltipMessage = clickToRemove
+        }
         showNoDataEntry(x, y)
         return
       }
-      notDataEntryEl.style.opacity = '0'
       hoveredEl = e.target as HTMLElement
       timer = setTimeout(() => {
         busy = false
@@ -240,15 +249,23 @@
     }
   }
   async function toggleSummary(e: MouseEvent) {
+    // e.preventDefault();
     const el = e.target as HTMLElement
     switch (el.tagName) {
       case 'SUMMARY':
+        //console.log('summary clicked');
         det = el.closest('details') as HTMLDetailsElement
         if (!det || det.tagName !== 'DETAILS') {
           return
         }
         tooltipBlockEl.style.opacity = '0'
         modelName = det.innerText?.match(/^\S+/)?.[0] as string
+        if (extraModels.has(modelName)) {
+          fieldsRect = (el.parentElement as HTMLElement)
+            .querySelector('.cr-fields-column')
+            ?.getBoundingClientRect() as DOMRect
+          console.log('fieldsRect', fieldsRect)
+        }
         for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
           if (item.firstChild !== el) {
             Object.assign((item.parentElement as HTMLElement).style, {
@@ -277,6 +294,7 @@
         }
         return
       case 'INPUT':
+        //console.log('input clicked');
         if (
           (el as HTMLInputElement).type &&
           (el as HTMLInputElement).type === 'checkbox'
@@ -284,10 +302,16 @@
           exportModules()
         }
         break
+      case 'SPAN':
+      case 'P':
+        // e.preventDefault();
+        //console.log('role list clicked', el.tagName);
+        break
       default:
+        //console.log('default clicked', el.tagName);
         break
     }
-    return
+    // return;
   }
 
   function hideTooltipBlock() {
@@ -313,11 +337,10 @@
     }
     tooltipBlockEl.style.opacity = '0'
     const model = capitalize(newModelName)
-    console.log('addNewModel', newModelName)
 
     if (models[model]) {
       showMessage(alreadyDefined)
-      // newModelName = ''
+      // newModelName = '';
       return
     }
     await tick()
@@ -332,53 +355,91 @@
     console.log('await showConfirmation')
     sm?.showMessage(e, `Model "${modelName}" to be deleted.`)
     const confirmed = await showConfirmation({
-      message: `Delete model "${modelName}"?`,
+      message: `Remove model "${modelName}"?`,
       detail: 'This action cannot be undone.',
-      confirmText: 'Yes, Delete',
+      confirmText: 'Yes, Remove',
       cancelText: 'Cancel',
     })
     console.log('extension response', confirmed)
     if (confirmed) {
       delete models[modelName]
       if (models[modelName]) {
-        console.log('delete model failed', modelName)
-        sm?.showMessage(e, `Model "${modelName}" has been deleted.`)
+        console.log('removing model failed', modelName)
+        sm?.showMessage(e, `Model "${modelName}" has been removed.`)
       } else {
-        console.log('delete model succeeded', modelName)
-        sm?.showMessage(e, `Mode; "${modelName}" is deleted.`)
+        console.log('removing model succeeded', modelName)
+        sm?.showMessage(e, `Model "${modelName}" is removed.`)
       }
     } else {
-      console.log('user did not confirm deleting', modelName, 'model')
+      console.log('user did not confirm removing', modelName, 'model')
     }
   }
-  function removeModel(e: MouseEvent) {
+  async function removeModel(e: MouseEvent) {
     console.log('removeModel entry')
     if (!newModelName) {
       console.log('noModelname')
-      showMessage(noModelName)
+      showMessage(e, noModelName)
       return
     }
     const model = capitalize(newModelName)
     console.log('model', model)
+
     if (!models[model]) {
       console.log('no model found')
-      showMessage(notRegistered)
+      showMessage(e, notRegistered)
       return
     }
     if (models[model]) {
       console.log('model', model, 'exists')
       // if (confirm('To delete {model}?')) {
-      //   delete models[model]
-      //   extraModels.delete(model)
+      // 	delete models[model];
+      // 	extraModels.delete(model);
       // }
+      // const confirmed = await showConfirmation({
+      // 	message: `Delete model "${model}"?`,
+      // 	detail: 'This action cannot be undone.',
+      // 	confirmText: 'Yes, Remove',
+      // 	cancelText: 'Cancel',
+      // });
+
+      // if (confirmed) {
       deleteModel(e, model)
+      // Optional: notify user inside webview
+      sm.showMessage(e, `Model "${modelName}" has been deleted.`)
+      // }
     }
+  }
+  function isInside(rect: DOMRect, e: MouseEvent) {
+    return (
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom
+    )
+  }
+  function hideClickToRemove(e: MouseEvent) {
+    e.preventDefault()
+    console.log('hideClickToRemove fieldRect?', fieldsRect)
+    if (!isInside(fieldsRect, e)) {
+      notDataEntryEl.style.opacity = '0'
+    }
+  }
+  function removeExtraModelField(e: MouseEvent) {
+    const el = e.target as HTMLElement
+    const fieldName = el.innerText
+    const model = models[modelName]
+    if (!model || !model.fields) {
+      return
+    }
+    model.fields = model.fields.filter((field) => field.name !== fieldName)
+    notDataEntryEl.style.opacity = '0'
   }
   onMount(() => {
     tooltipBlockEl.classList.remove('hidden')
     notDataEntryEl.classList.remove('hidden')
     tooltipBlockEl.addEventListener('change', addFieldToModel)
     tooltipBlockEl.addEventListener('mouseleave', hideTooltipBlock)
+
     return () => {
       modelWrapperEl.removeEventListener('change', addFieldToModel)
       tooltipBlockEl.removeEventListener('mouseleave', hideTooltipBlock)
@@ -386,10 +447,16 @@
   })
 </script>
 
-<!-- radio-button group with extra model names to copy
-    hovered field into selected radio-button(s) model(s)
--->
+<div bind:this={tooltipBlockEl} class="radio-tooltip hidden">
+  {@render tooltipBlock()}
+</div>
+<div bind:this={notDataEntryEl} class="no-data-entry hidden">
+  {tooltipMessage}
+</div>
 
+{#snippet permissions()}
+  <CRUserRoles {userRoles} />
+{/snippet}
 {#snippet tooltipBlock()}
   {#each extraModels as model (model)}
     <label><input type="radio" name={model} value={model} />{model}</label>
@@ -401,6 +468,7 @@
     <label><input type="radio" name="All" value="All" />All</label>
   {/if}
 {/snippet}
+
 {#snippet summaryDetailsModel(modelName: string, model: Model)}
   <div style="position:relative;">
     <input
@@ -415,15 +483,28 @@
       value={modelName.toLowerCase()}
       class="model-checkboxes"
     />
-    <details data-det class="model-details" id="det-{modelName}">
+    <details class="model-details" id={modelName}>
       <summary class="cr-model-name">
         {capitalize(modelName)}
+        {@render permissions()}
       </summary>
 
-      <div class="cr-fields-column">
+      <div
+        class="cr-fields-column"
+        onmouseleave={extraModels.has(modelName)
+          ? hideClickToRemove
+          : undefined}
+        onclick={removeExtraModelField}
+        aria-hidden={true}
+      >
         {#each model.fields as field (field.name)}
           {@const attrClass = fieldAttrsClass(field) as string}
-          <section data-entry={field.isDataEntry}>{field.name}</section>
+          <section
+            data-entry={field.isDataEntry}
+            data-extra={extraModels.has(modelName)}
+          >
+            {field.name}
+          </section>
           <p>
             type:{field.type} <span class={attrClass}>{fieldAttrs(field)}</span>
           </p>
@@ -439,26 +520,10 @@
 {/snippet}
 
 {#snippet summaryDetailsModels()}
-  <div class="model-list">
-    {#each Object.entries(models) as [modelName, model] (modelName)}
-      {@render summaryDetailsModel(modelName, model)}
-    {/each}
-  </div>
-  <!-- <div class="add-extra-model">
-    <span class={msgClass}>{message}</span>
-    <input
-      type="text"
-      bind:value={newModelName}
-      onkeyup={addNewModel}
-      placeholder="Add extra model"
-    />
-    <button onclick={addNewModel} disabled={false && !newModelName}>add</button
-    ><button onclick={removeModel} disabled={false && !newModelName}
-      >remove</button
-    >
-  </div> -->
+  {#each Object.entries(models) as [modelName, model] (modelName)}
+    {@render summaryDetailsModel(modelName, model)}
+  {/each}
 {/snippet}
-
 <div class="container">
   <div class="schema-container" onclick={toggleSummary} aria-hidden={true}>
     <p class="orm-models-caption">Route folder name for ORM Model</p>
@@ -475,29 +540,22 @@
         {@render summaryDetailsModels()}
       {/if}
     </div>
-    <div class="add-extra-model">
-      <span class={msgClass}>{message}</span>
-      <input
-        type="text"
-        bind:value={newModelName}
-        onkeyup={addNewModel}
-        placeholder="Add extra model"
-      />
-      <button onclick={addNewModel}>add</button><button onclick={removeModel}
-        >remove</button
-      >
-    </div>
+  </div>
+  <div class="add-extra-model">
+    <span class={msgClass}>{message}</span>
+    <input
+      type="text"
+      bind:value={newModelName}
+      onkeyup={addNewModel}
+      placeholder="Add extra model"
+    />
+    <button onclick={addNewModel} disabled={!newModelName}>add</button><button
+      onclick={removeModel}
+      disabled={!newModelName}>remove</button
+    >
   </div>
 </div>
-<!-- field hovering tooltips radio-button-group and 'not data-entry fild' info-->
-<div bind:this={tooltipBlockEl} class="radio-tooltip hidden">
-  {@render tooltipBlock()}
-</div>
-<!-- tooltip when hover over non data-engry fields -->
-<div bind:this={notDataEntryEl} class="no-data-entry hidden">
-  not data entry field
-</div>
-<!-- getShowMessage page reference to call its export4d function -->
+<!-- no display just a showMessage utils with markup -->
 <ShowMessage bind:this={sm} />
 
 <style lang="scss">
@@ -526,43 +584,58 @@
       outline: 1px solid gray;
     }
   }
-
-  .schema-container {
-    position: relative;
-    width: 22rem;
-    height: 77vh;
-    border: 1px solid gray;
-    border-radius: 6px;
-    padding: 1rem 0 0 3px;
+  .container {
+    width: 23rem;
+    margin-top: 1rem;
+    height: 39.7rem;
+    border: 1px solid green;
+    .schema-container {
+      position: relative;
+      width: 22.8rem;
+      height: 35.9rem;
+      border: 1px solid gray;
+      // border: 1px solid blue;
+      border-radius: 6px;
+      padding: 1rem 0 0 3px;
+      .model-wrapper {
+        width: 22rem;
+        padding: 0;
+        margin: 0;
+        height: 34.4rem;
+        // border: 1px solid red;
+        z-index: 15;
+        overflow-y: auto;
+        scrollbar-width: none;
+        overflow-x: hidden;
+      }
+    }
   }
   .spinner-wrapper {
     display: grid;
     grid-template-columns: 1em 10rem;
     column-gap: 0.5rem;
-    .spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 0.8em;
-      height: 0.8em;
-      border: 3px solid #a1c1eb;
-      border-top-color: #1b4891;
-      border-radius: 50%;
-      margin: 4px 0 0 0.5rem;
-      animation: spin 900ms linear infinite;
-      span {
-        display: inline-block;
-      }
+  }
+  .spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 0.8em;
+    height: 0.8em;
+    border: 3px solid #a1c1eb;
+    border-top-color: #1b4891;
+    border-radius: 50%;
+    margin: 4px 0 0 0.5rem;
+    animation: spin 900ms linear infinite;
+    span {
+      display: inline-block;
     }
   }
-  .model-wrapper {
-    padding: 0;
-    margin: 0;
-    height: 30.5rem;
-    // border: 1px solid red;
-    z-index: 15;
-    overflow-y: auto;
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
+
   .add-extra-model {
     width: 100%;
     color: var(--candidate-color);
@@ -590,15 +663,7 @@
   .navy {
     color: navy;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  .container {
-    width: 22rem;
-    margin-top: 1rem;
-  }
+
   .model-details {
     width: 21.5rem;
   }
@@ -650,10 +715,11 @@
     width: 21.5rem;
     padding: 6px 0 6px 1rem;
     max-height: 75vh;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     color: var(--candidate-color);
     background-color: var(--candidate-bg-color);
+    cursor: pointer;
   }
 
   .cr-fields-column p {
@@ -686,11 +752,6 @@
     color: var(--attr-id);
   }
 
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
   .model-checkboxes {
     color: navy;
     padding: 0 1rem 0 0;

@@ -1,11 +1,25 @@
-.vscode/**
-.vscode-test/**
-src/**
+.vscode
+.vscode-test
 .gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
+.eslintrc.json
+**/node_modules/.cache
+.env
+.typescript/
+tsconfig.json
+vite.config.ts
+pnpm-lock.yaml
+
+# 1. Ignore uncompiled source files safely
+src/
+
+# 2. Exclude source maps from the production VSIX to save space
 **/*.map
-**/*.ts
-**/.vscode-test.*
+
+# 3. CRITICAL FIX: whitelist your build folder explicitly first
+!out/
+!out/extension.cjs
+!out/webview-assets/**
+
+# 4. Safely ignore development source-level TypeScript files 
+# without accidentally stripping production build artifacts
+src/**/*.ts

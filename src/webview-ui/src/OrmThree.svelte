@@ -10,7 +10,7 @@
   // when any checkbox on a component model list is selected
   // the component keeps this selectedModels in sync
   let selectedModels = $state<SelectedModels>({})
-
+  let userRoles = $state<string[]>([])
   // what components users want to include in newnly generated pages
   let crComponents: string[] = $state([
     'CRInput',
@@ -76,7 +76,16 @@
       payload['features'] = $state.snapshot(appFeatures)
     }
 
-    payload['selectedModels'] = $state.snapshot(selectedModels)
+    // payload['selectedModels'] = $state.snapshot(selectedModels)
+    // try to get models one-by-one
+    payload['selectedModels'] = {}
+    for (const modelName in selectedModels) {
+      payload.selectedModels[modelName] = $state.snapshot(
+        models[modelName],
+      ) as Model
+    }
+    console.log('payload to send', payload)
+    console.log('selectedModels in payload', payload.selectedModels)
     return payload
   }
   // imitate getting model from Webview extension
@@ -88,7 +97,8 @@
     const el = e.target as HTMLDivElement
     el.style.cursor = 'none'
     let payload = JSON.stringify(getPayload())
-    // console.log('stringified', payload)
+    // let payload = getPayload()
+    console.log('stringified', payload)
     vscode.postMessage({
       command: 'CreateCrudSupport',
       payload: payload,
@@ -106,9 +116,12 @@
 
       if (msg.command === 'sendingModels') {
         const pload = $state.snapshot(JSON.parse(msg.payload))
-        // console.log(pload.models)
+        console.log('received models,enums', pload)
         // console.log('got models', pload.models.User, pload.models)
         models = pload.models
+        userRoles = Object.keys(Object.values(pload.enums)[0] as TEnum).filter(
+          Boolean,
+        )
       }
       if (msg.command === 'confirmationResponse') {
         console.log('confirmation sent wrongly to OrmThree.svelte')
@@ -179,6 +192,7 @@
     </div>
   </div>
 {/snippet}
+
 {#snippet pageByPageMiddleColumn()}
   <div class="cr-left-column">
     {@render appIncludes()}
@@ -200,7 +214,7 @@
     <div
       id="createBtnId"
       onclick={createCRUDSupport}
-      style="font-size: 14px !important;cursor:pointer;"
+      style="font-size: 14px !important;cursor:pointer;margin:0'"
       class:notallowed={buttonNotAllowed}
       aria-hidden={true}
     >
@@ -222,7 +236,8 @@
   <div class="application-settings">
     {@render pageByPageNote()}
   </div>
-  <CRRBTooltip {models} bind:selectedModels bind:isLoading></CRRBTooltip>
+  <CRRBTooltip {models} bind:selectedModels bind:isLoading {userRoles}
+  ></CRRBTooltip>
 </div>
 
 <style lang="scss">
@@ -250,7 +265,8 @@
   .cr-main-grid {
     position: relative;
     display: grid;
-    grid-template-columns: 30rem 30rem;
+    grid-template-columns: 30rem 23rem;
+    // border: 1px solid gray;
     column-gap: 1rem;
     margin: 0.5rem 0 0 1rem;
     width: max-content;
@@ -261,6 +277,7 @@
     width: 30rem;
     align-items: start;
     height: 100%;
+    // border: 1px dashed gray;
   }
   .cr-left-column {
     @include container($head: 'Application Settings', $head-color: navy);

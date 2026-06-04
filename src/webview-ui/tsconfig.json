@@ -13,7 +13,8 @@
     "src/**/*.ts",
     "src/**/*.svelte",
     "vite-env.d.ts",
-    "../prisma-models.ts"
+    "../prisma-models.ts",
+    "src/app.ha"
   ],
   "references": [{ "path": "./tsconfig.node.json" }],
   "exclude": ["node_modules", "dist"]

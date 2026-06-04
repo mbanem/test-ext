@@ -1,14 +1,20 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as os from 'os'
 import { displayWebview } from './webview.js'
 import { installPrismaPartOne } from './ormOne.js'
 import { installPrismaPartTwo } from './ormTwo.js'
 import { generateParts } from './partsGenerator.js'
-import { spawn, exec } from 'child_process'
-import { homedir } from 'os'
+import { spawn, execSync } from 'child_process'
 import { parsePrismaSchema } from './webview-ui/src/lib/utils/parse-prisma-schema.js'
 
+/*
+  To make your file-writing tasks 100% immune to Windows backslashes (\) vs Linux forward 
+  slashes (/), always use the built-in vscode.Uri.file() and vscode.Uri.joinPath() utilities 
+  when referencing paths in your backend.
+  const prismaSchemaUri = vscode.Uri.joinPath(projectRootUri, 'app', 'prisma', 'schema.prisma');
+*/
 let paths: TPaths = {}
 let db: DbParams = {}
 export type TMessage = {
@@ -17,22 +23,36 @@ export type TMessage = {
 }
 
 let panel: vscode.WebviewPanel | undefined = undefined
-function execShell(cmd: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(
-      cmd,
-      { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath },
-      (err, stdout, stderr) => {
-        if (err) {
-          reject(new Error(`Command failed: ${stderr}`))
-          return
-        }
-        resolve(stdout)
-      },
-    )
-  })
+
+function execShell(cmd: string): string | null {
+  try {
+    // Blocks the event loop until the command finishes
+    return execSync(cmd, { encoding: 'utf8' })
+  } catch (error) {
+    console.error('Execution failed:', error)
+  }
+  return null
 }
-export const sudoName_ = (await execShell('whoami')).trim()
+async function getUserInput(): Promise<string | null> {
+  const result = await vscode.window.showInputBox({
+    value: '/home/mili/Ext/test-ext',
+    placeHolder: 'Enter application root directory',
+    prompt: 'Please enter a valid value',
+    validateInput: (text) => {
+      return text.length === 0 ? 'Input cannot be empty!' : null
+    },
+  })
+
+  if (result === undefined) {
+    // User cancelled the operation by hitting 'Escape'
+    return null
+  }
+
+  vscode.window.showInformationMessage(`User typed: ${result}`)
+  return result
+}
+export const sudoName_ = execShell('whoami')?.trim()
+// const root = (await execShell('pwd')).trim()
 // will hold the content of prisma/schema.prisma file as a string after we read it
 // with fs.readlinkSync in response to 'ready' command from OrmThree.html
 // after making models with parsePrismaSchema we will send stringified models
@@ -126,36 +146,53 @@ function sendToTerminal(cmd: string) {
 }
 // let db: DbParams = {}
 export async function activate(context: vscode.ExtensionContext) {
+  console.log('ACTIVATE CALLED')
   vscode.window.showInformationMessage(`CRUD TEST-EXT -- activated`)
-  const workspaceFolders: readonly vscode.WorkspaceFolder[] | undefined =
-    vscode.workspace.workspaceFolders
-  // console.log(vscode.workspace.workspaceFolders)
+
   context.subscriptions.push(
-    vscode.commands.registerCommand('test-ext.crudTest', () => {
-      // NOTE: in order for vscode.workspace.workspaceFolders to be defined
-      // set "path": "/home/mili/Ext/test-ext", in test-ext.code-workspace
-      // and set  "name": "webview-ui" in webview-ui/package.json for debugger
-      let folder = vscode.workspace.workspaceFolders?.[0]
-      // const folders = vscode.workspace.workspaceFolders
-      // if (!folders || folders.length === 0) {
-      //   vscode.window.showErrorMessage('No workspace folder open')
-      //   return
-      // }
-      const editor = vscode.window.activeTextEditor
-      let rootPath = ''
-      if (editor) {
-        folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
-        rootPath = folder?.uri.fsPath as string
-      }
-      // let rootPath = '' //folders[0].uri.fsPath
-      if (vscode.workspace.workspaceFolders?.[0].uri.fsPath) {
-        rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath
+    vscode.commands.registerCommand('test-ext.crudTest', async () => {
+      console.log('COMMAND CALLED: test-ext.crudTest')
+
+      let rootPath: string | undefined
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
+
+      if (workspaceFolder && workspaceFolder.uri.scheme === 'vscode-remote') {
+        // Correct remote path evaluation
+        rootPath = workspaceFolder.uri.path
       } else {
-        rootPath = homedir() // fallback to home directory if workspace folder is not found
-        if (rootPath !== '/home/mili/Ext/test-ext') {
-          rootPath = '/home/mili/Ext/test-ext' // override with specific path if home directory is not correct
-        }
+        // If VS Code passes a local Windows path or system file location,
+        // fallback to Node's native Linux Current Working Directory
+        rootPath = process.cwd()
       }
+
+      // Emergency cleanup guard: If it STILL contains a /mnt/c/ override,
+      // strip the tail folder name dynamically and map it back to your Linux structure
+      if (rootPath.startsWith('/mnt/c/')) {
+        const currentFolder = path.basename(
+          vscode.workspace.workspaceFolders?.[0]?.uri.path || '',
+        )
+        console.log(
+          'Detected WSL path, remapping to Linux structure with folder:',
+          currentFolder,
+        )
+        rootPath = currentFolder
+          ? `/home/mili/Ext/${currentFolder}`
+          : '/home/mili/Ext/test-ext'
+      }
+
+      console.log('Guaranteed Workspace Linux Path:', rootPath)
+      console.log(`[Backend] Resolved Root Path: ${rootPath}`)
+      vscode.window.showInformationMessage(`Resolved Root Path: ${rootPath}`)
+
+      await vscode.window.showWarningMessage(
+        rootPath,
+        {
+          modal: true,
+          detail: 'page is blank',
+        },
+        'This should be te rootPath',
+      )
       log(`rootPath is ${rootPath}`)
       paths = {
         root: rootPath,
@@ -198,7 +235,7 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'installPrismaPartOne':
             log('installPrismaPartOne comand request from OrmOne.html 1')
             db = JSON.parse(msg.payload) as DbParams
-            db.adminPwd = sudoName_
+            db.adminPwd = sudoName_ as string
             let result = await installPrismaPartOne(db, paths)
             log(
               `after call to installPrismaPartOne success is ${result.success.toString()}`,
@@ -265,12 +302,14 @@ export async function activate(context: vscode.ExtensionContext) {
               const msg = err instanceof Error ? err.message : String(err)
               console.log('reading schema.prisma', err)
             }
-            const models = parsePrismaSchema(schema)
+            const { models, enums } = parsePrismaSchema(schema)
+            console.log('models', models)
+            console.log('enums', enums)
             schema = '' // free up memory by clearing schema string after parsing
 
             panel!.webview.postMessage({
               command: 'sendingModels',
-              payload: JSON.stringify(models),
+              payload: JSON.stringify({ models, enums }),
             })
             break
 
@@ -307,10 +346,10 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'CreateCrudSupport':
             log('createCRUDSupportPage command request from OrmThree.html')
             const payload = JSON.parse(msg.payload)
-            console.log('parsed payload', payload)
-            console.log('Extansion CreateCrudSupport got payload', payload)
+            // const payload = msg.payload
+            log(['stringified payload', JSON.stringify(payload)])
             generateParts(context, panel!, paths, payload)
-            console.log('Extension: sending crudSuportDone')
+            log('Extension: sending crudSuportDone')
             panel!.webview.postMessage({
               command: 'crudSuportDone',
             })
