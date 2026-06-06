@@ -1,7 +1,7 @@
 <script lang="ts">
   import { vscode } from '$lib/utils/event-handler.browser'
   import { onMount } from 'svelte'
-  import CRRBTooltip from '$lib/components/CRRBTooltip.svelte'
+  import CRModelList from '$lib/components/CRModelList.svelte'
 
   let isLoading = $state(true)
   // const vscode = acquireVsCodeApi()
@@ -76,20 +76,12 @@
       payload['features'] = $state.snapshot(appFeatures)
     }
 
-    // payload['selectedModels'] = $state.snapshot(selectedModels)
-    // try to get models one-by-one
-    payload['selectedModels'] = {}
-    for (const modelName in selectedModels) {
-      payload.selectedModels[modelName] = $state.snapshot(
-        models[modelName],
-      ) as Model
-    }
+    payload['selectedModels'] = $state.snapshot(selectedModels)
+
     console.log('payload to send', payload)
     console.log('selectedModels in payload', payload.selectedModels)
     return payload
   }
-  // imitate getting model from Webview extension
-  // fake part for Extension
 
   // Webview sends message to the extension
   function createCRUDSupport(e: MouseEvent) {
@@ -97,8 +89,6 @@
     const el = e.target as HTMLDivElement
     el.style.cursor = 'none'
     let payload = JSON.stringify(getPayload())
-    // let payload = getPayload()
-    console.log('stringified', payload)
     vscode.postMessage({
       command: 'CreateCrudSupport',
       payload: payload,
@@ -112,25 +102,20 @@
     window.addEventListener('message', (event) => {
       const msg = event.data
 
-      // console.log('extension sendingModels', msg.command, msg.payload)
-
       if (msg.command === 'sendingModels') {
         const pload = $state.snapshot(JSON.parse(msg.payload))
-        console.log('received models,enums', pload)
-        // console.log('got models', pload.models.User, pload.models)
         models = pload.models
         userRoles = Object.keys(Object.values(pload.enums)[0] as TEnum).filter(
           Boolean,
         )
       }
-      if (msg.command === 'confirmationResponse') {
-        console.log('confirmation sent wrongly to OrmThree.svelte')
-      }
+      // if (msg.command === 'confirmationResponse') {
+      //   console.log('confirmation not meant for OrmThree.svelte')
+      // }
       if (msg.command === 'crudSuportDone') {
         const crudButton = document.getElementById(
           'createBtnId',
         ) as HTMLDivElement
-        console.log('Extension response: crud support done')
         inAction = false
         crudButton.style.cursor = 'pointer'
       }
@@ -236,9 +221,13 @@
   <div class="application-settings">
     {@render pageByPageNote()}
   </div>
-  <CRRBTooltip {models} bind:selectedModels bind:isLoading {userRoles}
-  ></CRRBTooltip>
+  <CRModelList {models} bind:selectedModels bind:isLoading {userRoles}
+  ></CRModelList>
 </div>
+
+<pre>selectedModels
+{JSON.stringify($state.snapshot(selectedModels), null, 2)}
+</pre>
 
 <style lang="scss">
   .spinner-wrapper {

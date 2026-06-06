@@ -7,9 +7,17 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
   import { SvelteMap, SvelteSet } from 'svelte/reactivity'
   export type TProps = {
     userRoles: string[]
+    modelName: string
+    models: Models
+    exportModels: (modelName: string) => void
   }
-  // const userRoles = ['USER', 'ADMIN', 'VISITOR', 'MODERATOR'];
-  let { userRoles }: TProps = $props()
+  let {
+    userRoles,
+    modelName,
+    models = $bindable(),
+    exportModels,
+  }: TProps = $props()
+  // model holds set of selected roles
   const roles = new SvelteMap<string, SvelteSet<string>>()
 
   // when dropdown is opened set the current selectedModel
@@ -64,6 +72,8 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
     } else {
       set.add(role)
     }
+    models[modelName].permissions = [...set].join(' ')
+    exportModels(modelName)
   }
   function dismiss(e: MouseEvent) {
     ;(e.target as HTMLElement)
@@ -116,7 +126,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
     </p>
   {/each}
 </div>
-{@render multiSelect('User')}
+{@render multiSelect(modelName)}
 
 <style lang="scss">
   *,
@@ -151,6 +161,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
         border: 1px solid gray;
         border-radius: 4px;
         padding: 0 2px;
+        pointer-events: none;
       }
       .selectedRoles {
         display: inline-block;
@@ -194,12 +205,10 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       border-radius: 4px;
       padding: 0 4px;
       // margin: 0 4px;
+      pointer-events: none;
     }
   }
-  .role-line {
-    // color: var(--clickable-label-color);
-    // background-color: var(--candidate-bg-color);
-  }
+
   .hidden {
     display: none;
   }

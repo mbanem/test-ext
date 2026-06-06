@@ -1,8 +1,8 @@
 {
   "name": "test-ext",
   "displayName": "test-ext",
-  "description": "test multi page",
-  "version": "0.0.3",
+  "description": "schema to crud app",
+  "version": "0.0.1",
   "type": "module",
   "extensionKind": [
     "workspace"
@@ -14,10 +14,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:test-ext.crudTest",
-    "onCommand:test-ext.generateEventHandlers"
+    "onCommand:test-ext.crudTest"
   ],
-  "main": "./out/extension.cjs",
+  "main": "./out/extension.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/mbanem/test-ext.git"
@@ -29,28 +28,21 @@
       {
         "command": "test-ext.crudTest",
         "title": "CRUD TEST-EXT"
-      },
-      {
-        "command": "test-ext.generateEventHandlers",
-        "title": "TEST-EXT: Generate Event Handlers Registry"
       }
     ]
   },
   "scripts": {
-    "build": "clear; pnpm compile && pnpm build:webview",
-    "install": "vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json); code --install-extension test-ext-${VERSION}.vsix",
-    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --platform=node --format=cjs",
-    "check": "eslint .",
-    "vite:dev": "clear; vite dev",
+    "vscode:prepublish": "pnpm run buildx",
+    "buildx": "esbuild ./src/extension.ts --bundle --outfile=out/main.mjs --external:vscode --format=esm --platform=node --target=node18",
     "buildx:webview": "vite build --config src/webview-ui/vite.config.ts",
+    "installx": "clear; pnpm buildx:webview && vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix",
+    "all": "pnpm buildx && vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix",
+    "compile": "tsc -p .",
+    "check": "eslint .",
+    "dev": "clear; vite dev",
     "build:webview": "cd src/webview-ui && pnpm run build",
-    "watch:ext": "esbuild src/extension.ts --bundle --outfile=out/extension.cjs --external:vscode --platform=node --format=cjs --watch",
-    "dev:webview": "pnpm --filter webview-ui dev",
-    "dev": "concurrently \"pnpm watch:ext\" \"pnpm dev:webview\"",
-    "package": "vsce package --no-dependencies",
-    "install:vsix": "VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix",
-    "release": "pnpm build && pnpm package && pnpm install:vsix",
-    "all": "clear; pnpm compile && pnpm build:webview;  vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json); code --install-extension test-ext-${VERSION}.vsix"
+    "build": "pnpm compile && pnpm build:webview",
+    "install": "pnpm build; vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",

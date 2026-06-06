@@ -9,7 +9,7 @@
   import { capitalize } from '$lib/utils'
   import { showConfirmation } from '$lib/utils'
   import ShowMessage from '$lib/components/CRShowMessage.svelte'
-  import CRUserRoles from '$lib/components/CRUserRolesSelect.svelte'
+  import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
   let sm: ShowMessage
 
   export type TProps = {
@@ -27,6 +27,9 @@
     userRoles = [],
   }: TProps = $props()
 
+  function anySelected() {
+    return Object.keys(selectedModels).length > 0
+  }
   // Make it deeply reactive + owned by this component
   // Works only between client components not from server to client component (not server->browser)
   // let models = $state<Models>(structuredClone(initialModels)) // or just { ...initialModels } if shallow is enough
@@ -58,8 +61,8 @@
   const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g')
   let x = $state(100)
   let y = $state(100)
-  export const exportModules = () => {
-    console.log('exportModules called')
+  export const exportModels = (modelName?: string) => {
+    console.log('exportModels called', modelName)
     selectedModels = {}
     // get only selected models based on the checkbox checked state
     for (const chkbox of modelWrapperEl.querySelectorAll(
@@ -70,11 +73,15 @@
           (chkbox as HTMLInputElement)
             .previousElementSibling as HTMLInputElement
         ).value as string
-        const modelName = (
-          (chkbox as HTMLInputElement).nextElementSibling as HTMLDetailsElement
-        ).id.slice(4)
-        selectedModels[routeName] = emptyModel
-        selectedModels[routeName] = models[modelName]!
+
+        const modelName = (chkbox as HTMLInputElement).value as string
+        const permissions = models[modelName]?.permissions as string
+        selectedModels[modelName] = {
+          routeName,
+          permissions,
+        }
+        // selectedModels[modelName].permissions = permissions
+        // selectedModels[modelName].routeName = routeName
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         console.log(msg)
@@ -106,6 +113,7 @@
       chkbox.click()
       await tick()
     })
+    exportModels()
   }
 
   function getUIField(fieldName: string) {
@@ -162,6 +170,9 @@
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.log('addFieldToModel', msg)
+    }
+    if (anySelected()) {
+      exportModels()
     }
   }
 
@@ -299,7 +310,7 @@
           (el as HTMLInputElement).type &&
           (el as HTMLInputElement).type === 'checkbox'
         ) {
-          exportModules()
+          exportModels()
         }
         break
       case 'SPAN':
@@ -350,6 +361,9 @@
     // so the models list can expand
     models[model] = emptyModel
     newModelName = ''
+    if (anySelected()) {
+      exportModels()
+    }
   }
   async function deleteModel(e: MouseEvent, modelName: string) {
     console.log('await showConfirmation')
@@ -369,6 +383,9 @@
       } else {
         console.log('removing model succeeded', modelName)
         sm?.showMessage(e, `Model "${modelName}" is removed.`)
+      }
+      if (anySelected()) {
+        exportModels()
       }
     } else {
       console.log('user did not confirm removing', modelName, 'model')
@@ -391,22 +408,12 @@
     }
     if (models[model]) {
       console.log('model', model, 'exists')
-      // if (confirm('To delete {model}?')) {
-      // 	delete models[model];
-      // 	extraModels.delete(model);
-      // }
-      // const confirmed = await showConfirmation({
-      // 	message: `Delete model "${model}"?`,
-      // 	detail: 'This action cannot be undone.',
-      // 	confirmText: 'Yes, Remove',
-      // 	cancelText: 'Cancel',
-      // });
-
-      // if (confirmed) {
       deleteModel(e, model)
       // Optional: notify user inside webview
       sm.showMessage(e, `Model "${modelName}" has been deleted.`)
-      // }
+      if (anySelected()) {
+        exportModels()
+      }
     }
   }
   function isInside(rect: DOMRect, e: MouseEvent) {
@@ -433,6 +440,9 @@
     }
     model.fields = model.fields.filter((field) => field.name !== fieldName)
     notDataEntryEl.style.opacity = '0'
+    if (anySelected()) {
+      exportModels()
+    }
   }
   onMount(() => {
     tooltipBlockEl.classList.remove('hidden')
@@ -454,8 +464,8 @@
   {tooltipMessage}
 </div>
 
-{#snippet permissions()}
-  <CRUserRoles {userRoles} />
+{#snippet permissions(modelName: string)}
+  <CRUserRolesSelect {userRoles} {modelName} bind:models {exportModels} />
 {/snippet}
 {#snippet tooltipBlock()}
   {#each extraModels as model (model)}
@@ -475,18 +485,19 @@
       type="text"
       id="route{modelName}"
       value={modelName.toLowerCase()}
+      onchange={exportModels}
       style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
     />
     <input
       type="checkbox"
       style="position:absolute;top:0;left:6rem;"
-      value={modelName.toLowerCase()}
+      value={modelName}
       class="model-checkboxes"
     />
-    <details class="model-details" id={modelName}>
+    <details class="model-details">
       <summary class="cr-model-name">
         {capitalize(modelName)}
-        {@render permissions()}
+        {@render permissions(modelName)}
       </summary>
 
       <div

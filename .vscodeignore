@@ -1,8 +1,15 @@
 .vscode
 .vscode-test
+src/
+**/*.ts
+**/*.map
 .gitignore
 .eslintrc.json
+tsconfig.json
+vite.config.*
+pnpm-lock.yaml
 **/node_modules/.cache
+
 .env
 .typescript/
 tsconfig.json
@@ -17,7 +24,7 @@ src/
 
 # 3. CRITICAL FIX: whitelist your build folder explicitly first
 !out/
-!out/extension.cjs
+!out/extension.js
 !out/webview-assets/**
 
 # 4. Safely ignore development source-level TypeScript files 

@@ -153,35 +153,41 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('test-ext.crudTest', async () => {
       console.log('COMMAND CALLED: test-ext.crudTest')
 
+      // Priority order for root path
       let rootPath: string | undefined
 
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]
-
-      if (workspaceFolder && workspaceFolder.uri.scheme === 'vscode-remote') {
-        // Correct remote path evaluation
-        rootPath = workspaceFolder.uri.path
-      } else {
-        // If VS Code passes a local Windows path or system file location,
-        // fallback to Node's native Linux Current Working Directory
-        rootPath = process.cwd()
+      // 1. Active editor's workspace folder (most reliable)
+      const editor = vscode.window.activeTextEditor
+      if (editor) {
+        const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
+        rootPath = folder?.uri.fsPath
       }
 
-      // Emergency cleanup guard: If it STILL contains a /mnt/c/ override,
-      // strip the tail folder name dynamically and map it back to your Linux structure
-      if (rootPath.startsWith('/mnt/c/')) {
-        const currentFolder = path.basename(
-          vscode.workspace.workspaceFolders?.[0]?.uri.path || '',
-        )
-        console.log(
-          'Detected WSL path, remapping to Linux structure with folder:',
-          currentFolder,
-        )
-        rootPath = currentFolder
-          ? `/home/mili/Ext/${currentFolder}`
-          : '/home/mili/Ext/test-ext'
+      // 2. First workspace folder
+      if (!rootPath) {
+        rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
       }
 
-      console.log('Guaranteed Workspace Linux Path:', rootPath)
+      // 3. Fallbacks (avoid hard-coding user paths!)
+      if (!rootPath) {
+        // For webview extensions or single-file cases
+        rootPath = vscode.workspace.workspaceFile?.fsPath
+          ? path.dirname(vscode.workspace.workspaceFile.fsPath)
+          : undefined
+      }
+      if (!rootPath) {
+        rootPath = '/home/mili/Ext/test-ext' // <-- REPLACE with a more dynamic solution if possible
+      }
+
+      if (!rootPath) {
+        vscode.window.showErrorMessage(
+          'No workspace folder found. Open a folder first.',
+        )
+        return
+      }
+
+      console.log('Final rootPath:', rootPath)
+      vscode.window.showInformationMessage(`Working in: ${rootPath}`)
       console.log(`[Backend] Resolved Root Path: ${rootPath}`)
       vscode.window.showInformationMessage(`Resolved Root Path: ${rootPath}`)
 
@@ -348,6 +354,8 @@ export async function activate(context: vscode.ExtensionContext) {
             const payload = JSON.parse(msg.payload)
             // const payload = msg.payload
             log(['stringified payload', JSON.stringify(payload)])
+            console.log('stringified payload', JSON.stringify(payload))
+            console.log('payload', payload)
             generateParts(context, panel!, paths, payload)
             log('Extension: sending crudSuportDone')
             panel!.webview.postMessage({

@@ -53,12 +53,16 @@ export function showConfirmation(
   return new Promise((resolve) => {
     const id = `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 
+    // The confirmation would be set to both OrmThree (to ignore it) and to the webview (to handle it)
+    // The handler should be registered at windows via addEventListener with the `once` option set to true
+    // and upon receiving the message with the correct id should be removed and resolve the promise with the confirmation result
     const messageHandler = (event: MessageEvent) => {
       const msg = event.data
       console.log('event-handler.browser got response', msg)
 
       if (msg.command === 'confirmationResponse' && msg.payload?.id === id) {
         console.log('command name OK', msg.payload.confirmed)
+        // though the emitter window would do it we would be removing the listener
         window.removeEventListener('message', messageHandler)
         resolve(msg.payload.confirmed)
       }

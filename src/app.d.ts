@@ -9,15 +9,24 @@ declare global {
     isOptional: boolean
     isDataEntry: boolean
     attrs?: string
+    permissions?: string
   }
   // no name; it should be part of Models with their name as a key
   export type Model = {
     fields: Field[]
     attrs?: string[]
+    permissions?: string
   }
   export type Models = Record<string, Model>
   export type RouteName = string
-  export type SelectedModels = Record<RouteName, Model>
+  export type SelectedModel = Record<
+    string /* modelName */,
+    {
+      routeName: string
+      permissions?: string
+    }
+  >
+  export type SelectedModels = Record<RouteName, SelectedModel>
   export type Components = string[]
   export type Payload = Record<
     string,

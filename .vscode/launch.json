@@ -31,7 +31,7 @@
         // Force the temporary instance to load your exact WSL path
         "/home/mili/Ext/test-ext"
       ],
-      "outFiles": ["${workspaceFolder}/out/**/*.cjs"]
+      "outFiles": ["${workspaceFolder}/out/**/*.js"]
     }
   ]
 }

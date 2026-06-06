@@ -151,11 +151,15 @@ async function installNpmInitPrisma() {
   // sendToTerminal(`cd ${paths.root}`)
   // spawn('cd',[paths.root])
 
+  log(
+    `detected package manager is ${pm} and its executable for devDependencies is ${ex}`,
+  )
   await runCommandStream('pnpm', ['i', '-D', ...devDeps], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
     onStderr: (err) => console.error(err),
   })
+  log('dev dependencies installed, now installing regular dependencies')
   await runCommandStream('pnpm', ['i', '-D', ...deps], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
@@ -167,11 +171,13 @@ async function installNpmInitPrisma() {
   } else if (ex === 'yarnx') {
     pgm = 'yarn dlx '
   }
+  log(`executing command ${pgm} ${init.join(' ')} to initialize Prisma...`)
   await runCommandStream(pgm, [...init], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
     onStderr: (err) => console.error(err),
   })
+  log('Prisma initialized successfully')
 }
 
 async function createRoleAndDb() {
@@ -230,10 +236,13 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
   // install all required npm packages for Prisma and database client
   log('Installing NPM packages...')
   installNpmInitPrisma()
+  log('NPM packages installed successfully')
   createRoleAndDb()
+  log('Role and database created successfully')
 
   const dblink = `DATABASE_URL=postgresql://${db.owner}:${db.password}@localhost:${db.port}/${db.name}?schema=public`
   if (fs.existsSync(paths.env)) {
+    log('.env file exists, now checking for DATABASE_URL in it')
     // read .env file content
     let envContent = fs.readFileSync(paths.env, 'utf-8')
 
@@ -257,10 +266,12 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
       fs.appendFileSync(paths.env, '\n' + dblink, 'utf-8')
     }
   } else {
+    log('.env file does not exist, creating it with the new connection string')
     // .env file does not exist, create it with the new connection string
     fs.writeFileSync(paths.env, dblink, 'utf-8')
   }
 
+  log('cannot wait for sprisma initialization using loop with sleep')
   // wait for prisma initialization
   // for (let i = 0; i < 100; i++) {
   //   log(['await sleep 1000', String(i)])
@@ -269,10 +280,10 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
   //     break
   //   }
   // }
+  log('looks like we cannot open new tab in VS Code')
   // Create Uri for the schema file
-  // let uri = vscode.Uri.file(paths.schema)
-  // log('showing schema file in new tab')
-  // // Open schema content in new tab (beside current editor)
+  let uri = vscode.Uri.file(paths.schema)
+  // Open schema content in new tab (beside current editor)
   // await vscode.window.showTextDocument(uri, {
   //   viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
   //   preview: false, // Optional: Force a new tab (not preview mode)
@@ -283,11 +294,11 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
   )
 
   // create Uri for the .env file
-  let uri = vscode.Uri.file(paths.env)
-  await vscode.window.showTextDocument(uri, {
-    viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-    preview: false, // Optional: Force a new tab (not preview mode)
-  })
+  uri = vscode.Uri.file(paths.env)
+  // await vscode.window.showTextDocument(uri, {
+  //   viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+  //   preview: false, // Optional: Force a new tab (not preview mode)
+  // })
   createPendingFile()
   log('end of installPrismaPartOne -- return {success: true}')
   return { success: true }
