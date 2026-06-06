@@ -18,7 +18,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
     exportModels,
   }: TProps = $props()
   // model holds set of selected roles
-  const roles = new SvelteMap<string, SvelteSet<string>>()
+  const rolesMap = new SvelteMap<string, SvelteSet<string>>()
 
   // when dropdown is opened set the current selectedModel
   let selectedModel = $state('')
@@ -27,10 +27,10 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
   function roleSelected(e: MouseEvent, model: string) {
     e.preventDefault()
     const el = e.target as HTMLElement
-    //console.log('roleSelected parent', el.parentElement);
     if (!el.classList[0]) {
       return
     }
+    // TODO cannot allow dupplicate roles in the list
     switch (el.classList[0]) {
       case 'selectedRoles': {
         selectedModel = (el.parentElement as HTMLElement)?.dataset
@@ -60,11 +60,11 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
   function toggleRole(e: MouseEvent, model: string, role: string) {
     e.preventDefault()
     //console.log('toggleRole', model, role);
-    let set = roles.get(model)
+    let set = rolesMap.get(model)
 
     if (!set) {
       set = new SvelteSet<string>()
-      roles.set(model, set)
+      rolesMap.set(model, set)
     }
 
     if (set.has(role)) {
@@ -83,7 +83,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
 </script>
 
 {#snippet multiSelect(model: string)}
-  {@const selected = roles.get(model) ?? new SvelteSet()}
+  {@const selected = rolesMap.get(model) ?? new SvelteSet()}
 
   <section
     class="select-wrapper"
@@ -118,7 +118,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
   aria-hidden={true}
 >
   {#each userRoles as role (role)}
-    <p class:selected={roles.get(selectedModel)?.has(role)}>
+    <p class:selected={rolesMap.get(selectedModel)?.has(role)}>
       <span class="letter">
         {role[0]}
       </span>
@@ -151,6 +151,8 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       height: 1rem;
       border-radius: 4px;
       color: var(--candidate-color);
+      border: 1px solid gray;
+      border-radius: 4px;
       // background-color: var(--candidate-bg-color);
       z-index: 20;
       .badge {

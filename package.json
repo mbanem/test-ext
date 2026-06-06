@@ -41,6 +41,7 @@
     "check": "eslint .",
     "dev": "clear; vite dev",
     "build:webview": "cd src/webview-ui && pnpm run build",
+    "last two": "are all you need",
     "build": "pnpm compile && pnpm build:webview",
     "install": "pnpm build; vsce package --no-dependencies && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
   },

@@ -191,14 +191,14 @@ export async function activate(context: vscode.ExtensionContext) {
       console.log(`[Backend] Resolved Root Path: ${rootPath}`)
       vscode.window.showInformationMessage(`Resolved Root Path: ${rootPath}`)
 
-      await vscode.window.showWarningMessage(
-        rootPath,
-        {
-          modal: true,
-          detail: 'page is blank',
-        },
-        'This should be te rootPath',
-      )
+      // await vscode.window.showWarningMessage(
+      //   rootPath,
+      //   {
+      //     modal: true,
+      //     detail: 'page is blank',
+      //   },
+      //   'This should be te rootPath',
+      // )
       log(`rootPath is ${rootPath}`)
       paths = {
         root: rootPath,
@@ -358,9 +358,11 @@ export async function activate(context: vscode.ExtensionContext) {
             console.log('payload', payload)
             generateParts(context, panel!, paths, payload)
             log('Extension: sending crudSuportDone')
-            panel!.webview.postMessage({
-              command: 'crudSuportDone',
-            })
+            setTimeout(() => {
+              panel!.webview.postMessage({
+                command: 'crudSuportDone',
+              })
+            }, 3000)
             break
 
           case 'close':

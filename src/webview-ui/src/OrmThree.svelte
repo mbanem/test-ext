@@ -1,7 +1,7 @@
 <script lang="ts">
   import { vscode } from '$lib/utils/event-handler.browser'
   import { onMount } from 'svelte'
-  import CRModelList from '$lib/components/CRModelList.svelte'
+  import CRModelPermissionHandler from '$lib/components/CRModelPermissionHandler.svelte'
 
   let isLoading = $state(true)
   // const vscode = acquireVsCodeApi()
@@ -203,6 +203,7 @@
       class:notallowed={buttonNotAllowed}
       aria-hidden={true}
     >
+      <span class:spinner={inAction}></span>
       Create CRUD Support
     </div>
   </div>
@@ -221,8 +222,12 @@
   <div class="application-settings">
     {@render pageByPageNote()}
   </div>
-  <CRModelList {models} bind:selectedModels bind:isLoading {userRoles}
-  ></CRModelList>
+  <CRModelPermissionHandler
+    {models}
+    bind:selectedModels
+    bind:isLoading
+    {userRoles}
+  ></CRModelPermissionHandler>
 </div>
 
 <pre>selectedModels
@@ -230,26 +235,36 @@
 </pre>
 
 <style lang="scss">
-  .spinner-wrapper {
-    display: grid;
-    grid-template-columns: 1em 10rem;
-    column-gap: 0.5rem;
-  }
   .spinner {
-    // display: flex;
-    // justify-content: center;
-    // align-items: center;
     display: inine-block;
     width: 0.8em;
     height: 0.8em;
     border: 3px solid #a1c1eb;
     border-top-color: #1b4891;
     border-radius: 50%;
-    margin: -2px 0 0 0.5rem;
+    // margin: -1px 0 0 2px;
     animation: spin 900ms linear infinite;
     span {
       display: inline-block;
     }
+  }
+  #createBtnId {
+    display: grid;
+    grid-template-columns: minmax(1.2em, 1.2em) 9rem;
+    place-items: center;
+    gap: 0;
+    position: absolute;
+    top: 20rem;
+    left: 1.2rem;
+    outline: none;
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-weight: 400;
+    color: var(--candidate-color);
+    margin: 6rem 6.5rem;
+    width: max-content;
+    padding: 2px 5px 2px 0;
+    cursor: pointer;
   }
   .cr-main-grid {
     position: relative;
@@ -303,7 +318,8 @@
 
     position: relative;
     display: grid;
-    grid-template-columns: 1rem 7rem;
+    grid-template-columns: minmax(2em, auto) 7rem;
+    align-items: center;
     width: 97.2%;
     column-gap: 0.5rem;
     row-gap: 0.1rem;
@@ -314,20 +330,6 @@
     user-select: none;
   }
 
-  #createBtnId {
-    position: absolute;
-    top: 20rem;
-    left: 1.2rem;
-    outline: none;
-    border: 1px solid gray;
-    border-radius: 5px;
-    font-weight: 400;
-    padding: 4px 1rem;
-    color: var(--candidate-color);
-    margin: 6rem 6.5rem;
-    width: max-content;
-    cursor: pointer;
-  }
   .notallowed {
     opacity: 0.3;
     cursor: not-allowed;
