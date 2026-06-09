@@ -10,6 +10,7 @@
   import { showConfirmation } from '$lib/utils'
   import ShowMessage from '$lib/components/CRShowMessage.svelte'
   import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
+  import type { EventHandler } from 'svelte/elements'
   let sm: ShowMessage
 
   export type TProps = {
@@ -330,6 +331,7 @@
   }
 
   function showMessage(
+    e: EventHandler,
     msg: string,
     className: string = 'tomato',
     milisec: number = 2000,
@@ -338,7 +340,7 @@
     msgClass = className
     setTimeout(() => {
       message = defaultMessage
-      msgClass = 'navy'
+      msgClass = ''
     }, milisec)
   }
   async function addNewModel(e: MouseEvent | KeyboardEvent) {
@@ -350,7 +352,7 @@
     const model = capitalize(newModelName)
 
     if (models[model]) {
-      showMessage(alreadyDefined)
+      showMessage(e, alreadyDefined)
       // newModelName = '';
       return
     }
@@ -553,7 +555,7 @@
     </div>
   </div>
   <div class="add-extra-model">
-    <span class={msgClass}>{message}</span>
+    <span class="main-class" style="color:{msgClass}">{message}</span>
     <input
       type="text"
       bind:value={newModelName}
@@ -637,9 +639,9 @@
     border-radius: 50%;
     margin: 4px 0 0 0.5rem;
     animation: spin 900ms linear infinite;
-    span {
-      display: inline-block;
-    }
+    // span {
+    //   display: inline-block;
+    // }
   }
   @keyframes spin {
     to {
@@ -811,6 +813,9 @@
     border-radius: 5px;
     z-index: 10;
     opacity: 0;
+  }
+  .main-class {
+    color: var(--pre-color);
   }
   .hidden {
     display: none;

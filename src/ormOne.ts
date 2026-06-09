@@ -6,7 +6,13 @@ import { spawn } from 'child_process'
 
 // NOTE: variables ending with an underscore are fuctions that return
 //       value of a variable with the same name without underscore
-import { runCommandStream, log, error, info } from './extension.js'
+import {
+  runCommandStream,
+  log,
+  waitForNewFile,
+  error,
+  info,
+} from './extension.js'
 
 let paths: TPaths = {}
 let db: DbParams = {}
@@ -96,7 +102,23 @@ function xPackageManager(pm: string): string {
   }
   return 'unknown'
 }
+let interval: ReturnType<typeof setInterval>
+function cliSpinner(startStop: boolean): void {
+  if (!startStop) {
+    clearInterval(interval)
+    return
+  }
+  const spinner = ['/', '-', '\\', '|']
+  let i = 0
 
+  interval = setInterval(() => {
+    process.stdout.write(`\r${spinner[i]}`)
+    i = (i + 1) % spinner.length
+  }, 200)
+
+  // Stop the spinner after 3 seconds
+  // setTimeout(() => clearInterval(interval), 3000)
+}
 const devDeps = [
   '@eslint/compat',
   '@eslint/js',
@@ -140,7 +162,8 @@ const deps = [
   'tslib',
 ]
 const init = ['prisma', 'init', '--datasource-provider', 'postgresql']
-async function installNpmInitPrisma() {
+async function installNpmInitPrisma(): Promise<void> {
+  console.log('installNpmInitPrisma entry')
   pm = detectPackageManager()
 
   if (pm === 'unknown') {
@@ -154,12 +177,15 @@ async function installNpmInitPrisma() {
   log(
     `detected package manager is ${pm} and its executable for devDependencies is ${ex}`,
   )
+  console.log('pnpm i -D ...')
+  cliSpinner(true)
   await runCommandStream('pnpm', ['i', '-D', ...devDeps], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
     onStderr: (err) => console.error(err),
   })
   log('dev dependencies installed, now installing regular dependencies')
+  console.log('pnpm i dependancies')
   await runCommandStream('pnpm', ['i', '-D', ...deps], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
@@ -172,12 +198,19 @@ async function installNpmInitPrisma() {
     pgm = 'yarn dlx '
   }
   log(`executing command ${pgm} ${init.join(' ')} to initialize Prisma...`)
+  console.log('prisma init')
   await runCommandStream(pgm, [...init], {
     cwd: paths.root,
     onStdout: (msg) => console.log(msg),
     onStderr: (err) => console.error(err),
   })
-  log('Prisma initialized successfully')
+  if (!waitForNewFile(path.join(paths.root, 'prisma.config.ts)'), 60000)) {
+    log(`prisma.config.ts not created in 60sec`)
+  } else {
+    log('Prisma initialized successfully')
+  }
+  cliSpinner(false)
+  console.log('end of installNpmInitPrisma')
 }
 
 async function createRoleAndDb() {
@@ -225,7 +258,10 @@ async function createRoleAndDb() {
   log(`Database ${db.name} created`)
 }
 
-export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
+export async function installPrismaPartOne(
+  db_: DbParams,
+  thePaths: TPaths,
+): Promise<{ success: boolean }> {
   db = db_
   paths = thePaths
   log([
@@ -235,7 +271,8 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
   ])
   // install all required npm packages for Prisma and database client
   log('Installing NPM packages...')
-  installNpmInitPrisma()
+  await installNpmInitPrisma()
+
   log('NPM packages installed successfully')
   createRoleAndDb()
   log('Role and database created successfully')
@@ -271,23 +308,19 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
     fs.writeFileSync(paths.env, dblink, 'utf-8')
   }
 
-  log('cannot wait for sprisma initialization using loop with sleep')
-  // wait for prisma initialization
-  // for (let i = 0; i < 100; i++) {
-  //   log(['await sleep 1000', String(i)])
-  //   await sleep(1000)
-  //   if (fs.existsSync(paths.schema)) {
-  //     break
-  //   }
-  // }
+  // log('cannot wait for prisma initialization using loop with sleep')
+  if (!waitForNewFile(paths.schema, 30000)) {
+    log(`did not create db ${db.name} and role ${db.owner} in 30sec`)
+  }
+
   log('looks like we cannot open new tab in VS Code')
   // Create Uri for the schema file
   let uri = vscode.Uri.file(paths.schema)
   // Open schema content in new tab (beside current editor)
-  // await vscode.window.showTextDocument(uri, {
-  //   viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-  //   preview: false, // Optional: Force a new tab (not preview mode)
-  // })
+  await vscode.window.showTextDocument(uri, {
+    viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+    preview: false, // Optional: Force a new tab (not preview mode)
+  })
 
   log(
     `forming dblink with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
@@ -295,10 +328,10 @@ export async function installPrismaPartOne(db_: DbParams, thePaths: TPaths) {
 
   // create Uri for the .env file
   uri = vscode.Uri.file(paths.env)
-  // await vscode.window.showTextDocument(uri, {
-  //   viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-  //   preview: false, // Optional: Force a new tab (not preview mode)
-  // })
+  await vscode.window.showTextDocument(uri, {
+    viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
+    preview: false, // Optional: Force a new tab (not preview mode)
+  })
   createPendingFile()
   log('end of installPrismaPartOne -- return {success: true}')
   return { success: true }

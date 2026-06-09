@@ -230,23 +230,20 @@
   ></CRModelPermissionHandler>
 </div>
 
-<pre>selectedModels
+<!-- <pre>selectedModels
 {JSON.stringify($state.snapshot(selectedModels), null, 2)}
-</pre>
+</pre> -->
 
 <style lang="scss">
   .spinner {
     display: inine-block;
-    width: 0.8em;
-    height: 0.8em;
+    width: 1em;
+    height: 1em;
     border: 3px solid #a1c1eb;
     border-top-color: #1b4891;
     border-radius: 50%;
     // margin: -1px 0 0 2px;
     animation: spin 900ms linear infinite;
-    span {
-      display: inline-block;
-    }
   }
   #createBtnId {
     display: grid;

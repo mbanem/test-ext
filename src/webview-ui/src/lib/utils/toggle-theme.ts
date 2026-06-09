@@ -1,33 +1,28 @@
-// -------- toggle theme begin ---------
+// src/webview-ui/src/lib/utils/toggle-theme.ts
 
-// Theme type & state
 export type Theme = 'light' | 'dark'
 
-// Get saved preference or system preference
-export function getInitialTheme(): Theme {
-  // if (!browser) return 'light'
+const THEME_KEY = 'cr-theme'
 
-  const saved = localStorage.getItem('theme') as Theme | null
-  if (saved) {
+export function getInitialTheme(): Theme {
+  const saved = localStorage.getItem(THEME_KEY) as Theme | null
+  console.log('getInitialTheme saved:', saved)
+
+  if (saved === 'light' || saved === 'dark') {
     return saved
   }
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light'
+  return document.body.classList.contains('vscode-dark') ? 'dark' : 'light'
 }
-let currentTheme = 'light'
-// Apply theme to document
-export function applyTheme(ct?: string) {
-  document.documentElement.classList.add(ct ?? currentTheme)
+
+export function applyTheme(theme: Theme) {
+  console.log('applyTheme', theme)
+  document.documentElement.dataset.crTheme = theme
+  localStorage.setItem(THEME_KEY, theme)
 }
-// Toggle theme
-export function toggleTheme(ct: string) {
-  document.documentElement.classList.remove(currentTheme)
-  currentTheme = ct === 'dark' ? 'light' : 'dark'
-  applyTheme(currentTheme)
-  localStorage.setItem('theme', currentTheme)
-  applyTheme()
+
+export function getIcon(theme: Theme) {
+  return theme === 'dark' ? '☀️' : '🌙'
 }
 
 // Initialize on client

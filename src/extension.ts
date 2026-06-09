@@ -8,6 +8,7 @@ import { installPrismaPartTwo } from './ormTwo.js'
 import { generateParts } from './partsGenerator.js'
 import { spawn, execSync } from 'child_process'
 import { parsePrismaSchema } from './webview-ui/src/lib/utils/parse-prisma-schema.js'
+import { stringToFieldObject } from './webview-ui/src/lib/utils/helpers.js'
 
 /*
   To make your file-writing tasks 100% immune to Windows backslashes (\) vs Linux forward 
@@ -109,6 +110,16 @@ export const sleep = async (ms: number) => {
       resolve(ms)
     }, ms)
   })
+}
+export const waitForNewFile = async (filePath: string, howLong: number) => {
+  const loops = Math.ceil(howLong / 1000)
+  for (let i = 0; i < loops; i++) {
+    await sleep(1000)
+    if (fs.existsSync(filePath)) {
+      return true
+    }
+  }
+  return false
 }
 export const channel = vscode.window.createOutputChannel('getWebviewHtml')
 export const log = (msg: string | string[], show: boolean = true) => {
@@ -224,52 +235,50 @@ export async function activate(context: vscode.ExtensionContext) {
       // pages in wizard like steps for installing ORM, creating database and generating
       // SvelteKit CRUD support app pages based on the prisma schema models and some
       // additonal functionality selected by users
-
+      const result = displayWebview(context, panel!)
+      console.log('initial call displayWebview', result)
       if (!fs.existsSync(paths.schema)) {
         // open OrmOne.html and wait for 'installPrismaPartOne' command from
         // it with db_ object as payload
-        displayWebview(context, panel, 'OrmOne')
+        panel!.webview.postMessage({ command: 'showPage', page: 'OrmOne' })
       } else if (fs.existsSync(paths.pending)) {
-        displayWebview(context, panel!, 'OrmTwo')
+        panel!.webview.postMessage({ command: 'showPage', page: 'OrmTwo' })
       } else {
-        displayWebview(context, panel!, 'OrmThree')
+        panel!.webview.postMessage({ command: 'showPage', page: 'OrmThree' })
       }
       panel.webview.onDidReceiveMessage(async (msg) => {
+        console.log('onDidReceiveMessage', msg.command)
         switch (msg.command) {
           // OrmOne.html sends this command with db_ object as payload when
           // user clicks 'Install Prisma ORM'
           case 'installPrismaPartOne':
-            log('installPrismaPartOne comand request from OrmOne.html 1')
+            console.log(
+              'installPrismaPartOne comand request from OrmOne.html 1',
+            )
             db = JSON.parse(msg.payload) as DbParams
             db.adminPwd = sudoName_ as string
             let result = await installPrismaPartOne(db, paths)
-            log(
+            console.log(
               `after call to installPrismaPartOne success is ${result.success.toString()}`,
             )
-            displayWebview(context, panel!, 'OrmTwo')
+            panel!.webview.postMessage({ command: 'showPage', page: 'OrmTwo' })
             break
 
           case 'installPrismaPartTwo':
-            log('installPrismaPartTwo command request from OrmTwo.html')
+            console.log('installPrismaPartTwo command request from OrmTwo.html')
             const cmd = installPrismaPartTwo(paths) //FIX: needs build db models from schema
             sendToTerminal(`cd ${paths.root}`)
             sendToTerminal(cmd)
 
             deletePendingFile()
-            log('pending file deleted')
+            console.log('pending file deleted')
             console.log('installPrismaPartTwo done')
 
             // if (result.success) {
             // wait until prisma migrations folder is created
             const migrateFolder = path.join(paths.root, 'prisma/migrations')
-            for (let i = 0; i < 10; i++) {
-              await sleep(1000)
-              if (fs.existsSync(migrateFolder)) {
-                break
-              }
-            }
-            await sleep(3000)
-            // }
+            waitForNewFile(migrateFolder, 10000)
+
             //   // Create Uri for the schema file
             //   let uri = vscode.Uri.file(paths.schema)
             //   // Open schema content in new tab (beside current editor)
@@ -291,7 +300,11 @@ export async function activate(context: vscode.ExtensionContext) {
             // console.log('installPrismaPartTwo result', result.success)
             // // OrmThree needs prisma models; we parse prisma and send stringified models to it
             console.log('call to open OrmThree')
-            displayWebview(context, panel!, 'OrmThree')
+            // displayWebview(context, panel!, 'OrmThree')
+            panel!.webview.postMessage({
+              command: 'showPage',
+              page: 'OrmThree',
+            })
             break
 
           case 'ready':

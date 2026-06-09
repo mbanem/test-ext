@@ -30,3 +30,4 @@ src/
 # 4. Safely ignore development source-level TypeScript files 
 # without accidentally stripping production build artifacts
 src/**/*.ts
+*.tgz

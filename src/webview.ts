@@ -19,18 +19,29 @@ function getNonce(): string {
 /**
  * Find and load page assets assembly the page HTML markup and set into panel.webview.html
  */
+// export function displayWebview(
+//   context: vscode.ExtensionContext,
+//   panel: vscode.WebviewPanel,
+//   pageName: TPageName,
+//   owner?: string,
+// ): { success: boolean } {
+//   log(`displayWebview entry point: display ${pageName}`)
+//   const html = getWebviewHtml(context, panel.webview, pageName)
+//   panel.webview.html = html
+//   return { success: true }
+// }
+
 export function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  pageName: TPageName,
-  owner?: string,
 ): { success: boolean } {
-  log(`displayWebview entry point: display ${pageName}`)
-  const html = getWebviewHtml(context, panel.webview, pageName)
+  log(`displayWebview entry point: display App`)
+
+  const html = getWebviewHtml(context, panel.webview, 'OrmOne')
   panel.webview.html = html
+
   return { success: true }
 }
-
 /**
  * Returns the final HTML string — with automatic dev fallback
  */

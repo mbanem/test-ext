@@ -132,9 +132,9 @@
   //     margin-left: 1rem;
   //   }
   // }
-  .theme-icon {
-    position: absolute;
-    top: 4rem;
-    left: 41rem;
-  }
+  // .theme-icon {
+  //   position: absolute;
+  //   top: 4rem;
+  //   left: 41rem;
+  // }
 </style>
