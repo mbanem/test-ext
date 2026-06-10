@@ -2,7 +2,7 @@
   import OrmOne from './OrmOne.svelte'
   import OrmTwo from './OrmTwo.svelte'
   import OrmThree from './OrmThree.svelte'
-  import { type Component, onMount } from 'svelte'
+  import { onMount } from 'svelte'
   import '$lib/styles/themes.scss'
   /* theme belongs to the webview UI shell
     - App.svelte owns the theme state

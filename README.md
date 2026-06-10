@@ -2,6 +2,8 @@
 
 - making video shorter
   ffmpeg -i OrmThree.mp4 -vf "fps=10,scale=800:-2" Orm3.mp4
+- what Ubuntu version is in WSL
+  cat /etc/os-release
 - Part One.
   On start it tries to find approot/prisma/schema.prisma and
   if not found it offers to install necessary npm packages

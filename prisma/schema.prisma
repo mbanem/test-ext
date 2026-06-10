@@ -147,24 +147,24 @@ model Todo {
 
 // NOTE: field names in apostrophes not in quotas as PostgreSQL
 // will try for find such objects
-insert into category (name) values('JavaScript'),
- ('Typescript'),
- ('Svelte'),
- ('SvelteKit'),
- ('CSS'),
- ('SCSS'),
- ('Prisma ORM'),
- ('PostgreSQL'),
- ('GSAP'),
- ('Vite'),
- ('BCrypt'),
- ('Articles'),
- ('Comments'),
- ('Documents'),
- ('eMails'),
- ('Presentations'),
- ('Blogs'),
- ('Publications');
+// insert into category (name) values('JavaScript'),
+//  ('Typescript'),
+//  ('Svelte'),
+//  ('SvelteKit'),
+//  ('CSS'),
+//  ('SCSS'),
+//  ('Prisma ORM'),
+//  ('PostgreSQL'),
+//  ('GSAP'),
+//  ('Vite'),
+//  ('BCrypt'),
+//  ('Articles'),
+//  ('Comments'),
+//  ('Documents'),
+//  ('eMails'),
+//  ('Presentations'),
+//  ('Blogs'),
+//  ('Publications');
 
 
 
