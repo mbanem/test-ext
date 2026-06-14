@@ -11,6 +11,9 @@
   import ShowMessage from '$lib/components/CRShowMessage.svelte'
   import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
   import type { EventHandler } from 'svelte/elements'
+
+  type TChangeEvent = Event & { currentTarget: EventTarget & HTMLInputElement }
+
   let sm: ShowMessage
 
   export type TProps = {
@@ -62,7 +65,7 @@
   const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g')
   let x = $state(100)
   let y = $state(100)
-  export const exportModels = (modelName?: string) => {
+  export const exportModels = (e: TChangeEvent, modelName?: string) => {
     console.log('exportModels called', modelName)
     selectedModels = {}
     // get only selected models based on the checkbox checked state
@@ -177,13 +180,17 @@
     }
   }
 
-  function outOfBound(e: MouseEvent, el: HTMLElement) {
-    const rect = el.getBoundingClientRect()
+  function isInside(e: MouseEvent, el: HTMLElement | DOMRect) {
+    let rect: DOMRect = el as DOMRect
+    if (el instanceof HTMLElement) {
+      rect = el.getBoundingClientRect() as DOMRect
+    }
+    function between(a: number, b: number, t: number) {
+      return a <= t && b >= t
+    }
     return (
-      e.clientX < rect.left ||
-      e.clientX > rect.right ||
-      e.clientY < rect.top ||
-      e.clientY > rect.bottom
+      between(e.clientX, rect.left, rect.right) &&
+      between(e.clientY, rect.top, rect.bottom)
     )
   }
   function showNoDataEntry(x: number, y: number) {
@@ -203,7 +210,7 @@
     e.preventDefault()
     killTimeout()
     timer = null
-    if (outOfBound(e, modelWrapperEl)) {
+    if (isInside(e, modelWrapperEl)) {
       if (!extraModels.size) {
         return
       }
@@ -212,7 +219,7 @@
 
     if (
       (e.target as HTMLElement).tagName !== 'SECTION' &&
-      outOfBound(e, tooltipBlockEl)
+      isInside(e, tooltipBlockEl)
     ) {
       tooltipBlockEl.style.opacity = '0'
       return
@@ -316,14 +323,10 @@
         break
       case 'SPAN':
       case 'P':
-        // e.preventDefault();
-        //console.log('role list clicked', el.tagName);
-        break
       default:
         //console.log('default clicked', el.tagName);
         break
     }
-    // return;
   }
 
   function hideTooltipBlock() {
@@ -418,18 +421,18 @@
       }
     }
   }
-  function isInside(rect: DOMRect, e: MouseEvent) {
-    return (
-      e.clientX >= rect.left &&
-      e.clientX <= rect.right &&
-      e.clientY >= rect.top &&
-      e.clientY <= rect.bottom
-    )
-  }
+  // function isInside(e: MouseEvent, rect: DOMRect) {
+  //   return (
+  //     e.clientX >= rect.left &&
+  //     e.clientX <= rect.right &&
+  //     e.clientY >= rect.top &&
+  //     e.clientY <= rect.bottom
+  //   )
+  // }
   function hideClickToRemove(e: MouseEvent) {
     e.preventDefault()
     console.log('hideClickToRemove fieldRect?', fieldsRect)
-    if (!isInside(fieldsRect, e)) {
+    if (!isInside(e, fieldsRect)) {
       notDataEntryEl.style.opacity = '0'
     }
   }
@@ -487,7 +490,7 @@
       type="text"
       id="route{modelName}"
       value={modelName.toLowerCase()}
-      onchange={exportModels}
+      onchange={(e: TChangeEvent) => exportModels(e, modelName.toLowerCase())}
       style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
     />
     <input
@@ -539,7 +542,7 @@
 {/snippet}
 <div class="container">
   <div class="schema-container" onclick={toggleSummary} aria-hidden={true}>
-    <p class="orm-models-caption">Route folder name for ORM Model</p>
+    <p class="orm-models-caption">ORM Models -- Table Names</p>
     <p class="select-all" onclick={toggleCheckboxes} aria-hidden={true}>
       (select all)
     </p>
@@ -601,13 +604,11 @@
     width: 23rem;
     margin-top: 1rem;
     height: 39.7rem;
-    border: 1px solid green;
     .schema-container {
       position: relative;
       width: 22.8rem;
       height: 35.9rem;
       border: 1px solid gray;
-      // border: 1px solid blue;
       border-radius: 6px;
       padding: 1rem 0 0 3px;
       .model-wrapper {
@@ -615,7 +616,6 @@
         padding: 0;
         margin: 0;
         height: 34.4rem;
-        // border: 1px solid red;
         z-index: 15;
         overflow-y: auto;
         scrollbar-width: none;
@@ -639,9 +639,6 @@
     border-radius: 50%;
     margin: 4px 0 0 0.5rem;
     animation: spin 900ms linear infinite;
-    // span {
-    //   display: inline-block;
-    // }
   }
   @keyframes spin {
     to {
@@ -803,8 +800,8 @@
   }
   .no-data-entry {
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 30rem;
+    left: 30rem;
     color: var(--pink-tomato);
     background-color: var(--candidate-bg-color);
     width: max-content;

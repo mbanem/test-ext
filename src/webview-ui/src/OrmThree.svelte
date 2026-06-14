@@ -3,15 +3,29 @@
   import { onMount } from 'svelte'
   import CRModelPermissionHandler from '$lib/components/CRModelPermissionHandler.svelte'
 
+  type TProps = {
+    pageInfo: TToggleFunc
+  }
+  let { pageInfo = $bindable<TToggleFunc>() }: TProps = $props()
+  let isActive = $state(false)
+  function handlePageInfo() {
+    console.log('OrmThree - handlePageInfo')
+    isActive = isActive ? false : true
+  }
+  pageInfo = handlePageInfo
+
+  let appName = $state('')
   let isLoading = $state(true)
-  // const vscode = acquireVsCodeApi()
+  // // const vscode = acquireVsCodeApi()
   let models: Models = $state<Models>({}) as Models
   let inAction = $state(false)
+  // NOTE selectedModels are maintained by CRModelPermissionHandler
   // when any checkbox on a component model list is selected
   // the component keeps this selectedModels in sync
+  // it is Record<ModelName,{routeName, permissions?}>
   let selectedModels = $state<SelectedModels>({})
   let userRoles = $state<string[]>([])
-  // what components users want to include in newnly generated pages
+  // // what components users want to include in newnly generated pages
   let crComponents: string[] = $state([
     'CRInput',
     'CRSpinner',
@@ -25,6 +39,8 @@
 
   // onclick Create CRUD Support sends models to extension to
   // create individual pages or part of the application
+  // NOTE old version returns models as objects, but the extension
+  //      holds all models so only selected moel names should be sent
   // function getPayload() {
   //   if (Object.keys(selectedModels).length === 0) {
   //     // return JSON.stringify($state.snapshot(selectedModels))
@@ -97,17 +113,20 @@
 
   let buttonNotAllowed = $derived(Object.keys(selectedModels).length === 0)
   onMount(() => {
+    console.log('[OrmThree] posting ready')
     vscode.postMessage({ command: 'ready' })
 
     window.addEventListener('message', (event) => {
       const msg = event.data
 
       if (msg.command === 'sendingModels') {
+        console.log('[OrmThree] received', event.data)
         const pload = $state.snapshot(JSON.parse(msg.payload))
         models = pload.models
         userRoles = Object.keys(Object.values(pload.enums)[0] as TEnum).filter(
           Boolean,
         )
+        appName = pload.appName
       }
       // if (msg.command === 'confirmationResponse') {
       //   console.log('confirmation not meant for OrmThree.svelte')
@@ -127,7 +146,46 @@
 <svelte:head>
   <title>CRUD Support</title>
 </svelte:head>
+{#snippet pagePurpose()}
+  <pre>
+  The main part of this page is on the right.
 
+  1) ORM Models -- table names,
+    a list of models/table-names from /prisma/schema.prisma parsed file.
+    Every model is presented in a row that can be expanded to show list
+      of fields/table-columns -- where some could be UI data-entry fields
+      and the others like userAuthToken, passwordHash, createdAt... are
+      not to be displayed to the users.
+      Rows contain:
+    - input box for naming routes, e.g. for model
+      Object.keys models  route would be a folder under
+      /appName/routes/Object.keys models if model is selected
+    - a checkbox to signal that model is selected for generating a route
+    - Model name
+    - Permissions -- when clicked opens a dropdown with UserKind from
+      enums found in schema.prisma, or if enums are not found the extension
+      uses the default enums: USER ADMIN MODERATOR VISITOR.
+  2) Extra Models
+    Some pages could be based on partial models that include only several
+    fields/columns like Login that includes only say email and password.
+    Extra model are added entering extra model name in the input box with
+    placeholder 'Add extra model' and selecting the 'add' button.
+    Model can be removed from the list by entering its name and selecting
+    remove and answering the Confirmation Box to allow the action.
+  3) Adding Fields to Extra Model(s)
+    When extra model(s) are defined then opening any ORM Model will show
+    tooltip like a radio-button group with Model Name beside when some
+    data-entry field is hovered allowing users to select the model and the
+    hovered field will be copied into selected extra model.
+    When more than on extra model is defined tooltip radio-button group
+    includes label 'Both' or 'All' if more then two extra models exist.
+  4)Create CRUD Support button is enabled when some or all models are
+    selected, and when clicked it sends selected page attributes for
+    page-by-page decoration selecting some additional attributes and/or
+    specific behavior offered by the extension, like what Components to
+    include in the given page.
+    </pre>
+{/snippet}
 {#snippet appIncludes()}
   <label for="Navbar" class="app-labels">
     <input
@@ -148,7 +206,7 @@
     Include dark/light/system theme icon</label
   >
 
-  <div class="radio-check-groups">
+  <div class="authentication-authorization">
     <div class="authentication">
       {#each ['pasword-based', 'multi-factor MFA', 'certificate-based', 'token-based JWT', 'Exlude'] as auth (auth.slice(0, 4))}
         <label>
@@ -208,19 +266,25 @@
     </div>
   </div>
 {/snippet}
-{#snippet pageByPageNote()}
-  <cr-pre>
+<!-- {#snippet pageByPageNote()}
+    <cr-pre>
     For every route name and selected checkbox model from summary/details block
     the extension would build a TypeScript data entry +page.svelte with
     accompanying +page.server.ts for communicating with Prisma ORM local
     PostgreSQL database, based on a connection string set in the .env file in
     the app root folder.
   </cr-pre>
-  {@render pageByPageMiddleColumn()}
-{/snippet}
+    {@render pageByPageMiddleColumn()}
+  {/snippet} -->
+{#if isActive}
+  <div class="page-info">
+    {@render pagePurpose()}
+  </div>
+{/if}
 <div id="crudUIBlockId" class="cr-main-grid">
   <div class="application-settings">
-    {@render pageByPageNote()}
+    <!-- {@render pageByPageNote()} -->
+    {@render pageByPageMiddleColumn()}
   </div>
   <CRModelPermissionHandler
     {models}
@@ -242,7 +306,6 @@
     border: 3px solid #a1c1eb;
     border-top-color: #1b4891;
     border-radius: 50%;
-    // margin: -1px 0 0 2px;
     animation: spin 900ms linear infinite;
   }
   #createBtnId {
@@ -267,27 +330,25 @@
     position: relative;
     display: grid;
     grid-template-columns: 30rem 23rem;
-    // border: 1px solid gray;
     column-gap: 1rem;
-    margin: 0.5rem 0 0 1rem;
+    margin: 0 0 0 1rem;
     width: max-content;
     height: auto;
     align-items: start;
+    opacity: 1;
   }
   .application-settings {
     width: 30rem;
     align-items: start;
     height: 100%;
-    // border: 1px dashed gray;
   }
   .cr-left-column {
     @include container($head: 'Application Settings', $head-color: navy);
     position: relative;
     border: 1px solid gray;
     border-radius: 8px;
-    height: 74vh;
+    height: 40.2rem;
     width: 30rem;
-    margin-top: 1rem;
     padding: 1rem 0 0 0.7rem;
     background-color: var(--panel-bg-color);
 
@@ -299,14 +360,6 @@
     div {
       display: block;
     }
-  }
-
-  cr-pre {
-    grid-column: 1 / span 2;
-    text-align: justify;
-    font-size: 14px;
-    color: var(--pre-color);
-    align-items: start;
   }
 
   .embellishments {
@@ -326,8 +379,7 @@
     border-radius: 6px;
     user-select: none;
   }
-
-  .notallowed {
+  P .notallowed {
     opacity: 0.3;
     cursor: not-allowed;
   }
@@ -365,9 +417,16 @@
     @include container($head: 'Authorization', $left: 0.5rem);
     width: 16rem;
   }
-  .radio-check-groups {
+  .authentication-authorization {
     display: grid !important;
     grid-template-columns: 11rem 14rem;
     column-gap: 0.5rem;
+  }
+
+  .page-info {
+    @include page-info($head: 'What Does This Page Do', $head-color: navy);
+    // position: absolute;
+    // top: 0;
+    // left: 1rem;
   }
 </style>

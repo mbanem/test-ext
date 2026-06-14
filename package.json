@@ -2,19 +2,19 @@
   "name": "test-ext",
   "displayName": "test-ext",
   "description": "schema to crud app",
-  "version": "0.0.2",
-  "type": "module",
+  "version": "0.0.1",
+  "type": "commonjs",
   "extensionKind": [
+    "ui",
     "workspace"
   ],
   "engines": {
-    "vscode": "^1.120.0"
+    "vscode": "^1.104.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
     "onCommand:test-ext.crudTest"
   ],
   "main": "./out/extension.js",
@@ -34,10 +34,10 @@
   },
   "scripts": {
     "compile": "tsc -p .",
-    "build": "pnpm compile && pnpm build:webview",
     "build:webview": "cd src/webview-ui && pnpm run build",
+    "build": "pnpm compile && pnpm build:webview",
     "package": "pnpm build && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file",
-    "install-ext": "pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix"
+    "install-ext": "pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
@@ -52,7 +52,7 @@
     "@types/eslint": "^9.6.1",
     "@types/node": "^25.9.2",
     "@types/pg": "^8.20.0",
-    "@types/vscode": "^1.120.0",
+    "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
     "bcrypt": "^6.0.0",

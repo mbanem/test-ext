@@ -4,25 +4,11 @@
   box-sizing: border-box;
 }
 
-:root {}
+// :root {}
 
-:global(.dark) {}
+// :global(.dark) {}
 
-.theme-btn {
-  position: absolute;
-  /*top: 4rem;
-  left: 41rem;
-  */
-  margin: 0;
-  display: inline-block;
-  padding: 0;
-  margin: 0;
-  height: 25px;
-  background-color: var(--btn-bg);
-  outline: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
+
 
 // pre {
 //   font-size: 13px;
@@ -33,6 +19,7 @@
 :global(body) {
   background-color: var(--bg);
 }
+
 
 // input[type='text'] {
 //   width: 18rem;

@@ -49,7 +49,7 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
       '@types/vscode':
-        specifier: ^1.120.0
+        specifier: ^1.104.0
         version: 1.120.0
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.61.0

@@ -46,6 +46,7 @@ declare global {
   }
   export type TEnum = Record<string, string>
   export type TEnums = Record<string, TEnum>
+  export type TToggleFunc = () => void | undefined
   type Position = { x: number; y: number; color: string } | undefined
   namespace App {
     // interface Error {}

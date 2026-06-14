@@ -1,118 +1,12 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import * as os from 'os'
 import { displayWebview } from './webview.js'
-import { installPrismaPartOne } from './ormOne.js'
-import { installPrismaPartTwo } from './ormTwo.js'
-import { generateParts } from './partsGenerator.js'
 import { spawn, execSync } from 'child_process'
 import { parsePrismaSchema } from './webview-ui/src/lib/utils/parse-prisma-schema.js'
-import { stringToFieldObject } from './webview-ui/src/lib/utils/helpers.js'
-
-/*
-  To make your file-writing tasks 100% immune to Windows backslashes (\) vs Linux forward 
-  slashes (/), always use the built-in vscode.Uri.file() and vscode.Uri.joinPath() utilities 
-  when referencing paths in your backend.
-  const prismaSchemaUri = vscode.Uri.joinPath(projectRootUri, 'app', 'prisma', 'schema.prisma');
-*/
 let paths: TPaths = {}
-let db: DbParams = {}
-export type TMessage = {
-  command: string
-  payload?: any
-}
-
 let panel: vscode.WebviewPanel | undefined = undefined
-
-function execShell(cmd: string): string | null {
-  try {
-    // Blocks the event loop until the command finishes
-    return execSync(cmd, { encoding: 'utf8' })
-  } catch (error) {
-    console.error('Execution failed:', error)
-  }
-  return null
-}
-async function getUserInput(): Promise<string | null> {
-  const result = await vscode.window.showInputBox({
-    value: '/home/mili/Ext/test-ext',
-    placeHolder: 'Enter application root directory',
-    prompt: 'Please enter a valid value',
-    validateInput: (text) => {
-      return text.length === 0 ? 'Input cannot be empty!' : null
-    },
-  })
-
-  if (result === undefined) {
-    // User cancelled the operation by hitting 'Escape'
-    return null
-  }
-
-  vscode.window.showInformationMessage(`User typed: ${result}`)
-  return result
-}
-
-export function getWorkspaceRoot(): string {
-  try {
-    // Priority 1: Active editor (best when a file is open)
-    const editor = vscode.window.activeTextEditor
-
-    if (editor) {
-      const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri)
-      if (folder?.uri.fsPath) {
-        console.log('Root from active editor:', folder.uri.fsPath)
-        return folder.uri.fsPath
-      }
-    } else {
-      console.log('editor is undefined')
-    }
-
-    // Priority 2: Workspace folders
-    if (vscode.workspace.workspaceFolders?.length) {
-      const root = vscode.workspace.workspaceFolders[0].uri.fsPath
-      console.log('Root from workspaceFolders:', root)
-      return root
-    } else {
-      console.log(
-        'vscode.workspace.workspaceFolders?.length',
-        vscode.workspace.workspaceFolders?.length,
-      )
-    }
-
-    // Priority 3: Workspace file (multi-root)
-    if (vscode.workspace.workspaceFile) {
-      const root = path.dirname(vscode.workspace.workspaceFile.fsPath)
-      console.log('Root from workspaceFile:', root)
-      return root
-    } else {
-      console.log(
-        'vscode.workspace.workspaceFile',
-        vscode.workspace.workspaceFile,
-      )
-    }
-
-    // Priority 4: WSL-aware fallback
-    const home = os.homedir() // Should be /home/mili inside WSL
-    console.log('home', home)
-    const fallback = path.join(home, 'Ext', 'test-ext')
-
-    console.log('Using WSL fallback:', fallback)
-    return fallback
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.log(err)
-  }
-  return ''
-}
-
-export const sudoName_ = execShell('whoami')?.trim()
-// const root = (await execShell('pwd')).trim()
-// will hold the content of prisma/schema.prisma file as a string after we read it
-// with fs.readlinkSync in response to 'ready' command from OrmThree.html
-// after making models with parsePrismaSchema we will send stringified models
-// and set schema to empty string to free up memory
-let schema: string = '' //
+let appName = ''
 export function runCommandStream(
   command: string,
   args: string[],
@@ -129,7 +23,7 @@ export function runCommandStream(
       shell: true,
     })
 
-    proc.stdout.on('data', (data) => {
+    proc.stdout.on('data', (data: any) => {
       const text = data.toString()
       options.onStdout?.(text)
 
@@ -147,11 +41,11 @@ export function runCommandStream(
       }
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', (code: any) => {
       resolve(code ?? 0)
     })
 
-    proc.on('error', (err) => {
+    proc.on('error', (err: string) => {
       reject(err)
     })
   })
@@ -189,27 +83,6 @@ export const error = (msg: string) => {
 export const info = (msg: string) => {
   vscode.window.showInformationMessage(msg)
 }
-function deletePendingFile() {
-  if (fs.existsSync(paths.pending)) {
-    fs.unlink(paths.pending, (err) => {
-      if (err) {
-        vscode.window.showInformationMessage(
-          'Could not delete installPartTwo.pending file at /prisma. Please delete it yourself',
-        )
-      }
-    })
-  }
-}
-// All NPM package installations commands are issued from here
-let terminal: vscode.Terminal | undefined
-function sendToTerminal(cmd: string) {
-  if (!terminal) {
-    terminal = vscode.window.createTerminal(`WebView Terminal`)
-  }
-  terminal.show(true) // reveal the terminal
-  terminal.sendText(cmd)
-}
-// let db: DbParams = {}
 export async function activate(context: vscode.ExtensionContext) {
   try {
     console.log('ACTIVATE CALLED')
@@ -219,45 +92,15 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('test-ext.crudTest', async () => {
         console.log('COMMAND CALLED: test-ext.crudTest')
 
-        console.log('remoteName:', vscode.env.remoteName)
-        console.log('cwd:', process.cwd())
-        console.log('homedir:', os.homedir())
-        console.log(
-          'workspaceFolders:',
-          vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath),
-        )
-        vscode.window.showInformationMessage(
-          `remote=${vscode.env.remoteName} home=${os.homedir()}`,
-        )
         // Priority order for root path
         let rootPath: string | undefined
 
-        // 1. Active editor's workspace folder (most reliable)
-        // const editor = vscode.window.activeTextEditor
-        // if (editor) {
-        //   const folder = vscode.workspace.getWorkspaceFolder(
-        //     editor.document.uri,
-        //   )
-        //   rootPath = folder?.uri.fsPath
-        // }
+        rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 
-        // // 2. First workspace folder
-        // if (!rootPath) {
-        //   rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-        // }
-
-        // // 3. Fallbacks (avoid hard-coding user paths!)
-        // if (!rootPath) {
-        //   // For webview extensions or single-file cases
-        //   rootPath = vscode.workspace.workspaceFile?.fsPath
-        //     ? path.dirname(vscode.workspace.workspaceFile.fsPath)
-        //     : undefined
-        // }
-        rootPath = getWorkspaceRoot()
-        // if (!rootPath) {
-        //   rootPath = '/home/mili/Ext/test-ext' // <-- REPLACE with a more dynamic solution if possible
-        // }
-
+        if (!rootPath) {
+          // NOTE launching from Command Palette is OK, debug needs this
+          rootPath = '/mili/home/Ext/test-ext'
+        }
         if (!rootPath) {
           vscode.window.showErrorMessage(
             'No workspace folder found. Open a folder first.',
@@ -265,6 +108,7 @@ export async function activate(context: vscode.ExtensionContext) {
           return
         }
 
+        appName = rootPath.match(/\/?([a-zA-z0-9_-]+)$/)?.[1] as string
         console.log('Final rootPath:', rootPath)
         vscode.window.showInformationMessage(`Working in: ${rootPath}`)
         console.log(`[Backend] Resolved Root Path: ${rootPath}`)
@@ -278,7 +122,7 @@ export async function activate(context: vscode.ExtensionContext) {
         //   },
         //   'This should be te rootPath',
         // )
-        log(`rootPath is ${rootPath}`)
+        console.log(`rootPath is ${rootPath}`)
         paths = {
           root: rootPath,
           env: path.join(rootPath, '.env'),
@@ -290,19 +134,14 @@ export async function activate(context: vscode.ExtensionContext) {
         // create a customizable user interface that appears as a distinct editor tab
         // within extension's activation logic
         panel = vscode.window.createWebviewPanel(
-          'crCrudSupport', // Identifies the type of the webview internally
-          'CRUD Support', // Title displayed to the user
-          vscode.ViewColumn.One, // Editor column to show the panel in
+          'crCrudSupport',
+          'CRUD Support',
+          vscode.ViewColumn.One,
           {
             enableScripts: true,
             retainContextWhenHidden: true,
           },
         )
-        // If prismaSchemaFound is false start with OrmOne.html page which should return
-        // a db_ object and so commence communication between this extension and ORMxxx
-        // pages in wizard like steps for installing ORM, creating database and generating
-        // SvelteKit CRUD support app pages based on the prisma schema models and some
-        // additonal functionality selected by users
         const result = displayWebview(context, panel!)
         console.log('initial call displayWebview', result)
         if (!fs.existsSync(paths.schema)) {
@@ -315,71 +154,7 @@ export async function activate(context: vscode.ExtensionContext) {
           panel!.webview.postMessage({ command: 'showPage', page: 'OrmThree' })
         }
         panel.webview.onDidReceiveMessage(async (msg) => {
-          console.log('onDidReceiveMessage', msg.command)
           switch (msg.command) {
-            // OrmOne.html sends this command with db_ object as payload when
-            // user clicks 'Install Prisma ORM'
-            case 'installPrismaPartOne':
-              console.log(
-                'installPrismaPartOne comand request from OrmOne.html 1',
-              )
-              db = JSON.parse(msg.payload) as DbParams
-              db.adminPwd = sudoName_ as string
-              let result = await installPrismaPartOne(db, paths)
-              console.log(
-                `after call to installPrismaPartOne success is ${result.success.toString()}`,
-              )
-              panel!.webview.postMessage({
-                command: 'showPage',
-                page: 'OrmTwo',
-              })
-              break
-
-            case 'installPrismaPartTwo':
-              console.log(
-                'installPrismaPartTwo command request from OrmTwo.html',
-              )
-              const cmd = installPrismaPartTwo(paths) //FIX: needs build db models from schema
-              sendToTerminal(`cd ${paths.root}`)
-              sendToTerminal(cmd)
-
-              deletePendingFile()
-              console.log('pending file deleted')
-              console.log('installPrismaPartTwo done')
-
-              // if (result.success) {
-              // wait until prisma migrations folder is created
-              const migrateFolder = path.join(paths.root, 'prisma/migrations')
-              waitForNewFile(migrateFolder, 10000)
-
-              //   // Create Uri for the schema file
-              //   let uri = vscode.Uri.file(paths.schema)
-              //   // Open schema content in new tab (beside current editor)
-              //   await vscode.window.showTextDocument(uri, {
-              //     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-              //     preview: false, // Optional: Force a new tab (not preview mode)
-              //   })
-              //   log(
-              //     `forming dblink with db params ${JSON.stringify(db)} ${db.owner} ${db.password} ${db.port} ${db.name}`,
-              //   )
-              //   // create Uri for the .env file
-              //   uri = vscode.Uri.file(paths.env)
-              //   await vscode.window.showTextDocument(uri, {
-              //     viewColumn: vscode.ViewColumn.Beside, // Opens beside active editor
-              //     preview: false, // Optional: Force a new tab (not preview mode)
-              //   })
-              // }
-              // log(`installPrismaPartTwo success: ${result.success}`)
-              // console.log('installPrismaPartTwo result', result.success)
-              // // OrmThree needs prisma models; we parse prisma and send stringified models to it
-              console.log('call to open OrmThree')
-              // displayWebview(context, panel!, 'OrmThree')
-              panel!.webview.postMessage({
-                command: 'showPage',
-                page: 'OrmThree',
-              })
-              break
-
             case 'ready':
               // when OrmThree.html is ready it sends 'ready' command and we respond
               // by sending prisma models and field strips
@@ -401,79 +176,27 @@ export async function activate(context: vscode.ExtensionContext) {
 
               panel!.webview.postMessage({
                 command: 'sendingModels',
-                payload: JSON.stringify({ models, enums }),
+                payload: JSON.stringify({
+                  models,
+                  enums,
+                  appName,
+                }),
               })
-              break
-
-            case 'showConfirmation':
-              const {
-                id,
-                message,
-                detail,
-                confirmText = 'Yes',
-                cancelText = 'No',
-                title,
-              } = msg.payload
-              console.log('extension got showConfirmation', message)
-
-              const answer = await vscode.window.showWarningMessage(
-                message,
-                {
-                  modal: true,
-                  detail: detail,
-                },
-                confirmText,
-              )
-              console.log('user confirmation', answer)
-              panel!.webview.postMessage({
-                command: 'confirmationResponse',
-                payload: {
-                  id,
-                  confirmed: answer === confirmText,
-                  decision: answer || 'Cancelled',
-                  subject: title || message,
-                },
-              })
-              break
-            case 'CreateCrudSupport':
-              log('createCRUDSupportPage command request from OrmThree.html')
-              const payload = JSON.parse(msg.payload)
-              // const payload = msg.payload
-              log(['stringified payload', JSON.stringify(payload)])
-              console.log('stringified payload', JSON.stringify(payload))
-              console.log('payload', payload)
-              generateParts(context, panel!, paths, payload)
-              log('Extension: sending crudSuportDone')
-              setTimeout(() => {
-                panel!.webview.postMessage({
-                  command: 'crudSuportDone',
-                })
-              }, 3000)
-              break
-
-            case 'close':
-              info('CRUD Support is closing')
-              panel!.dispose()
               break
             default:
               log(`Unknown command: ${msg.command}`)
           }
         })
+        panel.onDidDispose(() => {
+          panel = undefined
+        })
       }),
     )
-
-    // panel?.dispose()
-    // Clean up when panel is closed
-    panel?.onDidDispose(() => {
-      panel = undefined
-    })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    channel.appendLine(`Activation failed: ${msg}`)
     vscode.window.showErrorMessage(
       'Extension failed to activate. Check output logs.',
     )
   }
 }
-// This method is called when your extension is deactivated
 export function deactivate() {}

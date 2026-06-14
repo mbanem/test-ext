@@ -1,10 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { log, error, info } from './extension.js'
-type TPageName = 'OrmOne' | 'OrmTwo' | 'OrmThree'
-let manifestCache: Record<string, any> | null = null
-let currentPanel: vscode.WebviewPanel | undefined
+// import { log, error, info } from './extension.js'
 
 function getNonce(): string {
   let text = ''
@@ -17,29 +14,35 @@ function getNonce(): string {
 }
 
 /**
- * Find and load page assets assembly the page HTML markup and set into panel.webview.html
- */
-// export function displayWebview(
-//   context: vscode.ExtensionContext,
-//   panel: vscode.WebviewPanel,
-//   pageName: TPageName,
-//   owner?: string,
-// ): { success: boolean } {
-//   log(`displayWebview entry point: display ${pageName}`)
-//   const html = getWebviewHtml(context, panel.webview, pageName)
-//   panel.webview.html = html
-//   return { success: true }
-// }
+ * Find and load the starting OrmOne.html page from /out/webview-assets
+ * Insert CSP security part into its markup and set into panel.webview.html
+ * This is an old way of finding and loading every .html page.
+ * New way is to do so for the first required page and then calling App.svelte
+ *
+ * ---- The old way -----
+  export function displayWebview(
+    context: vscode.ExtensionContext,
+    panel: vscode.WebviewPanel,showPage
+    pageName: TPageName,
+    owner?: string,
+  ): { success: boolean } {
+    log(`displayWebview entry point: display ${pageName}`)
+    const html = getWebviewHtml(context, panel.webview, pageName)
+    panel.webview.html = html
+    return { success: true }
+  }
+*/
 
+// The new way
 export function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
 ): { success: boolean } {
-  log(`displayWebview entry point: display App`)
+  console.log(`displayWebview entry point: display App`)
 
   const html = getWebviewHtml(context, panel.webview, 'OrmOne')
   panel.webview.html = html
-
+  console.log('displayWebview inital page returns {success: true}')
   return { success: true }
 }
 /**
@@ -86,10 +89,12 @@ function getWebviewHtml(
   }
 
   if (!htmlPath) {
-    log(`[Webview] ⚠️ HTML not found for ${pageName}, falling back to dev mode`)
+    console.log(
+      `[Webview] ⚠️ HTML not found for ${pageName}, falling back to dev mode`,
+    )
     return getDevHtml(webview, pageName)
   }
-  log(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -101,12 +106,7 @@ function getWebviewHtml(
 
   html = html.replace(
     /(src|href)=["'](\.\/)?([^"']+)["']/gi,
-    (
-      fullMatch: string,
-      attr: string,
-      dotSlash: string,
-      relativePath: string,
-    ) => {
+    (fullMatch, attr, dotSlash, relativePath) => {
       // Skip external or already-processed URLs
       if (
         relativePath.startsWith('http') ||
@@ -122,12 +122,12 @@ function getWebviewHtml(
         )
         return `${attr}="${assetUri}"`
       } catch (err) {
-        error(`Failed to convert asset: ${relativePath}`)
+        console.log(`Failed to convert asset: ${relativePath}`)
         return fullMatch
       }
     },
   )
-  log(`raw ${pageName}html length: ${html.length}`)
+  console.log(`raw ${pageName}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -142,7 +142,7 @@ function getWebviewHtml(
     /<\/head>/i,
     `<meta http-equiv="Content-Security-Policy" content="${csp}">\n</head>`,
   )
-  log(`final ${pageName}html length: ${html.length}`)
+  console.log(`final ${pageName}html length: ${html.length}`)
   return html
 }
 
@@ -158,12 +158,9 @@ function getDevHtml(webview: vscode.Webview, pageName: string): string {
 </head>
 <body>
   <div id="app"></div>
+  <!-- this src as a prop for <script is new for me -->
   <script type="module" src="${devUrl}"></script>
 </body>
-</html>`
+</html>
+`
 }
-
-// // Helper to send message from extension to webview
-// export function postMessageToWebview(panel: vscode.WebviewPanel, message: any) {
-//   panel.webview.postMessage(message)
-// }

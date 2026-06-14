@@ -181,15 +181,15 @@ async function installNpmInitPrisma(): Promise<void> {
   cliSpinner(true)
   await runCommandStream('pnpm', ['i', '-D', ...devDeps], {
     cwd: paths.root,
-    onStdout: (msg) => console.log(msg),
-    onStderr: (err) => console.error(err),
+    onStdout: (msg: string) => console.log(msg),
+    onStderr: (err: string) => console.error(err),
   })
   log('dev dependencies installed, now installing regular dependencies')
   console.log('pnpm i dependancies')
   await runCommandStream('pnpm', ['i', '-D', ...deps], {
     cwd: paths.root,
-    onStdout: (msg) => console.log(msg),
-    onStderr: (err) => console.error(err),
+    onStdout: (msg: string) => console.log(msg),
+    onStderr: (err: string) => console.error(err),
   })
   let pgm = ex
   if (ex === 'pnpx') {
@@ -201,8 +201,8 @@ async function installNpmInitPrisma(): Promise<void> {
   console.log('prisma init')
   await runCommandStream(pgm, [...init], {
     cwd: paths.root,
-    onStdout: (msg) => console.log(msg),
-    onStderr: (err) => console.error(err),
+    onStdout: (msg: string) => console.log(msg),
+    onStderr: (err: string) => console.error(err),
   })
   if (!waitForNewFile(path.join(paths.root, 'prisma.config.ts)'), 60000)) {
     log(`prisma.config.ts not created in 60sec`)

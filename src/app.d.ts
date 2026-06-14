@@ -38,7 +38,7 @@ declare global {
     string,
     SelectedModels | Model | string[] | string
   >
-
+  export type TToggleFunc = () => void | undefined
   export type TPaths = Record<string, string>
   export type DbParams = Record<string, string | number>
 

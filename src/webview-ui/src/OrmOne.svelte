@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  // import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
+  import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   import { vscode } from '$lib/utils/event-handler.browser'
 
   function postMessage(command: string, payload: string) {
@@ -34,52 +34,52 @@
   }
 
   // // -------- toggle theme begin ---------
-  // let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
-  // let mounted = $state(false)
+  let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
+  let mounted = $state(false)
 
-  // // Apply theme to document
-  // export function applyTheme() {
-  //   document.documentElement.classList.add(currentTheme)
-  // }
-  // // Toggle theme
-  // export function toggleTheme() {
-  //   document.documentElement.classList.remove(currentTheme)
-  //   currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
-  //   localStorage.setItem('theme', currentTheme)
-  //   applyTheme()
-  // }
-  // // TODO Listen for system theme changes -- does not work
-  // $effect(() => {
-  //   if (!mounted) return
-  //   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  //   const handleChange = (e: MediaQueryListEvent) => {
-  //     // Only auto-change if user hasn't manually selected a theme
-  //     if (!localStorage.getItem('theme')) {
-  //       currentTheme = e.matches ? 'dark' : 'light'
-  //       applyTheme()
-  //     }
-  //   }
+  // Apply theme to document
+  export function applyTheme() {
+    document.documentElement.classList.add(currentTheme)
+  }
+  // Toggle theme
+  export function toggleTheme() {
+    document.documentElement.classList.remove(currentTheme)
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('theme', currentTheme)
+    applyTheme()
+  }
+  // TODO Listen for system theme changes -- does not work
+  $effect(() => {
+    if (!mounted) return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only auto-change if user hasn't manually selected a theme
+      if (!localStorage.getItem('theme')) {
+        currentTheme = e.matches ? 'dark' : 'light'
+        applyTheme()
+      }
+    }
 
-  //   mediaQuery.addEventListener('change', handleChange)
-  //   return () => mediaQuery.removeEventListener('change', handleChange)
-  // })
-  // function getIcon() {
-  //   return currentTheme === 'dark' ? '☀️' : '🌙'
-  // }
-  // // Initialize on client
-  // onMount(() => {
-  //   currentTheme = getInitialTheme()
-  //   applyTheme()
-  //   toggleTheme()
-  //   mounted = true
-  // })
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  })
+  function getIcon() {
+    return currentTheme === 'dark' ? '☀️' : '🌙'
+  }
+  // Initialize on client
+  onMount(() => {
+    currentTheme = getInitialTheme()
+    applyTheme()
+    toggleTheme()
+    mounted = true
+  })
   // -------- toggle theme end ---------
 </script>
 
 <div class="theme-container">
-  <!-- <p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
+  <p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
     {getIcon()}
-  </p> -->
+  </p>
   <div class="container">
     <pre id="installPartOneId">
       <h3>Prisma Installation Part One</h3>
