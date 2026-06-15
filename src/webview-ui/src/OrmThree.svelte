@@ -424,9 +424,9 @@
   }
 
   .page-info {
-    @include page-info($head: 'What Does This Page Do', $head-color: navy);
-    // position: absolute;
-    // top: 0;
-    // left: 1rem;
+    @include page-info(
+      $head: 'What Does This Page Do',
+      $color: var(--page-purpose-color)
+    );
   }
 </style>

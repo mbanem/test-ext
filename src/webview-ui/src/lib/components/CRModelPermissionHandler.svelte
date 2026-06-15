@@ -59,14 +59,13 @@
   const noModelName = 'Please enter model name'
   let modelName = $state('')
   let message = $state(defaultMessage)
-  let msgClass = $state('navy')
+  let messageColor = $derived(message === defaultMessage ? '' : 'color:tomato;')
   let busy = $state(false)
   let timer: ReturnType<typeof setTimeout> | null = null
   const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g')
   let x = $state(100)
   let y = $state(100)
-  export const exportModels = (e: TChangeEvent, modelName?: string) => {
-    console.log('exportModels called', modelName)
+  export const exportModels = () => {
     selectedModels = {}
     // get only selected models based on the checkbox checked state
     for (const chkbox of modelWrapperEl.querySelectorAll(
@@ -236,7 +235,6 @@
       // not a data entry field so no radio-block but info no-dataa-entry
       // or remove field if extraModel field is hovered
       if (dataset.entry === 'false' || dataset.extra === 'true') {
-        console.log('data entry or extra')
         if (dataset.entry === 'false') {
           tooltipMessage = notDataEntry
         } else {
@@ -272,7 +270,6 @@
     const el = e.target as HTMLElement
     switch (el.tagName) {
       case 'SUMMARY':
-        //console.log('summary clicked');
         det = el.closest('details') as HTMLDetailsElement
         if (!det || det.tagName !== 'DETAILS') {
           return
@@ -283,7 +280,6 @@
           fieldsRect = (el.parentElement as HTMLElement)
             .querySelector('.cr-fields-column')
             ?.getBoundingClientRect() as DOMRect
-          console.log('fieldsRect', fieldsRect)
         }
         for (const item of modelWrapperEl.getElementsByTagName('DETAILS')) {
           if (item.firstChild !== el) {
@@ -313,7 +309,6 @@
         }
         return
       case 'INPUT':
-        //console.log('input clicked');
         if (
           (el as HTMLInputElement).type &&
           (el as HTMLInputElement).type === 'checkbox'
@@ -324,7 +319,6 @@
       case 'SPAN':
       case 'P':
       default:
-        //console.log('default clicked', el.tagName);
         break
     }
   }
@@ -336,14 +330,12 @@
   function showMessage(
     e: EventHandler,
     msg: string,
-    className: string = 'tomato',
+    // className: string = 'tomato',
     milisec: number = 2000,
   ) {
     message = msg
-    msgClass = className
     setTimeout(() => {
       message = defaultMessage
-      msgClass = ''
     }, milisec)
   }
   async function addNewModel(e: MouseEvent | KeyboardEvent) {
@@ -356,7 +348,6 @@
 
     if (models[model]) {
       showMessage(e, alreadyDefined)
-      // newModelName = '';
       return
     }
     await tick()
@@ -371,7 +362,6 @@
     }
   }
   async function deleteModel(e: MouseEvent, modelName: string) {
-    console.log('await showConfirmation')
     sm?.showMessage(e, `Model "${modelName}" to be deleted.`)
     const confirmed = await showConfirmation({
       message: `Remove model "${modelName}"?`,
@@ -379,40 +369,30 @@
       confirmText: 'Yes, Remove',
       cancelText: 'Cancel',
     })
-    console.log('extension response', confirmed)
     if (confirmed) {
       delete models[modelName]
       if (models[modelName]) {
-        console.log('removing model failed', modelName)
         sm?.showMessage(e, `Model "${modelName}" has been removed.`)
       } else {
-        console.log('removing model succeeded', modelName)
         sm?.showMessage(e, `Model "${modelName}" is removed.`)
       }
       if (anySelected()) {
         exportModels()
       }
-    } else {
-      console.log('user did not confirm removing', modelName, 'model')
     }
   }
   async function removeModel(e: MouseEvent) {
-    console.log('removeModel entry')
     if (!newModelName) {
-      console.log('noModelname')
       showMessage(e, noModelName)
       return
     }
     const model = capitalize(newModelName)
-    console.log('model', model)
 
     if (!models[model]) {
-      console.log('no model found')
       showMessage(e, notRegistered)
       return
     }
     if (models[model]) {
-      console.log('model', model, 'exists')
       deleteModel(e, model)
       // Optional: notify user inside webview
       sm.showMessage(e, `Model "${modelName}" has been deleted.`)
@@ -431,7 +411,6 @@
   // }
   function hideClickToRemove(e: MouseEvent) {
     e.preventDefault()
-    console.log('hideClickToRemove fieldRect?', fieldsRect)
     if (!isInside(e, fieldsRect)) {
       notDataEntryEl.style.opacity = '0'
     }
@@ -490,7 +469,7 @@
       type="text"
       id="route{modelName}"
       value={modelName.toLowerCase()}
-      onchange={(e: TChangeEvent) => exportModels(e, modelName.toLowerCase())}
+      onchange={exportModels}
       style="position:absolute;top:0;left:4px;color:var(--candidate-color);background-color:var(--candidate-bg-color);width:5rem;height:1rem;padding:0 0 0 5px;margin:4px 0 0 0;border:none;font-size:14px;"
     />
     <input
@@ -558,7 +537,7 @@
     </div>
   </div>
   <div class="add-extra-model">
-    <span class="main-class" style="color:{msgClass}">{message}</span>
+    <span class="main-class" style={messageColor}>{message}</span>
     <input
       type="text"
       bind:value={newModelName}

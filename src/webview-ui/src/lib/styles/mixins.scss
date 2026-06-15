@@ -63,18 +63,19 @@
   background-color: var(--tab-bg);
 }
 
-@mixin page-info($head: 'container', $head-color: 'navy') {
-  @include container($head: $head, $head-color: $head-color, $font-size: 12px);
-  // font-size: 14px;
+@mixin page-info($head: 'container', $color: var(--candidate-color), $head-color: 'navy', $font-size: 15px, $height: 40.8rem) {
+  @include container($head: $head, $head-color: $head-color, $font-size: 12px, $top: 5px);
+  position: absolute;
+  top: -5px;
+  left: 1rem;
   width: max-content;
-  height: auto;
+  height: $height;
   padding: 1rem;
-  color: var(--candidate-color);
+  font-size: $font-size;
+  color: $color;
   background-color: var(--candidate-bg-color);
   border: 1px solid gray;
   border-radius: 10px;
+  overflow-y: auto;
   z-index: 200;
-  position: absolute;
-  top: 0;
-  left: 1rem;
 }
