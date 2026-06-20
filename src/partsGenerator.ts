@@ -3,11 +3,16 @@ import { copySelectedComponents } from './copyComponents.js'
 export function generateParts(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
+  channel: vscode.OutputChannel,
   paths: TPaths,
   payload: Payload,
 ) {
-  console.log('calling copySelectedComponents', paths.root, payload)
-  console.log('components?', payload.crComponents)
+  channel.appendLine(
+    `[generateParts] calling copySelectedComponents, ${JSON.stringify(payload, null, 2)}`,
+  )
+  channel.appendLine(
+    `[generateParts] components? ${JSON.stringify(payload.crComponents, null, 2)}`,
+  )
   copySelectedComponents(
     context,
     paths.root,

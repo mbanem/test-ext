@@ -35,34 +35,31 @@
   "scripts": {
     "compile": "tsc -p .",
     "build:webview": "cd src/webview-ui && pnpm run build",
-    "build": "pnpm compile && pnpm build:webview",
+    "build": "clear; pnpm compile && pnpm build:webview",
     "package": "pnpm build && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file",
-    "install-ext": "pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force"
+    "install-ext": "clear; pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
     "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
     "@prisma/config": "^7.8.0",
     "@prisma/internals": "^7.8.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tsconfig/svelte": "^5.0.8",
     "@types/bcrypt": "latest",
     "@types/eslint": "^9.6.1",
-    "@types/node": "^25.9.2",
+    "@types/node": "^25.9.3",
     "@types/pg": "^8.20.0",
     "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
-    "bcrypt": "^6.0.0",
-    "dotenv": "^17.4.2",
+    "concurrently": "^10.0.3",
     "esbuild": "^0.28.0",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.19.0",
     "globals": "^17.6.0",
-    "pg": "^8.21.0",
     "postcss": "^8.5.15",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.8.4",
@@ -81,6 +78,9 @@
     "vite-plugin-sass-dts": "^1.3.37"
   },
   "dependencies": {
-    "concurrently": "^10.0.3"
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0"
   }
 }

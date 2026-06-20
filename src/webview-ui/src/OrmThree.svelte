@@ -9,7 +9,6 @@
   let { pageInfo = $bindable<TToggleFunc>() }: TProps = $props()
   let isActive = $state(false)
   function handlePageInfo() {
-    console.log('OrmThree - handlePageInfo')
     isActive = isActive ? false : true
   }
   pageInfo = handlePageInfo
@@ -37,40 +36,6 @@
   // what authentication/authorization to implement should be optional?
   let appFeatures: string[] = $state([])
 
-  // onclick Create CRUD Support sends models to extension to
-  // create individual pages or part of the application
-  // NOTE old version returns models as objects, but the extension
-  //      holds all models so only selected moel names should be sent
-  // function getPayload() {
-  //   if (Object.keys(selectedModels).length === 0) {
-  //     // return JSON.stringify($state.snapshot(selectedModels))
-  //     return selectedModels
-  //   }
-
-  //   let payload: Payload = {}
-  //   // candidateModels.forEach((modelName) => {
-  //   // 	payload[modelName] = $state.snapshot(models[modelName]) as Model;
-  //   // });
-  //   if (crComponents.length) {
-  //     payload['components'] = crComponents
-  //   }
-  //   for (const key of ['authorization', 'authentication']) {
-  //     const el = document.querySelector(
-  //       `input[name=${key}]:checked`,
-  //     ) as HTMLInputElement
-  //     if (el) {
-  //       payload[key] = el.value
-  //     }
-  //   }
-
-  //   if (appFeatures.length) {
-  //     payload['features'] = appFeatures
-  //   }
-  //   payload['selectedModels'] = selectedModels
-  //   return JSON.stringify($state.snapshot(payload))
-  //   // return $state.snapshot(payload);
-  //   // return payload
-  // }
   function getPayload() {
     if (Object.keys(selectedModels).length === 0) {
       return selectedModels
@@ -94,13 +59,14 @@
 
     payload['selectedModels'] = $state.snapshot(selectedModels)
 
-    console.log('payload to send', payload)
-    console.log('selectedModels in payload', payload.selectedModels)
     return payload
   }
 
   // Webview sends message to the extension
   function createCRUDSupport(e: MouseEvent) {
+    if (buttonNotAllowed) {
+      return
+    }
     inAction = true
     const el = e.target as HTMLDivElement
     el.style.cursor = 'none'
@@ -110,17 +76,22 @@
       payload: payload,
     })
   }
+  function closetheApp() {
+    vscode.postMessage({
+      command: 'close',
+    })
+  }
 
-  let buttonNotAllowed = $derived(Object.keys(selectedModels).length === 0)
+  let buttonNotAllowed = $derived(
+    Object.keys(selectedModels).length === 0,
+  ) as boolean
   onMount(() => {
-    console.log('[OrmThree] posting ready')
     vscode.postMessage({ command: 'ready' })
 
     window.addEventListener('message', (event) => {
       const msg = event.data
 
       if (msg.command === 'sendingModels') {
-        console.log('[OrmThree] received', event.data)
         const pload = $state.snapshot(JSON.parse(msg.payload))
         models = pload.models
         userRoles = Object.keys(Object.values(pload.enums)[0] as TEnum).filter(
@@ -128,9 +99,7 @@
         )
         appName = pload.appName
       }
-      // if (msg.command === 'confirmationResponse') {
-      //   console.log('confirmation not meant for OrmThree.svelte')
-      // }
+
       if (msg.command === 'crudSuportDone') {
         const crudButton = document.getElementById(
           'createBtnId',
@@ -146,6 +115,7 @@
 <svelte:head>
   <title>CRUD Support</title>
 </svelte:head>
+
 {#snippet pagePurpose()}
   <pre>
   The main part of this page is on the right.
@@ -158,8 +128,8 @@
       not to be displayed to the users.
       Rows contain:
     - input box for naming routes, e.g. for model
-      Object.keys models  route would be a folder under
-      /appName/routes/Object.keys models if model is selected
+      {Object.keys(models)}[0]  route would be a folder under
+      /{appName}/routes/{Object.keys(models)[0]} if model is selected
     - a checkbox to signal that model is selected for generating a route
     - Model name
     - Permissions -- when clicked opens a dropdown with UserKind from
@@ -254,28 +224,22 @@
         </div>
       {/each}
     </div>
-    <div
-      id="createBtnId"
-      onclick={createCRUDSupport}
-      style="font-size: 14px !important;cursor:pointer;margin:0'"
-      class:notallowed={buttonNotAllowed}
-      aria-hidden={true}
-    >
-      <span class:spinner={inAction}></span>
-      Create CRUD Support
+    <div class="buttons-row">
+      <button
+        id="createBtnId"
+        onclick={createCRUDSupport}
+        style="font-size: 14px !important;cursor:pointer;margin:0'"
+        disabled={buttonNotAllowed}
+        class:notallowed={buttonNotAllowed}
+        aria-hidden={true}
+      >
+        <span class:spinner={inAction}></span>
+        Create CRUD Support
+      </button>
+      <button onclick={closetheApp} class="button-close">close</button>
     </div>
   </div>
 {/snippet}
-<!-- {#snippet pageByPageNote()}
-    <cr-pre>
-    For every route name and selected checkbox model from summary/details block
-    the extension would build a TypeScript data entry +page.svelte with
-    accompanying +page.server.ts for communicating with Prisma ORM local
-    PostgreSQL database, based on a connection string set in the .env file in
-    the app root folder.
-  </cr-pre>
-    {@render pageByPageMiddleColumn()}
-  {/snippet} -->
 {#if isActive}
   <div class="page-info">
     {@render pagePurpose()}
@@ -294,10 +258,6 @@
   ></CRModelPermissionHandler>
 </div>
 
-<!-- <pre>selectedModels
-{JSON.stringify($state.snapshot(selectedModels), null, 2)}
-</pre> -->
-
 <style lang="scss">
   .spinner {
     display: inine-block;
@@ -308,23 +268,43 @@
     border-radius: 50%;
     animation: spin 900ms linear infinite;
   }
-  #createBtnId {
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .buttons-row {
     display: grid;
-    grid-template-columns: minmax(1.2em, 1.2em) 9rem;
-    place-items: center;
-    gap: 0;
+    grid-template-columns: 10rem 4rem;
+    gap: 1rem;
     position: absolute;
-    top: 20rem;
-    left: 1.2rem;
-    outline: none;
-    border: 1px solid gray;
-    border-radius: 5px;
-    font-weight: 400;
-    color: var(--candidate-color);
-    margin: 6rem 6.5rem;
-    width: max-content;
-    padding: 2px 5px 2px 0;
-    cursor: pointer;
+    top: 24rem;
+    left: 5rem;
+    #createBtnId {
+      display: flex;
+      display: inline-block;
+      outline: none;
+      border: 1px solid gray;
+      border-radius: 5px;
+      font-weight: 400;
+      color: var(--candidate-color);
+      background-color: var(--candidate-bg-color);
+      width: max-content;
+      padding: 2px 1rem 2px 1rem;
+      cursor: pointer;
+    }
+    .button-close {
+      display: inline-block;
+      outline: none;
+      border: 1px solid gray;
+      border-radius: 5px;
+      font-weight: 400;
+      color: var(--candidate-color);
+      background-color: var(--candidate-bg-color);
+      width: max-content;
+      padding: 2px 1rem 2px 1rem;
+      cursor: pointer;
+    }
   }
   .cr-main-grid {
     position: relative;
@@ -379,17 +359,10 @@
     border-radius: 6px;
     user-select: none;
   }
-  P .notallowed {
+  .notallowed {
     opacity: 0.3;
-    cursor: not-allowed;
+    cursor: not-allowed !important;
   }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
   .app-labels {
     color: var(--checkbox-label-color);
     margin: 3px 0 3px 1rem;

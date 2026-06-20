@@ -26,7 +26,7 @@ function getNonce(): string {
     pageName: TPageName,
     owner?: string,
   ): { success: boolean } {
-    log(`displayWebview entry point: display ${pageName}`)
+    console.log(`displayWebview entry point: display ${pageName}`)
     const html = getWebviewHtml(context, panel.webview, pageName)
     panel.webview.html = html
     return { success: true }
@@ -37,12 +37,16 @@ function getNonce(): string {
 export function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-): { success: boolean } {
-  console.log(`displayWebview entry point: display App`)
+): TResult {
+  vscode.window.showInformationMessage(
+    `displayWebview entry point: display App`,
+  )
 
   const html = getWebviewHtml(context, panel.webview, 'OrmOne')
   panel.webview.html = html
-  console.log('displayWebview inital page returns {success: true}')
+  vscode.window.showInformationMessage(
+    'displayWebview inital page returns {success: true}',
+  )
   return { success: true }
 }
 /**
@@ -94,7 +98,7 @@ function getWebviewHtml(
     )
     return getDevHtml(webview, pageName)
   }
-  console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  vscode.window.showInformationMessage(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -142,7 +146,9 @@ function getWebviewHtml(
     /<\/head>/i,
     `<meta http-equiv="Content-Security-Policy" content="${csp}">\n</head>`,
   )
-  console.log(`final ${pageName}html length: ${html.length}`)
+  vscode.window.showInformationMessage(
+    `final ${pageName}html length: ${html.length}`,
+  )
   return html
 }
 

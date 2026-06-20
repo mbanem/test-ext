@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { vscode } from '$lib/utils/event-handler.browser.js'
   import OrmOne from './OrmOne.svelte'
   import OrmTwo from './OrmTwo.svelte'
   import OrmThree from './OrmThree.svelte'
@@ -54,11 +55,17 @@
   onMount(() => {
     theme = getInitialTheme()
     applyTheme(theme)
-
+    vscode.postMessage({
+      command: 'fromAppSvelte',
+      payload: 'App.svelte onMount',
+    })
     // listener for extension messges
     const handler = (event: MessageEvent) => {
       const msg = event.data
-
+      vscode.postMessage({
+        command: 'fromAppSvelte',
+        payload: `[App.svelte] got message ${msg.command}`,
+      })
       if (msg.command === 'showPage' && isPageKey(msg.page)) {
         key = msg.page
       }

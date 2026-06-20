@@ -12,9 +12,7 @@
   import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
   import type { EventHandler } from 'svelte/elements'
 
-  type TChangeEvent = Event & { currentTarget: EventTarget & HTMLInputElement }
-
-  let sm: ShowMessage
+  let crShowMessage: ShowMessage
 
   export type TProps = {
     models: Models
@@ -83,8 +81,6 @@
           routeName,
           permissions,
         }
-        // selectedModels[modelName].permissions = permissions
-        // selectedModels[modelName].routeName = routeName
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         console.log(msg)
@@ -112,11 +108,12 @@
         '.model-checkboxes',
       ) as unknown as Array<HTMLInputElement>
     ).forEach(async (chkbox) => {
-      // chkbox.checked = newState
       chkbox.click()
       await tick()
     })
-    exportModels()
+    setTimeout(() => {
+      exportModels()
+    }, 400)
   }
 
   function getUIField(fieldName: string) {
@@ -327,7 +324,7 @@
     killTimeout()
   }
 
-  function showMessage(
+  function showInputMessage(
     e: EventHandler,
     msg: string,
     // className: string = 'tomato',
@@ -347,7 +344,7 @@
     const model = capitalize(newModelName)
 
     if (models[model]) {
-      showMessage(e, alreadyDefined)
+      showInputMessage(e, alreadyDefined)
       return
     }
     await tick()
@@ -362,7 +359,12 @@
     }
   }
   async function deleteModel(e: MouseEvent, modelName: string) {
-    sm?.showMessage(e, `Model "${modelName}" to be deleted.`)
+    crShowMessage.showMessage(
+      e,
+      `Model "${modelName}" to be removed.`,
+      'StickRights',
+      { backgroundColor: 'navy', color: 'tomato' },
+    )
     const confirmed = await showConfirmation({
       message: `Remove model "${modelName}"?`,
       detail: 'This action cannot be undone.',
@@ -372,43 +374,51 @@
     if (confirmed) {
       delete models[modelName]
       if (models[modelName]) {
-        sm?.showMessage(e, `Model "${modelName}" has been removed.`)
+        crShowMessage.showMessage(
+          e,
+          `Model "${modelName}" has been removed.`,
+          'StickLefts',
+          { backgroundColor: 'black', color: 'lightgreem' },
+        )
       } else {
-        sm?.showMessage(e, `Model "${modelName}" is removed.`)
+        crShowMessage.showMessage(
+          e,
+          `Model "${modelName}" is removed.`,
+          'StickMiddles',
+          { backgroundColor: 'navy', color: 'white' },
+        )
       }
-      if (anySelected()) {
+      setTimeout(() => {
         exportModels()
-      }
+      }, 400)
     }
   }
   async function removeModel(e: MouseEvent) {
     if (!newModelName) {
-      showMessage(e, noModelName)
+      showInputMessage(e, noModelName)
       return
     }
     const model = capitalize(newModelName)
 
     if (!models[model]) {
-      showMessage(e, notRegistered)
+      showInputMessage(e, notRegistered)
       return
     }
     if (models[model]) {
       deleteModel(e, model)
       // Optional: notify user inside webview
-      sm.showMessage(e, `Model "${modelName}" has been deleted.`)
-      if (anySelected()) {
-        exportModels()
-      }
+      crShowMessage.showMessage(
+        e,
+        `Model "${modelName}" has been removed.`,
+        'StickLefts',
+        { backgroundColor: 'navy', color: 'white' },
+      )
     }
+    setTimeout(() => {
+      exportModels()
+    }, 400)
   }
-  // function isInside(e: MouseEvent, rect: DOMRect) {
-  //   return (
-  //     e.clientX >= rect.left &&
-  //     e.clientX <= rect.right &&
-  //     e.clientY >= rect.top &&
-  //     e.clientY <= rect.bottom
-  //   )
-  // }
+
   function hideClickToRemove(e: MouseEvent) {
     e.preventDefault()
     if (!isInside(e, fieldsRect)) {
@@ -551,7 +561,7 @@
   </div>
 </div>
 <!-- no display just a showMessage utils with markup -->
-<ShowMessage bind:this={sm} />
+<ShowMessage bind:this={crShowMessage} />
 
 <style lang="scss">
   *,

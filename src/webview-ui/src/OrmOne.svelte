@@ -1,8 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   import { vscode } from '$lib/utils/event-handler.browser'
 
+  export function setupOrmTwoMessageHandler(webview: vscode.Webview) {
+    webview.onDidReceiveMessage(async (message: any) => {
+      if (message === 'prismaPartTwo' || message.command === 'prismaPartTwo') {
+        await installPrisma(webview)
+      }
+    })
+  }
+  let inAction = $state(false)
   function postMessage(command: string, payload: string) {
     vscode.postMessage({ command, payload })
   }
@@ -19,67 +25,41 @@
   // let password = $state('rony')
   // let host = $state('localhost')
   // let port = $state('5432')
-
+  let isButtonDisabled: boolean = $derived(
+    !(db.name && db.owner && db.password),
+  )
   function installORMPartOne() {
-    if (db.name && db.owner && db.password) {
-      const db_: DbParams = {
-        name: db.name,
-        owner: db.owner,
-        password: db.password,
-        host: db.host ?? 'localhost',
-        port: db.port ?? '5432',
-      }
-      postMessage('installPrismaPartOne', JSON.stringify(db_))
+    // params are OK as button is disabled othervise
+    const db_: DbParams = {
+      name: db.name,
+      owner: db.owner,
+      password: db.password,
+      host: db.host ?? 'localhost',
+      port: db.port ?? '5432',
     }
-  }
+    postMessage('prismaPartOne', JSON.stringify(db_))
 
-  // // -------- toggle theme begin ---------
-  let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
-  let mounted = $state(false)
+    // prepsre to listen for 'partOneDone' response
+    const messageHandler = (event: MessageEvent) => {
+      const msg = event.data
+      alert(`OrmOne got response  ${msg}`)
 
-  // Apply theme to document
-  export function applyTheme() {
-    document.documentElement.classList.add(currentTheme)
-  }
-  // Toggle theme
-  export function toggleTheme() {
-    document.documentElement.classList.remove(currentTheme)
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
-    localStorage.setItem('theme', currentTheme)
-    applyTheme()
-  }
-  // TODO Listen for system theme changes -- does not work
-  $effect(() => {
-    if (!mounted) return
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only auto-change if user hasn't manually selected a theme
-      if (!localStorage.getItem('theme')) {
-        currentTheme = e.matches ? 'dark' : 'light'
-        applyTheme()
+      if (msg.command === 'partOneDone') {
+        inAction = false
+        alert(`OrmOne received partOneDone success: ${msg.success}`)
+        // though the emitter window would do it we would be removing the listener
+        window.removeEventListener('message', messageHandler)
       }
     }
-
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  })
-  function getIcon() {
-    return currentTheme === 'dark' ? '☀️' : '🌙'
+    // window.addEventListener('message', messageHandler)
+    window.addEventListener('message', messageHandler, { once: true }) // ← use once: true
+    setTimeout(() => {
+      inAction = true
+    }, 300)
   }
-  // Initialize on client
-  onMount(() => {
-    currentTheme = getInitialTheme()
-    applyTheme()
-    toggleTheme()
-    mounted = true
-  })
-  // -------- toggle theme end ---------
 </script>
 
 <div class="theme-container">
-  <p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
-    {getIcon()}
-  </p>
   <div class="container">
     <pre id="installPartOneId">
       <h3>Prisma Installation Part One</h3>
@@ -126,9 +106,28 @@ restart the Extension after that and it will display the commands that you shoul
 enter yourself or to select the continue button to allow the Extension to finish the 
 installation.
 
-    <button onclick={installORMPartOne} style="margin-left:4rem;">
-      Install Prisma ORM</button
-      ><button id="cancelPartOneBtnId">Cancel</button>
+    <!-- <div class='install-button'
+        onclick={installORMPartOne}
+        style="margin-left:4rem;"
+        disabled={isButtonDisabled}>
+        <span class:spinner={inAction}></span>
+      Install Prisma ORM
+    </div>
+      <div id="cancelPartOneBtnId">Cancel</div> -->
+    <button
+        id="install-button"
+        onclick={installORMPartOne}
+        style="font-size: 14px !important;cursor:pointer;margin:0'"
+        aria-hidden={true}
+        disabled={isButtonDisabled}>
+      <span class:spinner={inAction}></span>
+      Create CRUD Support
+    </button>
+
+
+
+
+
     </pre>
   </div>
 </div>
@@ -142,7 +141,20 @@ installation.
     text-align: justify;
     line-height: 1rem;
   }
-
+  .spinner {
+    display: inine-block;
+    width: 1em;
+    height: 1em;
+    border: 3px solid #a1c1eb;
+    border-top-color: #1b4891;
+    border-radius: 50%;
+    animation: spin 900ms linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
   // input[type='text'] {
   //   width: 18rem;
   //   height: 20px;
@@ -160,18 +172,25 @@ installation.
   //   outline: 1px solid gray;
   // }
 
-  // button {
-  //   display: inline-block;
-  //   margin: 1rem 1rem 1rem 0;
-  //   /* background-color: navy;
-  //   color: yellow;
-  //   border: 1px solid gray;
-  //   border-radius: 5px;*/
-  //   font-size: 12px;
-  //   cursor: pointer;
-  //   padding: 3px 1rem;
-  //   user-select: none;
-  // }
+  button {
+    display: grid;
+    grid-template-columns: minmax(1.2em, 1.2em) 9rem;
+    place-items: center;
+    gap: 0;
+    position: absolute;
+    top: 20rem;
+    left: 1.2rem;
+    outline: none;
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-weight: 400;
+    color: var(--candidate-color);
+    background-color: var(--candidate-bg-color);
+    margin: 6rem 6.5rem;
+    width: max-content;
+    padding: 2px 5px 2px 0;
+    cursor: pointer;
+  }
 
   /* .hidden {
     display: none;

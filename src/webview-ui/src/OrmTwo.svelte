@@ -1,89 +1,82 @@
 <script lang="ts">
-  // import { onMount } from 'svelte'
-  // import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
-  // // import { createEventHandler, resolveElement } from './lib/utils'
-  // import { resolveElement } from './lib/utils'
-  // import { vscode } from '$lib/utils/event-handler.browser'
+  import { onMount } from 'svelte'
+  import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
+  // import { createEventHandler, resolveElement } from './lib/utils'
+  import { resolveElement } from './lib/utils'
+  import { vscode } from '$lib/utils/event-handler.browser'
 
-  // function postMessage(command: string, payload?: Payload) {
-  //   vscode.postMessage({ command, payload })
+  function postMessage(command: string, payload?: Payload) {
+    vscode.postMessage({ command, payload })
+  }
+  // const eh = createEventHandler()
+  let button: HTMLButtonElement | null = null
+
+  // -------- toggle theme begin ---------
+  let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
+  let mounted = $state(false)
+
+  // Apply theme to document
+  export function applyTheme() {
+    document.documentElement.classList.add(currentTheme)
+  }
+  // Toggle theme
+  export function toggleTheme() {
+    document.documentElement.classList.remove(currentTheme)
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
+    localStorage.setItem('theme', currentTheme)
+    applyTheme()
+  }
+
+  // TODO Listen for system theme changes -- does not work
+  $effect(() => {
+    if (!mounted) return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only auto-change if user hasn't manually selected a theme
+      if (!localStorage.getItem('theme')) {
+        currentTheme = e.matches ? 'dark' : 'light'
+        applyTheme()
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  })
+  // Get saved preference or system preference
+  // function getInitialTheme(): Theme {
+  //   // if (!browser) return 'light'
+
+  //   const saved = localStorage.getItem('theme') as Theme | null
+  //   if (saved) return saved
+
+  //   return window.matchMedia('(prefers-color-scheme: dark)').matches
+  //     ? 'dark'
+  //     : 'light'
   // }
-  // // const eh = createEventHandler()
-  // let button: HTMLButtonElement | null = null
 
-  // // -------- toggle theme begin ---------
-  // let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
-  // let mounted = $state(false)
-
-  // // Apply theme to document
-  // export function applyTheme() {
-  //   document.documentElement.classList.add(currentTheme)
-  // }
   // // Toggle theme
-  // export function toggleTheme() {
-  //   document.documentElement.classList.remove(currentTheme)
+  // function toggleTheme() {
   //   currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
   //   localStorage.setItem('theme', currentTheme)
   //   applyTheme()
   // }
+  // -------- toggle theme end ---------
 
-  // // TODO Listen for system theme changes -- does not work
-  // $effect(() => {
-  //   if (!mounted) return
-  //   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  //   const handleChange = (e: MediaQueryListEvent) => {
-  //     // Only auto-change if user hasn't manually selected a theme
-  //     if (!localStorage.getItem('theme')) {
-  //       currentTheme = e.matches ? 'dark' : 'light'
-  //       applyTheme()
-  //     }
-  //   }
+  onMount(() => {
+    button = resolveElement('installPartTwoBtnId') as HTMLButtonElement
+    button?.addEventListener('click', () => {
+      postMessage('prismaPartTwo')
+    })
+    // -------- toggle theme begin ---------
 
-  //   mediaQuery.addEventListener('change', handleChange)
-  //   return () => mediaQuery.removeEventListener('change', handleChange)
-  // })
-  // // Get saved preference or system preference
-  // // function getInitialTheme(): Theme {
-  // //   // if (!browser) return 'light'
-
-  // //   const saved = localStorage.getItem('theme') as Theme | null
-  // //   if (saved) return saved
-
-  // //   return window.matchMedia('(prefers-color-scheme: dark)').matches
-  // //     ? 'dark'
-  // //     : 'light'
-  // // }
-
-  // // // Toggle theme
-  // // function toggleTheme() {
-  // //   currentTheme = currentTheme === 'dark' ? 'light' : 'dark'
-  // //   localStorage.setItem('theme', currentTheme)
-  // //   applyTheme()
-  // // }
-
-  // function getIcon() {
-  //   return currentTheme === 'dark' ? '☀️' : '🌙'
-  // }
-  // // -------- toggle theme end ---------
-
-  // onMount(() => {
-  //   button = resolveElement('installPartTwoBtnId') as HTMLButtonElement
-  //   button?.addEventListener('click', () => {
-  //     postMessage('installPrismaPartTwo')
-  //   })
-  //   // -------- toggle theme begin ---------
-
-  //   currentTheme = getInitialTheme()
-  //   applyTheme()
-  //   toggleTheme()
-  //   mounted = true
-  //   // -------- toggle theme end ---------
-  // })
+    currentTheme = getInitialTheme()
+    applyTheme()
+    toggleTheme()
+    mounted = true
+    // -------- toggle theme end ---------
+  })
 </script>
 
-<!-- <p onclick={() => toggleTheme()} class="theme-icon" aria-hidden={true}>
-  {getIcon()}
-</p> -->
 <div class="container">
   <h3>Prisma Installation Part Two</h3>
 

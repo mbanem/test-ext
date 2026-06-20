@@ -148,7 +148,6 @@ function sortModelsByOrdered(kind: UIType = UI.all) {
     if (isEmpty(model.fields)) {
       throw new Error(`models[${modelName}] is an empty object`)
     }
-    // console.log(model.fields);
     //  Map<string, Field> to access field object by fieldName
     const currentModelsAllFields = new Map(model.fields.map((f) => [f.name, f]))
     // what type of structure to create and return
@@ -277,7 +276,6 @@ export function parsePrismaSchema(schemaContent: string): {
   } catch (err) {
     handleTryCatch(err)
   }
-  // console.log('models', models);
   sortModelsByOrdered(UI.all)
 
   let enumMatch
