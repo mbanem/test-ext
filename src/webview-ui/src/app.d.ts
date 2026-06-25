@@ -46,7 +46,7 @@ declare global {
   }
   export type TEnum = Record<string, string>
   export type TEnums = Record<string, TEnum>
-  export type TToggleFunc = () => void | undefined
+  export type TToggleFunc = (() => void) | undefined
   export type TResult = { success: boolean }
   export type TStickMsgToElement =
     | 'StickLefts'

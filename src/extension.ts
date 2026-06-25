@@ -5,8 +5,8 @@ import * as path from 'path'
 import { displayWebview } from './webview.js'
 import { spawn, execSync, ChildProcess } from 'child_process'
 import { parsePrismaSchema } from './webview-ui/src/lib/utils/parse-prisma-schema.js'
-import { setupOrmTwoMessageHandlerOne } from './ormOne.js'
-import { setupOrmTwoMessageHandlerTwo } from './ormTwo.js'
+import { setupOrmOneMessageHandler } from './ormOne.js'
+import { setupOrmTwoMessageHandler } from './ormTwo.js'
 import { installPrismaPartTwo } from './ormTwo.js'
 import {} from './ormOne.js'
 import { generateParts } from './partsGenerator.js'
@@ -101,7 +101,7 @@ export const waitForNewFile = async (filePath: string, howLong: number) => {
   return false
 }
 export const channel = vscode.window.createOutputChannel('getWebviewHtml')
-export const show = (msg: string | string[], show: boolean = false) => {
+export const channelShow = (msg: string | string[], show: boolean = false) => {
   channel.appendLine(Array.isArray(msg) ? msg.join('\n') : msg)
   if (show) {
     channel.show()
@@ -116,12 +116,12 @@ export const info = (msg: string) => {
 }
 export async function activate(context: vscode.ExtensionContext) {
   try {
-    show('test-ext.crudTest ACTIVATED')
+    // show('test-ext.crudTest ACTIVATED')
     vscode.window.showInformationMessage(`CRUD TEST-EXT -- activated`)
     inDevelopmentMode = context.extensionMode === ExtensionMode.Development
     context.subscriptions.push(
       vscode.commands.registerCommand('test-ext.crudTest', async () => {
-        show('test-ext.crudTest REGISTERED')
+        channelShow('test-ext.crudTest REGISTERED')
 
         // Priority order for root path
         let rootPath: string | undefined
@@ -131,14 +131,14 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!rootPath && inDevelopmentMode) {
           // NOTE launching from Command Palette is OK, debug needs this
           rootPath = '/home/mili/Ext/test-ext'
-          show('rootPath not found use /home/mili/Ext/test-ext')
+          channelShow('rootPath not found use /home/mili/Ext/test-ext')
         }
         if (!rootPath) {
-          show('No workspace folder found. Open a folder first.')
+          channelShow('No workspace folder found. Open a folder first.')
           return
         }
         appName = rootPath.match(/\/?([a-zA-z0-9_-]+)$/)?.[1] as string
-        show(`[Backend] Resolved Root Path: ${rootPath}`)
+        channelShow(`[Backend] Resolved Root Path: ${rootPath}`)
 
         // await vscode.window.showWarningMessage(
         //   rootPath,
@@ -171,60 +171,68 @@ export async function activate(context: vscode.ExtensionContext) {
           info('closing displayWebview OrmOne return result.success false')
           return
         }
-        // if (!fs.existsSync(paths.schema)) {
-        //   // open OrmOne.html and wait for 'prismaPartOne' command from
-        //   // it with db_ object as payload
-        //   show('schema.prisma does not exist')
-        //   panel!.webview.postMessage({ command: 'showPage', page: 'OrmOne' })
-        // } else if (fs.existsSync(paths.pending)) {
-        //   show('pending file exists')
+        if (paths.schema && !fs.existsSync(paths.schema)) {
+          // open OrmOne.html and wait for 'prismaPartOne' command from
+          // it with db_ object as payload
+          channelShow(`schema.prisma does not exist at ${paths.schema}`)
+          info(`OrmOne needed! schema.prisma does not exist at ${paths.schema}`)
+          // setup message listener (onDidReceiveMesssage) for OrmOne requests
+          setupOrmOneMessageHandler(context, panel!.webview, paths)
+          // request to App.svelte for page OrmOne
+          panel!.webview.postMessage({ command: 'showPage', page: 'OrmOne' })
+          return
+        }
+        // else if (fs.existsSync(paths.pending)) {
+        //   channelShow('pending file exists')
         //   panel!.webview.postMessage({ command: 'showPage', page: 'OrmTwo' })
         // } else if (fs.existsSync(paths.schema)) {
-        show('schema.prisma exists call OrmThree')
-        panel!.webview.postMessage({ command: 'showPage', page: 'OrmThree' })
+        //   channelShow('schema.prisma exists call OrmThree')
+        //   panel!.webview.postMessage({ command: 'showPage', page: 'OrmThree' })
         // } else {
-        //   show('unhandled situation')
+        //   channelShow('unhandled situation')
         // }
 
         panel!.webview.onDidReceiveMessage(async (msg) => {
           switch (msg.command) {
-            //     case 'prismaPartOne':
-            //       show('prismaPartOne comand request from OrmOne')
-            //       // db = JSON.parse(msg.payload) as DbParams
-            //       // db.adminPwd = sudoName_ as string
-            //       // if (db && paths) {
-            //       //   result = await setupOrmTwoMessageHandlerOne(panel!) // ← Pass webview
-            //       // }
-            //       // info(`after call to prismaPartOne success is ${result.success}`)
-            //       // // send info to OrmOne postMessage(message:any) so we send an object message is object {command,siccess}
-            //       // panel!.webview.postMessage({
-            //       //   command: 'partOneDone',
-            //       //   success: result.success,
-            //       // })
-            //       // info(`sent message partOneDone to OrmOne`)
-            //       // if (!result.success) {
-            //       //   panel!.webview.postMessage({
-            //       //     command: 'showPage',
-            //       //     page: 'OrmThree',
-            //       //   })
-            //       // }
-            //       break
+            // case 'prismaPartOne':
+            // info(
+            //   `[Ext onDid] prismaPartOne comand request from OrmOne ${msg.command}`,
+            // )
+            // // db = JSON.parse(msg.payload) as DbParams
+            // // db.adminPwd = sudoName_ as string
+            // // if (db && paths) {
+            // setupOrmOneMessageHandler(context, panel!.webview, paths) // ← Pass webview
+            // // }
+            // // info(`after call to prismaPartOne success is ${result.success}`)
+            // // // send info to OrmOne postMessage(message:any) so we send an object message is object {command,siccess}
+            // panel!.webview.postMessage({
+            //   command: 'partOneDone',
+            //   success: result.success,
+            // })
+            // info(`sent message partOneDone to OrmOne`)
+            // if (!result.success) {
+            //   panel!.webview.postMessage({
+            //     command: 'showPage',
+            //     page: 'OrmTwo',
+            //   })
+            // }
+            // break
 
-            //     case 'prismaPartTwo':
-            //       show('prismaPartTwo command request from OrmTwo.html')
-            //       // if (!(await setupOrmTwoMessageHandlerTwo(panel!)).success) {
-            //       //   info('PrismaPartTwo done, open OrmThree')
-            //       //   panel!.webview.postMessage({
-            //       //     command: 'showPage',
-            //       //     page: 'OrmThree',
-            //       //   })
-            //       // } else {
-            //       //   info('failed to install prismaPartTwo')
-            //       // }
-            //       break
+            case 'prismaPartTwo':
+              channelShow('prismaPartTwo command request from OrmTwo.html')
+              if (!(await setupOrmTwoMessageHandler(panel!)).success) {
+                info('PrismaPartTwo done, open OrmThree')
+                panel!.webview.postMessage({
+                  command: 'showPage',
+                  page: 'OrmThree',
+                })
+              } else {
+                info('failed to install prismaPartTwo')
+              }
+              break
 
             case 'ready':
-              show(['paths.schema', paths.schema])
+              channelShow(['paths.schema', paths.schema])
 
               // when OrmThree.html is ready it sends 'ready' command and we respond
               // by sending prisma models and field strips
@@ -253,7 +261,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 })
               } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : String(err)
-                show(['parsePrismaSchema err', msg])
+                channelShow(['parsePrismaSchema err', msg])
               }
 
               schema = '' // free up memory by clearing schema string after parsing
@@ -269,7 +277,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 cancelText = 'No',
                 title,
               } = msg.payload
-              show(`[showConfirmation], ${message}`)
+              channelShow(`[showConfirmation], ${message}`)
 
               const answer = await vscode.window.showWarningMessage(
                 message,
@@ -279,7 +287,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 },
                 confirmText,
               )
-              show(`[user confirmation] ${answer}`)
+              channelShow(`[user confirmation] ${answer}`)
               panel!.webview.postMessage({
                 command: 'confirmationResponse',
                 payload: {
@@ -291,13 +299,15 @@ export async function activate(context: vscode.ExtensionContext) {
               })
               break
             case 'CreateCrudSupport':
-              show('createCRUDSupportPage command request from OrmThree.html')
+              channelShow(
+                'createCRUDSupportPage command request from OrmThree.html',
+              )
               const payload = JSON.parse(msg.payload)
               // const payload = msg.payload
-              show(['stringified payload', JSON.stringify(payload)])
-              show('calling generateParts payload')
+              channelShow(['stringified payload', JSON.stringify(payload)])
+              channelShow('calling generateParts payload')
               generateParts(context, panel!, channel, paths, payload)
-              show('Extension: sending crudSuportDone')
+              channelShow('Extension: sending crudSuportDone')
               setTimeout(() => {
                 panel!.webview.postMessage({
                   command: 'crudSuportDone',
@@ -306,7 +316,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
               break
             case 'fromAppSvelte':
-              show(msg.payload)
+            case 'progress':
+              channelShow(msg.payload)
               break
             case 'close':
               info('CRUD Support is closing')
@@ -317,7 +328,7 @@ export async function activate(context: vscode.ExtensionContext) {
             //       info(msg.message)
             //       break
             //     default:
-            //       show(`Unknown command: ${msg.command}`)
+            //       channelShow(`Unknown command: ${msg.command}`)
           }
           //   // panel!.onDidDispose(() => {
           //   //   panel = undefined

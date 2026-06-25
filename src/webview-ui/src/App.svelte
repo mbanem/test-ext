@@ -26,17 +26,17 @@
     OrmThree,
   }
   type PageKey = keyof typeof pages
-  let key = $state<PageKey>('OrmThree')
+  let key = $state<PageKey>('OrmOne')
   let Current = $derived(pages[key])
   // Toggle theme
   let theme = $state<Theme>('light')
 
-  let togglePageInfo: TToggleFunc = $state<TToggleFunc>() as TToggleFunc
+  let togglePageInfo = $state<TToggleFunc>() as TToggleFunc
   function triggerPageInfo(e: MouseEvent) {
     try {
       // ;(e.target as HTMLElement).style.backgroundColor = 'red'
       console.log('parent - togglePageInfo')
-      togglePageInfo()
+      togglePageInfo?.()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.log(msg)
@@ -55,6 +55,7 @@
   onMount(() => {
     theme = getInitialTheme()
     applyTheme(theme)
+    console.log('[App.svelte] onMount')
     vscode.postMessage({
       command: 'fromAppSvelte',
       payload: 'App.svelte onMount',
@@ -62,11 +63,13 @@
     // listener for extension messges
     const handler = (event: MessageEvent) => {
       const msg = event.data
+      console.log('[App.svelte] got message', msg.command)
       vscode.postMessage({
         command: 'fromAppSvelte',
         payload: `[App.svelte] got message ${msg.command}`,
       })
       if (msg.command === 'showPage' && isPageKey(msg.page)) {
+        console.log('[App.svelte] showPage', msg.page)
         key = msg.page
       }
     }
@@ -87,14 +90,14 @@ so no page would be rendered
 -->
 <nav>
   <span class="toggle-info-page" onclick={triggerPageInfo} aria-hidden={true}
-    >What Does This Page Do?
+    >About This Page
   </span>
   <p onclick={toggleTheme} aria-hidden={true}>
     <span class="icon">{getIcon(theme)}</span>
   </p>
 </nav>
 
-<div class="main">
+<div class="main" style="color: var(--cr-text);background-color: var(--bg);">
   <Current bind:pageInfo={togglePageInfo}></Current>
 </div>
 
@@ -108,9 +111,11 @@ so no page would be rendered
     justify-content: flex-start;
     align-items: center;
     width: 96vw;
-    height: 1.5rem;
+    height: 1.45rem;
     padding: 0;
     margin: 0;
+    color: var(--cr-text);
+    background-color: var(--bg);
     // @include nav-colors;
     p {
       margin-left: auto;
@@ -135,39 +140,42 @@ so no page would be rendered
         & > * {
           padding-top: 5px;
           padding-left: 5px;
+          display: inline-block;
         }
       }
     }
   }
-  .page-info {
+  /*.page-info {
     position: static;
     top: 1.5rem;
     left: 0;
     width: max-content;
     height: auto;
-  }
+  }*/
   .toggle-info-page {
     display: inline-block;
     width: max-content;
     padding: 0;
     margin: 0;
     color: var(--cr-text);
+    background-color: var(--bg);
     cursor: pointer;
     // @include border($padding: 0 0.5rem);
-    background-color: var(--tab-bg);
+    // background-color: var(--tab-bg);
     &:hover {
-      color: yellow;
-      background-color: #151515;
+      color: var(--hover-button);
     }
   }
   .main {
     position: relative;
-    width: max-content;
-    height: auto;
+    width: 100vw;
+    height: calc(100vh - 1.45rem);
     padding: 0;
-    margin: 1rem 0 0 0;
+    margin: 0;
+    color: var(--cr-text);
+    background-color: var(--bg);
   }
-  .hidden {
+  /*.hidden {
     display: none;
-  }
+  }*/
 </style>

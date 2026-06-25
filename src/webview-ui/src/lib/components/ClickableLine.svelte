@@ -43,7 +43,7 @@
       lineEl = document.querySelector('toggler') as HTMLSpanElement
     }
     lineEl.addEventListener('mousemove', (e: MouseEvent) => {
-      const { x, y } = lineEl.getBoundingClientRect()
+      const { x } = lineEl.getBoundingClientRect()
       // @ts-expect-error number not assignable to string, but it was a string
       const xpos = String(parseInt(e.clientX - x))
       lineEl.style.setProperty('--x', xpos)

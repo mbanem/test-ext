@@ -61,8 +61,8 @@
   let busy = $state(false)
   let timer: ReturnType<typeof setTimeout> | null = null
   const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g')
-  let x = $state(100)
-  let y = $state(100)
+  // let x = $state(100)
+  // let y = $state(100)
   export const exportModels = () => {
     selectedModels = {}
     // get only selected models based on the checkbox checked state
@@ -325,7 +325,6 @@
   }
 
   function showInputMessage(
-    e: EventHandler,
     msg: string,
     // className: string = 'tomato',
     milisec: number = 2000,
@@ -344,7 +343,7 @@
     const model = capitalize(newModelName)
 
     if (models[model]) {
-      showInputMessage(e, alreadyDefined)
+      showInputMessage(alreadyDefined)
       return
     }
     await tick()
@@ -395,13 +394,13 @@
   }
   async function removeModel(e: MouseEvent) {
     if (!newModelName) {
-      showInputMessage(e, noModelName)
+      showInputMessage(noModelName)
       return
     }
     const model = capitalize(newModelName)
 
     if (!models[model]) {
-      showInputMessage(e, notRegistered)
+      showInputMessage(notRegistered)
       return
     }
     if (models[model]) {

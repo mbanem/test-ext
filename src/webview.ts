@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-// import { log, error, info } from './extension.js'
+import { info } from './extension.js'
 
 function getNonce(): string {
   let text = ''
@@ -38,15 +38,11 @@ export function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
 ): TResult {
-  vscode.window.showInformationMessage(
-    `displayWebview entry point: display App`,
-  )
+  info('[Webview] displayWebview entry point')
 
   const html = getWebviewHtml(context, panel.webview, 'OrmOne')
   panel.webview.html = html
-  vscode.window.showInformationMessage(
-    'displayWebview inital page returns {success: true}',
-  )
+  info('[Webview] displayWebview inital page returns {success: true}')
   return { success: true }
 }
 /**
@@ -83,7 +79,7 @@ function getWebviewHtml(
     for (const candidate of [c1, c2]) {
       if (fs.existsSync(candidate)) {
         htmlPath = candidate
-        console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
+        info(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
         break
       }
     }
@@ -93,12 +89,12 @@ function getWebviewHtml(
   }
 
   if (!htmlPath) {
-    console.log(
+    info(
       `[Webview] ⚠️ HTML not found for ${pageName}, falling back to dev mode`,
     )
     return getDevHtml(webview, pageName)
   }
-  vscode.window.showInformationMessage(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  info(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -131,7 +127,7 @@ function getWebviewHtml(
       }
     },
   )
-  console.log(`raw ${pageName}html length: ${html.length}`)
+  info(`raw ${pageName}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -146,9 +142,7 @@ function getWebviewHtml(
     /<\/head>/i,
     `<meta http-equiv="Content-Security-Policy" content="${csp}">\n</head>`,
   )
-  vscode.window.showInformationMessage(
-    `final ${pageName}html length: ${html.length}`,
-  )
+  info(`final ${pageName}html length: ${html.length}`)
   return html
 }
 

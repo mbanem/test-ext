@@ -5,6 +5,16 @@
   import { resolveElement } from './lib/utils'
   import { vscode } from '$lib/utils/event-handler.browser'
 
+  type TProps = {
+    pageInfo: TToggleFunc
+  }
+  let { pageInfo = $bindable() }: TProps = $props()
+  let isActive = $state(false)
+  function handlePageInfo() {
+    isActive = isActive ? false : true
+  }
+  pageInfo = handlePageInfo as TToggleFunc
+
   function postMessage(command: string, payload?: Payload) {
     vscode.postMessage({ command, payload })
   }

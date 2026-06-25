@@ -326,7 +326,7 @@ CRTooltip could accept the following props, though all are optional
 {#if initial}
   <div
     bind:this={tooltipPanelEl}
-    style="`position:absolute;top:-9999px !important;left:-9999px !important;visibility:hidden;padding:0;margin:0;border:none;outline:none;width:max-content;"
+    style="position:absolute;top:-9999px !important;left:-9999px !important;visibility:hidden;padding:0;margin:0;border:none;outline:none;width:max-content;"
     class="ttWrapper"
   >
     {@render runtimePanel?.(panelArgs)}

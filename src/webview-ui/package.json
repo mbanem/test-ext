@@ -5,6 +5,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "clear; vite",
     "build": "clear; vite build",
     "preview": "cleart; vite preview"

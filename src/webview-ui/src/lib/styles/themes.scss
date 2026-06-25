@@ -21,6 +21,7 @@
   --drag-color: #0000ff;
   --field-name: #1a1a6c;
   --green-type: green;
+  --hover-button: red;
   --icon-bg: #f8f9fa;
   --input-bg-color: #f8f9fa;
   --input-color: #121212;
@@ -41,6 +42,8 @@
   --text: #212529;
   --tomato-violet: #ff6347;
   --border: 1px solid var(--tab-border);
+  --pre-title-color: navy;
+  --pre-title-shadow: rgb(0, 0, 255, 0.5);
 }
 
 :root[data-cr-theme='dark'] {
@@ -68,6 +71,7 @@
   --drag-color: #0000ff;
   --field-name: #87ceeb;
   --green-type: lightgreen;
+  --hover-button: yellow;
   --input-bg-color: #f8f9fa;
   --input-color: #e1e1e1;
   --label-color: #e1e1e1;
@@ -86,9 +90,6 @@
   --text: #87ceeb;
   --tomato-violet: #cb739f;
   --border: 1px solid var(--tab-border);
-}
-
-body {
-  background: var(--cr-bg);
-  color: var(--cr-text);
+  --pre-title-color: skyblue;
+  --pre-title-shadow: rgb(255, 255, 255, 0.8);
 }

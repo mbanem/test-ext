@@ -6,12 +6,12 @@
   type TProps = {
     pageInfo: TToggleFunc
   }
-  let { pageInfo = $bindable<TToggleFunc>() }: TProps = $props()
+  let { pageInfo = $bindable() }: TProps = $props()
   let isActive = $state(false)
   function handlePageInfo() {
     isActive = isActive ? false : true
   }
-  pageInfo = handlePageInfo
+  pageInfo = handlePageInfo as TToggleFunc
 
   let appName = $state('')
   let isLoading = $state(true)
@@ -397,9 +397,6 @@
   }
 
   .page-info {
-    @include page-info(
-      $head: 'What Does This Page Do',
-      $color: var(--page-purpose-color)
-    );
+    @include page-info();
   }
 </style>

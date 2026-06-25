@@ -1,5 +1,5 @@
 <script lang="ts">
-  let triggeringEl: HTMLElement
+  // let triggeringEl: HTMLElement
   let msgEl: HTMLDivElement
   let message = $state('')
   let disabled = $state(false)

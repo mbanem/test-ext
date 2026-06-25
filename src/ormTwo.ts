@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { show } from './extension.js'
+import { channelShow } from './extension.js'
 import { runCommandStream } from './run-command-stream.js'
 
 const envWhatToDo = `# Environment variables declared in this file are automatically made available to Prisma.
@@ -53,8 +53,8 @@ function xPackageManager(pm: string): string {
   return 'unknown'
 }
 
-export async function setupOrmTwoMessageHandlerTwo(panel: vscode.WebviewPanel) {
-  show('[ormTwo.ts] setupOrmTwoMessageHandlerTwo 3ntry point')
+export async function setupOrmTwoMessageHandler(panel: vscode.WebviewPanel) {
+  channelShow('[ormTwo.ts] setupOrmTwoMessageHandlerTwo entry point')
   panel.webview.onDidReceiveMessage(async (message: any) => {
     if (message === 'prismaPartTwo' || message.command === 'prismaPartTwo') {
       detectPackageManager()
