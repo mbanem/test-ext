@@ -10,6 +10,7 @@ import { setupOrmTwoMessageHandler } from './ormTwo.js'
 import { installPrismaPartTwo } from './ormTwo.js'
 import {} from './ormOne.js'
 import { generateParts } from './partsGenerator.js'
+
 let paths: TPaths = {}
 let db: DbParams = {}
 let appName = ''
@@ -26,61 +27,7 @@ let panel: vscode.WebviewPanel | undefined = vscode.window.createWebviewPanel(
     retainContextWhenHidden: true,
   },
 )
-
-// function execShell(cmd: string): string | null {
-//   try {
-//     // Blocks the event loop until the command finishes
-//     return execSync(cmd, { encoding: 'utf8' })
-//   } catch (error) {
-//     console.error('Execution failed:', error)
-//   }
-//   return null
-// }
-// export const sudoName_ = execShell('whoami')?.trim()
 export const sudoName_ = 'mili'
-// export function runCommandStream(
-//   command: string,
-//   args: string[],
-//   options: {
-//     cwd?: string
-//     onStdout?: (data: string) => void
-//     onStderr?: (data: string) => void
-//     terminal?: vscode.Terminal
-//   } = {},
-// ): Promise<number> {
-//   return new Promise((resolve, reject) => {
-//     const proc = spawn(command, args, {
-//       cwd: options.cwd,
-//       shell: true,
-//     })
-
-//     proc.stdout.on('data', (data: any) => {
-//       const text = data.toString()
-//       options.onStdout?.(text)
-
-//       if (options.terminal) {
-//         options.terminal.sendText(text, false)
-//       }
-//     })
-
-//     proc.stderr.on('data', (data) => {
-//       const text = data.toString()
-//       options.onStderr?.(text)
-
-//       if (options.terminal) {
-//         options.terminal.sendText(text, false)
-//       }
-//     })
-
-//     proc.on('close', (code: any) => {
-//       resolve(code ?? 0)
-//     })
-
-//     proc.on('error', (err: string) => {
-//       reject(err)
-//     })
-//   })
-// }
 export const sleep = async (ms: number) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -114,6 +61,7 @@ export const error = (msg: string) => {
 export const info = (msg: string) => {
   vscode.window.showInformationMessage(msg)
 }
+
 export async function activate(context: vscode.ExtensionContext) {
   try {
     // show('test-ext.crudTest ACTIVATED')
@@ -139,15 +87,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         appName = rootPath.match(/\/?([a-zA-z0-9_-]+)$/)?.[1] as string
         channelShow(`[Backend] Resolved Root Path: ${rootPath}`)
-
-        // await vscode.window.showWarningMessage(
-        //   rootPath,
-        //   {
-        //     modal: true,
-        //     detail: 'page is blank',
-        //   },
-        //   'This should be te rootPath',
-        // )
         paths = {
           root: rootPath,
           env: path.join(rootPath, '.env'),
@@ -155,18 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
           schema: path.join(rootPath, 'prisma/schema.prisma'),
           components: path.join(rootPath, 'src', 'lib', 'components'),
         } as TPaths
-        // create a customizable user interface that appears as a distinct editor tab
-        // within extension's activation logic
-        // panel = vscode.window.createWebviewPanel(
-        //   // let as dispose sets it to null
-        //   'crCrudSupport',
-        //   'CRUD Support',
-        //   vscode.ViewColumn.One,
-        //   {
-        //     enableScripts: true,
-        //     retainContextWhenHidden: true,
-        //   },
-        // )
+
         if (!displayWebview(context, panel!).success) {
           info('closing displayWebview OrmOne return result.success false')
           return
@@ -194,10 +122,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         panel!.webview.onDidReceiveMessage(async (msg) => {
           switch (msg.command) {
-            case 'close':
-              info('CRUD Support is closing')
-              panel!.dispose()
-              break
             // case 'prismaPartOne':
             // info(
             //   `[Ext onDid] prismaPartOne comand request from OrmOne ${msg.command}`,
@@ -326,6 +250,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
             case 'showInfo':
               info(msg.message)
+              break
+
+            case 'close':
+              info('CRUD Support is closing')
+              panel!.dispose()
               break
 
             default:

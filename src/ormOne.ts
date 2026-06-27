@@ -4,6 +4,7 @@ import { info, waitForNewFile } from './extension.js'
 import * as fs from 'fs'
 import * as path from 'path'
 import { Client } from 'pg'
+import { error } from 'console'
 
 const ErrCommandResult = {
   success: false,
@@ -157,13 +158,16 @@ export function setupOrmOneMessageHandler(
   currentWebview = webview
   paths = thepaths
   webview.onDidReceiveMessage(async (msg) => {
-    console.log('[ormOne.ts] onDidReceiveMessage', msg)
+    // console.log('[ormOne.ts] onDidReceiveMessage', msg)
     let result: CommandResult = ErrCommandResult
+    console.log('[ormOne.ts] received db ', db)
+    db = JSON.parse(msg.dbParams)
     switch (msg.command) {
       case 'prismaPartOne':
         vscode.window.showInformationMessage(
-          '[ormOne.ts] got request prismaPartOne',
+          `[ormOne.ts] got request prismaPartOne ${JSON.stringify(db)}`,
         )
+
         pm = detectPackageManager()
 
         if (pm === 'unknown') {
@@ -172,7 +176,7 @@ export function setupOrmOneMessageHandler(
         } else {
           ex = xPackageManager(pm)
         }
-        await installPrisma(
+        result = await installPrisma(
           webview,
           {
             useOnlyBuiltDependencies: msg.useOnlyBuiltDependencies ?? true,
@@ -180,7 +184,11 @@ export function setupOrmOneMessageHandler(
           devDeps,
           '-D',
         )
-        await installPrisma(
+        if (!result.success) {
+          vscode.window.showInformationMessage('install devDependencies failed')
+          return result
+        }
+        result = await installPrisma(
           webview,
           {
             useOnlyBuiltDependencies: msg.useOnlyBuiltDependencies ?? true,
@@ -188,6 +196,52 @@ export function setupOrmOneMessageHandler(
           deps,
           '',
         )
+        if (!result.success) {
+          vscode.window.showInformationMessage('install dependencies failed')
+          return result
+        }
+
+        const init = ['prisma', 'init', '--datasource-provider', 'postgresql']
+        // find pnpm dlx or other execs
+        let pgm = ex
+        let pgx = ''
+        if (ex === 'pnpx') {
+          pgm = 'pnpm'
+          pgx = 'dlx'
+        } else if (ex === 'yarnx') {
+          pgm = 'yarn'
+          pgx = 'dlx'
+        }
+        console.log('[ormOne.ts] IMPORTANT PRISMA INIT MESSAGE')
+        console.log(
+          `[ormOne.ts] executing command ${pgm} ${pgx} ${init.join(' ')} to initialize Prisma...`,
+        )
+
+        result = await runCommandStream(pgm, [pgx, ...init], {
+          cwd: paths.root,
+          onStdout: (msg: string) => console.log(msg),
+          onStderr: (err: string) => console.error(err),
+        })
+        if (!result.success) {
+          vscode.window.showInformationMessage(
+            'prisma init --datasource-provider postgresql failed',
+          )
+          return result
+        }
+        if (
+          !waitForNewFile(path.join(paths.root, 'prisma.config.ts)'), 60000)
+        ) {
+          console.log(`[ormOne.ts] prisma.config.ts is not created in 60sec`)
+        } else {
+          console.log('[ormOne.ts] Prisma prisma.config.ts created')
+        }
+        result = await createRoleAndDb()
+        if (!result.success) {
+          vscode.window.showInformationMessage(
+            'Creating PostgresSQL Role and database failed',
+          )
+        }
+        return result
         break
 
       case 'approveAllBuildPackages':
@@ -204,6 +258,69 @@ export function setupOrmOneMessageHandler(
   })
 }
 
+async function createRoleAndDb(): Promise<CommandResult> {
+  let result: CommandResult = ErrCommandResult
+  console.log(`[OrmOne.ts] createRoleAndDb ENTRY POINT`)
+  // db admin must login in order to create role and database for the user,
+  // so we connect to postgres with admin credentials
+  const client = new Client({
+    host: db.host as string,
+    port: db.port as number,
+    user: db.adminPwd as string, // admin user
+    password: 'kiki',
+    database: 'postgres',
+  })
+  console.log('CLIENT CONNECT')
+  console.log([
+    '[OrmOne.ts] Connecting to Postgres with admin credentials...',
+    JSON.stringify(client),
+  ])
+  // await client.connect()
+  try {
+    // This resolves to undefined; do not assign it to a variable
+    await client.connect()
+    console.log('[OrmOne.ts] client.connect successfully')
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.stack : String(err)
+    vscode.window.showInformationMessage(
+      `Failed to connect to pg Client: ${msg}`,
+    )
+    result.error = err as Error
+    return result
+  }
+
+  console.log(`[OrmOne.ts] Creating role ${db.owner}...`)
+  const roleExists = await client.query(
+    `SELECT 1 FROM pg_roles WHERE rolname = $1`,
+    [db.owner],
+  )
+
+  if (roleExists.rowCount === 0) {
+    console.log('[OrmOne.ts] client.connect successful')
+    await client.query(
+      `CREATE ROLE "${db.owner}" LOGIN PASSWORD '${db.password}' CREATEDB`,
+    )
+  }
+
+  console.log(`[OrmOne.ts] Does database ${db.name}... exists?`)
+  // check existence
+  const res = await client.query(
+    `SELECT 1 FROM pg_database WHERE datname = $1`,
+    [db.name],
+  )
+
+  if (res.rowCount === 0) {
+    console.log(`[OrmOne.ts] Create database ${db.name}`)
+    await client.query(`CREATE DATABASE "${db.name}" OWNER "${db.owner}"`)
+  }
+
+  console.log(`[OrmOne.ts] clicnt.end()`)
+  await client.end()
+
+  console.log(`Database ${db.name} created`)
+  result.success = true
+  return result
+}
 // Main install function
 
 async function installPrisma(
@@ -211,7 +328,8 @@ async function installPrisma(
   options: { useOnlyBuiltDependencies: boolean },
   packages: string[],
   dd: string,
-) {
+): Promise<CommandResult> {
+  let result: CommandResult = ErrCommandResult
   let installArgs = ['i', dd, ...packages]
   // if (options.useOnlyBuiltDependencies) {
   //   installArgs.push(
@@ -224,7 +342,7 @@ async function installPrisma(
     message: `Starting Prisma at ${paths.root} dependencies installation...`,
   })
 
-  const result = await runCommandStream('pnpm', installArgs, {
+  result = await runCommandStream('pnpm', installArgs, {
     cwd: paths.root,
     timeoutMs: 10 * 60 * 1000,
 
@@ -292,6 +410,7 @@ async function installPrisma(
       command: 'prismaInstallSuccess',
       message: '✅ Prisma and dependencies installed successfully!',
     })
+    result.success = true
   } else {
     webview.postMessage({
       command: 'prismaInstallError',
@@ -299,4 +418,5 @@ async function installPrisma(
       error: result.error?.message || 'Unknown error',
     })
   }
+  return result
 }

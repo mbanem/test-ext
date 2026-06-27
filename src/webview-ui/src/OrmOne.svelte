@@ -169,6 +169,9 @@
       currentDetailsEl.open = false
     }
     el.open = true
+    if (rawLinesEl.open) {
+      rawLinesEl.open = false
+    }
     const pel = document.createElement('p')
     el.appendChild(pel)
     Object.assign(pel.style, { padding: 0, margin: 0 })
@@ -182,7 +185,7 @@
     })
     window.addEventListener('message', (event) => {
       const msg = event.data
-      console.log('[OrmOne.svelte] listener msg', msg)
+      // console.log('[OrmOne.svelte] listener msg', msg)
       vscode.postMessage({
         command: 'progress',
         payload: `OrmOne.svelte] listener ${msg.command}`,
@@ -197,6 +200,9 @@
           pEl = document.createElement('p')
           rawLinesEl.appendChild(pEl)
           ++rlCounter
+          if (rlCounter === 1) {
+            rawLinesEl.open = true
+          }
           Object.assign(pEl.style, { padding: 0, margin: 0 })
           pEl.textContent = rl
           const m = RX.exec(rl)
@@ -657,9 +663,15 @@ Package Manager e.g. pnpm.
   }
   .details {
     position: relative;
+    z-index: 1;
     border: 1px solid gray;
     width: 19rem;
     border-radius: 6px;
     padding: 0 0.5rem;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    &[open] {
+      z-index: 201;
+    }
   }
 </style>
