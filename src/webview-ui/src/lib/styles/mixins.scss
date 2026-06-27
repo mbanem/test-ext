@@ -129,7 +129,10 @@
   }
 }
 
-@mixin progress-field() {
+@mixin progress-field($top: 0, $left: 0) {
+  // position: absolute;
+  // top: $top;
+  // left: $left;
   border: 1px solid gray;
   border-radius: 3px;
   color: var(--candidate-color);
@@ -137,6 +140,10 @@
   font-size: 14px;
   font-weight: 600;
   padding: 4px 0 0 0.5rem;
+
+  height: clamp(3.5rem, 3.5rem, 10rem);
+  overflow-y: auto;
+  // z-index: 300;
 
   p {
     padding: 0 0 0 0.5rem;

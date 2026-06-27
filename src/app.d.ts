@@ -50,11 +50,21 @@ declare global {
   export type TEnum = Record<string, string>
   export type TEnums = Record<string, TEnum>
   export type TResult = { success: boolean }
+  export type CommandResult = {
+    success: boolean
+    code: number
+    stdout: string
+    stderr: string
+    command: string
+    args: string[]
+    error?: Error
+  }
   export type TStickMsgToElement =
     | 'StickLefts'
     | 'StickRights'
     | 'StickMiddles'
     | 'MiddleToLeft'
+  // export type DependencyType = 'dependencies' | 'devDependencies'
   namespace App {
     // interface Error {}
     // interface Locals {

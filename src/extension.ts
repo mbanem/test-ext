@@ -194,6 +194,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         panel!.webview.onDidReceiveMessage(async (msg) => {
           switch (msg.command) {
+            case 'close':
+              info('CRUD Support is closing')
+              panel!.dispose()
+              break
             // case 'prismaPartOne':
             // info(
             //   `[Ext onDid] prismaPartOne comand request from OrmOne ${msg.command}`,
@@ -265,7 +269,6 @@ export async function activate(context: vscode.ExtensionContext) {
               }
 
               schema = '' // free up memory by clearing schema string after parsing
-
               break
 
             case 'showConfirmation':
@@ -298,6 +301,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 },
               })
               break
+
             case 'CreateCrudSupport':
               channelShow(
                 'createCRUDSupportPage command request from OrmThree.html',
@@ -313,26 +317,23 @@ export async function activate(context: vscode.ExtensionContext) {
                   command: 'crudSuportDone',
                 })
               }, 3000)
-
               break
+
             case 'fromAppSvelte':
             case 'progress':
               channelShow(msg.payload)
               break
-            case 'close':
-              info('CRUD Support is closing')
-              panel!.dispose()
+
+            case 'showInfo':
+              info(msg.message)
               break
 
-            //     case 'showInfo':
-            //       info(msg.message)
-            //       break
-            //     default:
-            //       channelShow(`Unknown command: ${msg.command}`)
+            default:
+              channelShow(`Unknown command: ${msg.command}`)
           }
-          //   // panel!.onDidDispose(() => {
-          //   //   panel = undefined
-          //   // })
+          panel!.onDidDispose(() => {
+            panel = undefined
+          })
         })
       }),
     )

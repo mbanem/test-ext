@@ -3,22 +3,83 @@
   import { onMount } from 'svelte'
   const RX =
     /^Progress:|\.\.\.\/node_modules\/|dependencies:|devDependencies:|\+ /
-  let follow = $state('') // dependencies | devDependencies
 
+  //   interface DetailItem {
+  //   id: string
+  //   summary: string
+  //   className: string
+  //   bindEl?: HTMLDetailsElement
+  //   status?: 'pending' | 'running' | 'success' | 'error'
+  //   message?: string
+  // }
+
+  // Exposed to parent for server-driven control
+  /* xport function openSection(
+    sectionId: string,
+    status?: DetailItem['status'],
+    message?: string,
+  ) {
+    const item = detailsList.find((d) => d.id === sectionId)
+    if (!item) return
+
+    if (status) item.status = status
+    if (message) item.message = message
+
+    // Close all, open only the target
+    detailsList.forEach((d) => {
+      if (d.bindEl) {
+        d.bindEl.open = d.id === sectionId
+      }
+    })
+
+    // Auto-scroll to opened section
+    setTimeout(() => {
+      item.bindEl?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    }, 100)
+  } */
+
+  /* function handleToggle(e: Event, currentItem: DetailItem) {
+    const target = e.currentTarget as HTMLDetailsElement
+    if (!target.open) return
+
+    detailsList.forEach((item) => {
+      if (item.bindEl && item.bindEl !== target) {
+        item.bindEl.open = false
+      }
+    })
+  } */
+
+  /*  let leftDetailsList: DetailItem[] = $state([
+    { id: 'node-modules', summary: 'Node Modules', className: 'node-modules' },
+    {
+      id: 'node-modules',
+      summary: { rlCounter },
+      className: 'raw-lines',
+      { id: 'otherProgressLines', summary: 'Other Progress Lines', className: 'other-progress-lines' },
+    },
+    { id: 'checkThis', summary: 'Check This', className: 'chack-this' },
+    { id: 'otherLines', summary: 'Other', className: 'other-progress-lines' },
+  ]) */
+
+  let currentDetailsEl: HTMLDetailsElement | undefined = $state()
+  let rlCounter = $state(0)
+  let rawLinesEl: HTMLDetailsElement
+  let depEl: HTMLDetailsElement
+  let devDepEl: HTMLDetailsElement
+  let follow = $state('') // dependencies | devDependencies
   let useOnlyBuiltDependencies = $state(true) // Default: safe for most users
   let approvalPackages = $state<string[]>([])
-  let progress = $state(0)
+  let progressPercents = $state(0)
   let statusMessage = $state('Ready to install Prisma')
   let isInstalling = $state(false)
   let logs: { type: 'stdout' | 'stderr'; text: string }[] = []
-  let pathMessage: HTMLParagraphElement
-  // let rawLinesEl: HTMLDivElement
   let progressLineEl: HTMLParagraphElement
-  let nodeModulesEl: HTMLParagraphElement
-  let checkThisEl: HTMLParagraphElement
-  let dependenciesListeEl: HTMLParagraphElement
-  let devDependenciesListeEl: HTMLParagraphElement
-  let otherLinesEl: HTMLParagraphElement
+  let nodeModulesEl: HTMLDetailsElement
+  let checkThisEl: HTMLDetailsElement
+  let otherLinesEl: HTMLDetailsElement
 
   let db: DbParams = $state({
     name: 'dbrony',
@@ -39,6 +100,13 @@
   }
   let { pageInfo = $bindable() }: TProps = $props()
   let isActive = $state(false)
+  // type bsc = {
+  //   binder: HTMLElement
+  //   class: string
+  // }
+  // const detsum: Record</*summary*/ string, bsc> = {
+  //   'node modules': { nodeModulesEl },
+  // }
   function handlePageInfo() {
     isActive = isActive ? false : true
   }
@@ -50,11 +118,12 @@
   function closetheApp() {
     vscode.postMessage({
       command: 'close',
+      payload: 'close the extension',
     })
   }
   function startPrismaInstall() {
     isInstalling = true
-    progress = 0
+    progressPercents = 0
     logs = []
     statusMessage = 'Starting installation...'
     const db_: DbParams = {
@@ -95,10 +164,15 @@
     }
     vscode.postMessage({ command: 'approveAllBuildPackages' })
   }
-  function appendLine(el: HTMLElement, line: string) {
-    const pEl = document.createElement('p')
-    el.appendChild(pEl)
-    pEl.textContent = line
+  function appendLine(el: HTMLDetailsElement, line: string) {
+    if (currentDetailsEl) {
+      currentDetailsEl.open = false
+    }
+    el.open = true
+    const pel = document.createElement('p')
+    el.appendChild(pel)
+    Object.assign(pel.style, { padding: 0, margin: 0 })
+    pel.textContent = line
   }
 
   onMount(() => {
@@ -115,17 +189,16 @@
       })
       switch (msg.command) {
         case 'prismaInstallStart':
-          pathMessage.innerText = msg.message
           break
         case 'prismaProgress':
-          progress = msg.percent
+          progressPercents = msg.percent
           statusMessage = msg.message
           const rl = msg.rawLine
-          // if (!pEl) {
-          // const pEl = document.createElement('p');
-          // rawLinesEl.appendChild(pEl);
-          // }
-          // pEl.textContent = rl
+          pEl = document.createElement('p')
+          rawLinesEl.appendChild(pEl)
+          ++rlCounter
+          Object.assign(pEl.style, { padding: 0, margin: 0 })
+          pEl.textContent = rl
           const m = RX.exec(rl)
           if (m) {
             switch (m[0]) {
@@ -137,16 +210,18 @@
                 break
               case 'dependencies:':
                 follow = 'dependencies'
+                // depEl.innerText = 'dependencies'
                 break
               case 'devDependencies:':
                 follow = 'devDependencies'
+                // devDepEl.innerText = 'devDependencies'
                 break
               case '+ ':
                 if (follow === 'dependencies') {
-                  appendLine(dependenciesListeEl, rl)
+                  appendLine(depEl, rl)
                 }
                 if (follow === 'devDependencies') {
-                  appendLine(devDependenciesListeEl, rl)
+                  appendLine(devDepEl, rl)
                 }
                 break
               default:
@@ -176,7 +251,7 @@
           break
         case 'prismaInstallSuccess':
           isInstalling = false
-          progress = 100
+          progressPercents = 100
           statusMessage = msg.message
           vscode.postMessage({
             command: 'prismaPartTwo',
@@ -190,26 +265,26 @@
 {#snippet pagePurpose()}
   <pre>
     
-    This page is shown as the Prisma ORM is not installed in this app.
-    You can proceed with the installation or close the extension and
-    do the installation yourself.
+This page is shown as the Prisma ORM is not installed in this app.
+You can proceed with the installation or close the extension and
+do the installation yourself.
 
-    <span>In the screen First Part</span>
+<span>In the screen First Part</span>
 
-    When clicking 'Create database' summary button it opens a panel
-    for getting the following parameters
-      - database name
-      - role name as a database owner
-      - role's password for connecting and handling database
-      - optional server name (default is localhost)
-      - optional communication port (default is 5432)
+When clicking 'Create database' summary button it opens a panel
+for getting the following parameters
+  - database name
+  - role name as a database owner
+  - role's password for connecting and handling database
+  - optional server name (default is localhost)
+  - optional communication port (default is 5432)
 
-    <span>In the screen Second Part</span> 
+<span>In the screen Second Part</span> 
 
-    The 'Install Prisma + Dependencies' button starts the process for
-		installing Prisma ORM, creating database with given parameters and 
-		installing the other necessary software packages utilizing current
-		Package Manager e.g. pnpm.
+The 'Install Prisma + Dependencies' button starts the process for
+installing Prisma ORM, creating database with given parameters and 
+installing the other necessary software packages utilizing current
+Package Manager e.g. pnpm.
 
   </pre>
 {/snippet}
@@ -278,6 +353,13 @@
     Install Prisma + Dependencies
   </button>
   <button class="button-close" onclick={closetheApp}>close</button>
+  {#if isInstalling || progressPercents > 0}
+    <div class="progress-container">
+      <progress value={progressPercents} max="100" style="width: 100%;"
+      ></progress>
+      <p style="padding:0;margin:0;">{progressPercents}% — {statusMessage}</p>
+    </div>
+  {/if}
 </div>
 
 <!-- <div style="border:1px solid red;height:36rem;"> -->
@@ -297,37 +379,30 @@
       >
       <p bind:this={progressLineEl}></p>
     </div>
-    <div class="node-modules">
-      <span class="progress-title overflow-y">node_modules</span>
-      <p bind:this={nodeModulesEl}></p>
-    </div>
-    <div class="other-progress-lines overflow-y">
-      <span class="progress-title">Other Progress Lines</span>
-      <p bind:this={otherLinesEl}></p>
-    </div>
-    <div class="check-this" style="height:3.5rem">
-      <span class="progress-title">Check This</span>
-      <p bind:this={checkThisEl}></p>
-    </div>
+    <details bind:this={nodeModulesEl} class="node-modules">
+      <summary>node modules</summary>
+    </details>
+    <details bind:this={rawLinesEl} class="raw-lines">
+      <summary>raw lines {rlCounter > 0 ? rlCounter : ''}</summary>
+    </details>
+    <details bind:this={otherLinesEl} class="other-progress-lines overflow-y">
+      <summary>Other Progress Lines</summary>
+    </details>
+    <details bind:this={checkThisEl} class="check-this" style="height:3.5rem">
+      <summary>Check This</summary>
+    </details>
 
-    <div class="other-progress-lines overflow-y">
-      <span class="progress-title">Other</span>
-      <p bind:this={otherLinesEl}></p>
-    </div>
-    <div class="check-this hidden">
-      Check This
-      <p bind:this={checkThisEl}></p>
-    </div>
+    <details bind:this={otherLinesEl} class="other-progress-lines overflow-y">
+      <summary>Other</summary>
+    </details>
   </div>
   <div class="right-column">
-    <div class="dependencies-list overflow-y">
-      Installed dependencies
-      <p bind:this={dependenciesListeEl}></p>
-    </div>
-    <div class="dev-dependencies-list overflow-y">
-      Installed devDependencies
-      <p bind:this={devDependenciesListeEl}></p>
-    </div>
+    <details bind:this={depEl} class="dependencies-list overflow-y">
+      <summary>Installed dependencies</summary>
+    </details>
+    <details bind:this={devDepEl} class="dev-dependencies-list overflow-y">
+      <summary>Installed devDependencies</summary>
+    </details>
   </div>
 </div>
 
@@ -346,13 +421,6 @@
       {/each}
     </ul>
     <button onclick={approveAll}>Approve All</button>
-  </div>
-{/if}
-<p bind:this={pathMessage}></p>
-{#if isInstalling || progress > 0}
-  <div class="progress-container">
-    <progress value={progress} max="100" style="width: 100%;"></progress>
-    <p>{progress}% — {statusMessage}</p>
   </div>
 {/if}
 
@@ -379,7 +447,8 @@
     color: var(--cr-text);
   }
   .progress-container {
-    margin: 15px 0;
+    margin: -5px 0 0 0;
+    grid-column: span 3;
   }
   .logs {
     margin-top: 20px;
@@ -465,13 +534,13 @@
   }
   .node-modules {
     @include progress-field();
-    margin-top: 0.5rem;
-    height: 23rem;
-    // overflow-y: auto;
+  }
+  .raw-lines {
+    position: relative;
+    @include progress-field();
   }
   .other-progress-lines {
     @include progress-field();
-    height: 3.6rem;
   }
   .check-this {
     @include progress-field();
@@ -486,7 +555,7 @@
     display: grid;
     grid-template-columns: repeat(2, 40vw);
     gap: 0.4rem;
-    margin-top: 1.4rem;
+    margin-top: 4rem;
     .left-column {
       border: 1px solid gray;
       border-radius: 8px;
@@ -503,23 +572,16 @@
     .right-column {
       .dependencies-list {
         @include progress-field();
-        height: 8rem;
-        overflow-y: auto;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
+        height: 3.5rem;
       }
       .dev-dependencies-list {
         @include progress-field();
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
-        height: 30.2rem;
-        overflow-y: auto;
+        height: 3.5rem;
       }
     }
 
     .progress-title {
       display: inline-block;
-      // margin-left: 0.5rem;
       color: var(--candidate-color);
       background-color: var(--candidate-bg-title-color);
       font-weight: 600;
@@ -546,6 +608,7 @@
     .hidden {
       display: none;
     }
+
     // NOTE many css classes do not work so inline styles are often used
     .dbname-block {
       position: absolute;
@@ -554,7 +617,6 @@
       // @include container($head: 'Database Parameters', $head-color: navy);
       margin: 0;
       padding: 1rem;
-      // z-index: 200;
       label {
         width: 10rem;
         padding: 0;
@@ -580,13 +642,12 @@
     margin-bottom: 10px;
   }
   .summary {
-    // position: relative;
-    // list-style: none;
+    position: relative;
+    /* list-style: none; */
     width: 19.5rem;
     border: 1px solid gray;
     color: var(--candidate-color);
     background-color: var(--candidate-bg-color);
-    // margin: 3px 9px 0 0;
     border-radius: 6px;
     height: 1.6rem;
     padding-left: 0.5rem;
@@ -600,7 +661,5 @@
     width: 19rem;
     border-radius: 6px;
     padding: 0 0.5rem;
-    // z-index: 10;
-    // @include container($head: 'Database and Role Parameters', $head-color: navy);
   }
 </style>
