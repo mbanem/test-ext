@@ -1,18 +1,9 @@
 <script lang="ts">
-  import { vscode } from '$lib/utils/event-handler.browser.js'
-  import OrmOne from './OrmOne.svelte'
-  import OrmTwo from './OrmTwo.svelte'
-  import OrmThree from './OrmThree.svelte'
+  // import { vscode } from '$lib/utils/event-handler.browser.js'
   import { onMount } from 'svelte'
   import '$lib/styles/themes.scss'
-  /* theme belongs to the webview UI shell
-    - App.svelte owns the theme state
-    - child pages receive what they need as props
-    - CSS uses VS Code theme variables as the base
-    VS Code webviews already get theme classes on <body>: vscode-light, vscode-dark,
-    vscode-high-contrast, and VS Code exposes CSS variables like --vscode-editor-foreground.
-    So the extension should respect those first
-  */
+  // import type { Component } from 'svelte'
+
   import {
     applyTheme,
     getIcon,
@@ -20,31 +11,30 @@
     type Theme,
   } from '$lib/utils/toggle-theme'
 
-  const pages = {
-    OrmOne,
-    OrmTwo,
-    OrmThree,
-  }
-  type PageKey = keyof typeof pages
-  let key = $state<PageKey>('OrmOne')
-  let Current = $derived(pages[key])
-  // Toggle theme
+  type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
+  type TImports =
+    | typeof import('./OrmOne.svelte')
+    | typeof import('./OrmTwo.svelte')
+    | typeof import('./OrmThree.svelte')
+
+  const pageLoaders = {
+    OrmOne: () => import('./OrmOne.svelte'),
+    OrmTwo: () => import('./OrmTwo.svelte'),
+    OrmThree: () => import('./OrmThree.svelte'),
+  } as const satisfies Record<PageKey, () => Promise<TImports>>
+
+  let key = $state<PageKey | null>(null)
+  // let Current = $state<TImports | null>(null)
+  // let Current = $state<Component<TImports> | null>(null)
+  let Current = $state<any>(null)
+  let isLoading = $state(false)
+  let loadError = $state<string | null>(null)
+
   let theme = $state<Theme>('light')
 
-  let togglePageInfo = $state<TToggleFunc>() as TToggleFunc
-  function triggerPageInfo(e: MouseEvent) {
-    try {
-      // ;(e.target as HTMLElement).style.backgroundColor = 'red'
-      console.log('parent - togglePageInfo')
-      togglePageInfo?.()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.log(msg)
-    }
-  }
-
-  function isPageKey(value: unknown): value is PageKey {
-    return typeof value === 'string' && value in pages
+  let togglePageInfo = $state<TToggleFunc>()
+  function triggerPageInfo() {
+    togglePageInfo?.()
   }
 
   function toggleTheme() {
@@ -52,30 +42,84 @@
     applyTheme(theme)
   }
 
+  async function loadPage(pageKey: PageKey) {
+    if (key === pageKey && Current) {
+      console.log(
+        '[App] loadPage multiple calls with the same pageKey',
+        pageKey,
+      )
+      return
+    }
+    console.log('[App] loadPage', pageKey)
+    isLoading = true
+    loadError = null
+    key = pageKey
+
+    try {
+      const loader = pageLoaders[pageKey]
+      const module = await loader() // { default: Component, ... }
+      Current = module.default // This is the Svelte component constructor
+      console.log('[App] loadPage set Current')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[App] loadPage error for', pageKey, msg)
+      loadError = msg
+      key = null
+    } finally {
+      isLoading = false
+    }
+  }
+  // Trigger initial load
+  function getInitialPage(): PageKey {
+    let initialPage: PageKey = 'OrmOne' // default
+    // console.log('[App] getInitialPage() called set OrmOne as default')
+    // Priority 1: Global variable (injected by extension)
+    if ((window as any).__INITIAL_PAGE) {
+      initialPage = (window as any).__INITIAL_PAGE as PageKey
+      console.log(`[App] Found window.__INITIAL_PAGE = ${initialPage}`)
+
+      // Clean up
+      delete (window as any).__INITIAL_PAGE
+    } // Fallback
+    else {
+      const appDiv = document.getElementById('app')
+      initialPage = (appDiv?.dataset.initialPage as PageKey) || 'OrmOne'
+      console.log(`[App] Used data-initial-page: ${initialPage}`)
+    }
+    // console.log(`[App] getInitialPage → ${initialPage}`)
+    return initialPage
+  }
   onMount(() => {
+    console.log('[App] onMount - timestamp:', new Date().toISOString())
     theme = getInitialTheme()
     applyTheme(theme)
-    console.log('[App.svelte] onMount')
-    vscode.postMessage({
-      command: 'fromAppSvelte',
-      payload: 'App.svelte onMount',
-    })
-    // listener for extension messges
+
+    const initialPage: PageKey = getInitialPage()
+    console.log('[App] got initialPage', initialPage)
+
+    loadPage(initialPage)
+
+    // listener for server-side messages
     const handler = (event: MessageEvent) => {
       const msg = event.data
-      console.log('[App.svelte] got message', msg.command)
-      vscode.postMessage({
-        command: 'fromAppSvelte',
-        payload: `[App.svelte] got message ${msg.command}`,
-      })
-      if (msg.command === 'showPage' && isPageKey(msg.page)) {
-        console.log('[App.svelte] showPage', msg.page)
-        key = msg.page
+      console.log(`[App] Received message:`, msg)
+      switch (msg.command) {
+        case 'showPage':
+          const page = msg.page as PageKey
+          if (['OrmOne', 'OrmTwo', 'OrmThree'].includes(page)) {
+            loadPage(page)
+          }
+          break
       }
     }
     window.addEventListener('message', handler)
+    // vscode.postMessage({
+    //   command: 'AppSvelteReady',
+    // })
+    console.log('[App] set up event listener for "message"')
 
     return () => {
+      console.log('[App] removing listener')
       window.removeEventListener('message', handler)
     }
   })
@@ -97,8 +141,17 @@ so no page would be rendered
   </p>
 </nav>
 
-<div class="main" style="color: var(--cr-text);background-color: var(--bg);">
-  <Current bind:pageInfo={togglePageInfo}></Current>
+<div class="main">
+  {#if isLoading}
+    <div>Loading page...</div>
+  {:else if loadError}
+    <div>Error: {loadError}</div>
+  {:else if Current}
+    {console.log('[App] rendering <Current>')}
+    <Current bind:pageInfo={togglePageInfo} />
+  {:else}
+    <div>Initializing...</div>
+  {/if}
 </div>
 
 <style lang="scss">
@@ -116,7 +169,6 @@ so no page would be rendered
     margin: 0;
     color: var(--cr-text);
     background-color: var(--bg);
-    // @include nav-colors;
     p {
       margin-left: auto;
       display: inline-block;
@@ -127,14 +179,9 @@ so no page would be rendered
       background-color: var(--tab-bg);
       z-index: 100;
       span.icon {
-        // position: absolute;
-        // top: 0;
         display: inline-block;
-        // margin: 4px 0 0 4px;
-        // padding: 0;
         width: 25px;
         height: 25px;
-        // @include border;
         background-color: var(--icon-bg);
         cursor: pointer;
         & > * {
@@ -145,13 +192,7 @@ so no page would be rendered
       }
     }
   }
-  /*.page-info {
-    position: static;
-    top: 1.5rem;
-    left: 0;
-    width: max-content;
-    height: auto;
-  }*/
+
   .toggle-info-page {
     display: inline-block;
     width: max-content;
@@ -160,8 +201,6 @@ so no page would be rendered
     color: var(--cr-text);
     background-color: var(--bg);
     cursor: pointer;
-    // @include border($padding: 0 0.5rem);
-    // background-color: var(--tab-bg);
     &:hover {
       color: var(--hover-button);
     }
@@ -175,7 +214,4 @@ so no page would be rendered
     color: var(--cr-text);
     background-color: var(--bg);
   }
-  /*.hidden {
-    display: none;
-  }*/
 </style>

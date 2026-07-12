@@ -48,14 +48,21 @@ export function runCommandStream(
 
     const finalArgs = [...args]
 
-    // Configure pnpm reporter NOTE what for other package managers?
-    if (command === 'pnpm' || command.endsWith('pnpm')) {
-      const reporter = options.useNdjson
-        ? '--reporter=ndjson'
-        : '--reporter=append-only'
-      if (!finalArgs.some((a) => a.startsWith('--reporter'))) {
-        finalArgs.push(reporter)
+    try {
+      // Configure pnpm reporter NOTE what for other package managers?
+      if (command === 'pnpm' || command.endsWith('pnpm')) {
+        const reporter = options.useNdjson
+          ? '--reporter=ndjson'
+          : '--reporter=append-only'
+        if (!finalArgs.some((a) => a.startsWith('--reporter'))) {
+          finalArgs.push(reporter)
+        }
       }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(
+        `[runCommandStream] Error configuring reporter for command ${command}: ${msg}`,
+      )
     }
 
     proc = spawn(command, finalArgs, {

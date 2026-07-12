@@ -57,9 +57,7 @@ export default defineConfig({
 
     rollupOptions: {
       input: {
-        OrmOne: resolve(__dirname, 'OrmOne.html'),
-        OrmTwo: resolve(__dirname, 'OrmTwo.html'),
-        OrmThree: resolve(__dirname, 'OrmThree.html'),
+        app: resolve(__dirname, 'index.html'),
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',

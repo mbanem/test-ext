@@ -47,7 +47,7 @@ declare global {
   export type TEnum = Record<string, string>
   export type TEnums = Record<string, TEnum>
   export type TToggleFunc = (() => void) | undefined
-  export type TResult = { success: boolean }
+  export type TResult = { success: boolean; error?: string }
   export type CommandResult = {
     success: boolean
     code: number
@@ -58,10 +58,7 @@ declare global {
     error?: Error
   }
   export type TStickMsgToElement =
-    | 'StickLefts'
-    | 'StickRights'
-    | 'StickMiddles'
-    | 'MiddleToLeft'
+    'StickLefts' | 'StickRights' | 'StickMiddles' | 'MiddleToLeft'
 
   // export type DependencyType = 'dependencies' | 'devDependencies'
   namespace App {

@@ -112,7 +112,7 @@ const orderedNames = new Set<string>([
  * @param field itself
  */
 function isUICandidate(field: Field): boolean {
-  const { name, type, isArray, isOptional, isDataEntry, attrs } = field
+  const { name, type, isArray,  attrs } = field
   // type = type.toLowerCase().trim();
   // model name could appear in schema as 'model User {' or as field type 'posts Post[]', so
   // the name and type arguments cannot bear model name, which is not ui candidates

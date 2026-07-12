@@ -1,7 +1,11 @@
 #### Svelte 5 VsCode Webview Extension
 
-- making video shorter
-  ffmpeg -i OrmThree.mp4 -vf "fps=10,scale=800:-2" Orm3.mp4
+-- TODO
+[ormOne] continue to receive messages after it is done
+
+- making video shorter -- in Dev Tools filter enter [CRUD TEST-EXT] to get only e=xtensiion console.logs
+- console.log('%c🚀 Running in Webview DEV mode', 'color: lime; font-size: 13px')
+- rm -rf out *.vsix node_modules/.cache node_modules/.vite; pnpm ix
 - what Ubuntu version is in WSL
   cat /etc/os-release
 - Part One.

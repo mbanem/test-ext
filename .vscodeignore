@@ -1,33 +1,26 @@
-.vscode
-.vscode-test
+# .vscodeignore - Nuclear version (forces minimal package)
+#**/*
+#!out/
+#!out/extension.js
+#!out/**/*.js
+#!out/webview-assets/**
+#!out/webview-assets/**/*
+#!package.json
+#!README.md
+#!CHANGELOG.md
+#!LICENSE
+
+# Block source files and configurations not needed at runtime
 src/
-**/*.ts
-**/*.map
+.vscode/
+tsconfig.json
+pnpm-lock.yaml
 .gitignore
-.eslintrc.json
-tsconfig.json
-vite.config.*
-pnpm-lock.yaml
-**/node_modules/.cache
+.svelte-kit/
+webview-ui/
+!pg
+# Block development-only assets in the out folder if any
+out/**/*.map
 
-.env
-.typescript/
-tsconfig.json
-vite.config.ts
-pnpm-lock.yaml
-
-# 1. Ignore uncompiled source files safely
-src/
-
-# 2. Exclude source maps from the production VSIX to save space
-**/*.map
-
-# 3. CRITICAL FIX: whitelist your build folder explicitly first
-!out/
-!out/extension.js
-!out/webview-assets/**
-
-# 4. Safely ignore development source-level TypeScript files 
-# without accidentally stripping production build artifacts
-src/**/*.ts
-*.tgz
+# DO NOT block node_modules completely, let vsce filter it automatically
+# (vsce will strip out devDependencies on its own during packaging)

@@ -3,67 +3,6 @@
   import { onMount } from 'svelte'
   const RX =
     /^Progress:|\.\.\.\/node_modules\/|dependencies:|devDependencies:|\+ /
-
-  //   interface DetailItem {
-  //   id: string
-  //   summary: string
-  //   className: string
-  //   bindEl?: HTMLDetailsElement
-  //   status?: 'pending' | 'running' | 'success' | 'error'
-  //   message?: string
-  // }
-
-  // Exposed to parent for server-driven control
-  /* xport function openSection(
-    sectionId: string,
-    status?: DetailItem['status'],
-    message?: string,
-  ) {
-    const item = detailsList.find((d) => d.id === sectionId)
-    if (!item) return
-
-    if (status) item.status = status
-    if (message) item.message = message
-
-    // Close all, open only the target
-    detailsList.forEach((d) => {
-      if (d.bindEl) {
-        d.bindEl.open = d.id === sectionId
-      }
-    })
-
-    // Auto-scroll to opened section
-    setTimeout(() => {
-      item.bindEl?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      })
-    }, 100)
-  } */
-
-  /* function handleToggle(e: Event, currentItem: DetailItem) {
-    const target = e.currentTarget as HTMLDetailsElement
-    if (!target.open) return
-
-    detailsList.forEach((item) => {
-      if (item.bindEl && item.bindEl !== target) {
-        item.bindEl.open = false
-      }
-    })
-  } */
-
-  /*  let leftDetailsList: DetailItem[] = $state([
-    { id: 'node-modules', summary: 'Node Modules', className: 'node-modules' },
-    {
-      id: 'node-modules',
-      summary: { rlCounter },
-      className: 'raw-lines',
-      { id: 'otherProgressLines', summary: 'Other Progress Lines', className: 'other-progress-lines' },
-    },
-    { id: 'checkThis', summary: 'Check This', className: 'chack-this' },
-    { id: 'otherLines', summary: 'Other', className: 'other-progress-lines' },
-  ]) */
-
   let currentDetailsEl: HTMLDetailsElement | undefined = $state()
   let rlCounter = $state(0)
   let rawLinesEl: HTMLDetailsElement
@@ -75,7 +14,7 @@
   let progressPercents = $state(0)
   let statusMessage = $state('Ready to install Prisma')
   let isInstalling = $state(false)
-  let logs: { type: 'stdout' | 'stderr'; text: string }[] = []
+  let logs: { type: 'stdout' | 'stderr'; text: string }[] = $state([])
   let progressLineEl: HTMLParagraphElement
   let nodeModulesEl: HTMLDetailsElement
   let checkThisEl: HTMLDetailsElement
@@ -92,6 +31,8 @@
   let isButtonDisabled: boolean = $derived(
     !(db.name && db.owner && db.password),
   )
+  let buttonStartPartTwoEl: HTMLButtonElement
+  let partTwoMsgEl: HTMLParagraphElement
   let pEl: HTMLParagraphElement
   // begin of parsing progress rawLine for kind ot output
   // what does this page do handler
@@ -100,13 +41,8 @@
   }
   let { pageInfo = $bindable() }: TProps = $props()
   let isActive = $state(false)
-  // type bsc = {
-  //   binder: HTMLElement
-  //   class: string
-  // }
-  // const detsum: Record</*summary*/ string, bsc> = {
-  //   'node modules': { nodeModulesEl },
-  // }
+  let partTwoMessage = $state('')
+
   function handlePageInfo() {
     isActive = isActive ? false : true
   }
@@ -119,6 +55,13 @@
     vscode.postMessage({
       command: 'close',
       payload: 'close the extension',
+    })
+  }
+  function startPrismaPartTwo() {
+    console.log('[OrmOne] startPrismaPartTwo')
+    vscode.postMessage({
+      command: 'showPage',
+      page: 'OrmTwo',
     })
   }
   function startPrismaInstall() {
@@ -179,16 +122,16 @@
   }
 
   onMount(() => {
-    vscode.postMessage({
-      command: 'progress',
-      payload: '[OrmOne.svelte] onMount',
-    })
+    // vscode.postMessage({
+    //   command: 'progress',
+    //   payload: '[OrmOne] onMount',
+    // })
     window.addEventListener('message', (event) => {
       const msg = event.data
-      // console.log('[OrmOne.svelte] listener msg', msg)
+      // console.log('[OrmOne] listener msg', msg)
       vscode.postMessage({
         command: 'progress',
-        payload: `OrmOne.svelte] listener ${msg.command}`,
+        payload: `[OrmOne] listener ${msg.command}`,
       })
       switch (msg.command) {
         case 'prismaInstallStart':
@@ -255,19 +198,53 @@
         case 'prismaBuildApprovalNeeded':
           approvalPackages = msg.packages || []
           break
+        case 'enableContinueButton':
+          buttonStartPartTwoEl.classList.remove('hidden')
+          partTwoMsgEl.classList.remove('hidden')
+          break
+
+        case 'notValidSchemaOrEnv':
+          const { schema, conn } = msg.payload
+          buttonStartPartTwoEl.classList.add('hidden')
+          let message = !schema
+            ? 'Prisma schema is not valid'
+            : '' + !conn
+              ? 'Connection string in .env is not valid'
+              : ''
+          partTwoMsgEl.innerText = message
+          break
         case 'prismaInstallSuccess':
+          console.log('[OrmOne] prismaInstallSuccess msg', msg)
           isInstalling = false
           progressPercents = 100
           statusMessage = msg.message
+          console.log('[OrmOne] sent prismaInstallSuccess msg', msg)
           vscode.postMessage({
-            command: 'prismaPartTwo',
+            command: 'showPage',
+            page: 'OrmTwo',
           })
+          console.log('[OrmOne] postMessage showPage -- OrmTwo')
+          setTimeout(() => {
+            // Tell App.svelte to switch page
+            vscode.postMessage({
+              command: 'stepCompleted',
+              from: 'OrmOne',
+              to: 'OrmTwo',
+            })
+          }, 1000)
+          console.log(
+            '[OrmOne] setTimeot=1000 postMessage stepCompleted -- from OrmOne to OrmTwo',
+          )
           break
       }
     })
   })
 </script>
 
+<button
+  style="position:static;top:0;left:15rem;"
+  onclick={() => (isActive = !isActive)}>About This Page</button
+>
 {#snippet pagePurpose()}
   <pre>
     
@@ -359,6 +336,18 @@ Package Manager e.g. pnpm.
     Install Prisma + Dependencies
   </button>
   <button class="button-close" onclick={closetheApp}>close</button>
+  <button
+    bind:this={buttonStartPartTwoEl}
+    class="button-start-prisma-part-two hidden"
+    onclick={startPrismaPartTwo}>continus</button
+  >
+  <p
+    bind:this={partTwoMsgEl}
+    class="hidden"
+    style="color:var(--candidate-color);background-color:var(--candidate-bg-color);"
+  >
+    {partTwoMessage}
+  </p>
   {#if isInstalling || progressPercents > 0}
     <div class="progress-container">
       <progress value={progressPercents} max="100" style="width: 100%;"
@@ -410,6 +399,12 @@ Package Manager e.g. pnpm.
       <summary>Installed devDependencies</summary>
     </details>
   </div>
+  <div class="logs">
+    <h4>Installation Logs</h4>
+    {#each logs as log (log)}
+      <pre class={log.type}>{log.text}</pre>
+    {/each}
+  </div>
 </div>
 
 {#if approvalPackages.length > 0}
@@ -429,17 +424,6 @@ Package Manager e.g. pnpm.
     <button onclick={approveAll}>Approve All</button>
   </div>
 {/if}
-
-{#if logs.length > 0}
-  <div class="logs">
-    <h4>Installation Logs</h4>
-    {#each logs as log (log)}
-      <pre class={log.type}>{log.text}</pre>
-    {/each}
-  </div>
-{/if}
-
-<!-- </div> -->
 
 <style lang="scss">
   .page-info {
@@ -462,6 +446,7 @@ Package Manager e.g. pnpm.
     overflow-y: auto;
     background: #1e1e1e;
     padding: 10px;
+    z-index: 4000;
   }
   pre {
     margin: 2px 0;
@@ -517,7 +502,7 @@ Package Manager e.g. pnpm.
         width: 1em;
       }
     }
-    .button-close {
+    .button-closem .button-start-prisma-part-two {
       display: inline-block;
       outline: none;
       border: 1px solid gray;
@@ -550,7 +535,7 @@ Package Manager e.g. pnpm.
   }
   .check-this {
     @include progress-field();
-    p {
+    :global(p) {
       color: var(--tomato-violet);
     }
   }
@@ -569,12 +554,12 @@ Package Manager e.g. pnpm.
       color: var(--candidate-color);
       background-color: var(--candidate-bg-color);
     }
-    .left_column {
-      .progress-line {
-        @include progress-field();
-        margin-top: 0.5rem;
-      }
-    }
+    // .left_column {
+    //   .progress-line {
+    //     @include progress-field();
+    //     margin-top: 0.5rem;
+    //   }
+    // }
     .right-column {
       .dependencies-list {
         @include progress-field();
@@ -672,6 +657,8 @@ Package Manager e.g. pnpm.
     transition: all 0.2s ease;
     &[open] {
       z-index: 201;
+      height: 14rem;
+      overflow-y: auto;
     }
   }
 </style>

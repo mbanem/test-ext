@@ -10,7 +10,6 @@
   import { showConfirmation } from '$lib/utils'
   import ShowMessage from '$lib/components/CRShowMessage.svelte'
   import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
-  import type { EventHandler } from 'svelte/elements'
 
   let crShowMessage: ShowMessage
 
@@ -61,8 +60,7 @@
   let busy = $state(false)
   let timer: ReturnType<typeof setTimeout> | null = null
   const nuiRegex = new RegExp(`\\b@id|@defaults|@updatedAt|@unique\\b`, 'g')
-  // let x = $state(100)
-  // let y = $state(100)
+
   export const exportModels = () => {
     selectedModels = {}
     // get only selected models based on the checkbox checked state

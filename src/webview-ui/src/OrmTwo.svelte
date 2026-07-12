@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { type Theme, getInitialTheme } from '$lib/utils/toggle-theme'
   // import { createEventHandler, resolveElement } from './lib/utils'
-  import { resolveElement } from './lib/utils'
+  // import { resolveElement } from './lib/utils'
   import { vscode } from '$lib/utils/event-handler.browser'
 
   type TProps = {
@@ -19,7 +19,7 @@
     vscode.postMessage({ command, payload })
   }
   // const eh = createEventHandler()
-  let button: HTMLButtonElement | null = null
+  // let button: HTMLButtonElement | null = null
 
   // -------- toggle theme begin ---------
   let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
@@ -71,12 +71,15 @@
   //   applyTheme()
   // }
   // -------- toggle theme end ---------
-
-  onMount(() => {
-    button = resolveElement('installPartTwoBtnId') as HTMLButtonElement
-    button?.addEventListener('click', () => {
-      postMessage('prismaPartTwo')
+  function prismaPartTwo() {
+    postMessage('prismaPartTwo', {
+      payload: 'do prisma generate and call OrmPageThree',
     })
+  }
+  function closeTheApp() {
+    postMessage('close')
+  }
+  onMount(() => {
     // -------- toggle theme begin ---------
 
     currentTheme = getInitialTheme()
@@ -84,32 +87,60 @@
     toggleTheme()
     mounted = true
     // -------- toggle theme end ---------
+
+    const handler = (event: MessageEvent) => {
+      const msg = event.data
+      console.log('[OrmTwo] got message', msg.command)
+      switch (msg.command) {
+        case 'prismaInstallStart':
+          console.log('[OrmTwo] got message prismaInstallStart executing')
+          break
+        case 'prismaLog':
+          console.log('[OrmTwo] prismaLog', msg.text)
+          break
+      }
+    }
+    window.addEventListener('message', handler)
+    console.log('[OrmTwo] mounted event listener for "message"')
+
+    return () => {
+      window.removeEventListener('message', handler)
+    }
   })
 </script>
 
+{#snippet pagePurpose()}
+  <pre>
+    This page is the second part of the Prisma installation process. 
+    It assumed that schema.prisma contains the final models/tables to
+    be created in the database created in the Prisma Part One, and that
+    the connection string contains walid database name, owner name and
+    its password. 
+    The extension will issue the final commands for installing Prisma ORM; 
+    otherwise you can enter the following commands yourself.
+
+    pnpx prisma migrate dev --name init  # create first migration (when ready)
+    pnpx prisma generate
+  </pre>
+{/snippet}
+{#if isActive}
+  <div class="page-info" style="position:absolute;top:5px;left:0;z-index:200;">
+    {@render pagePurpose()}
+  </div>
+{/if}
 <div class="container">
   <h3>Prisma Installation Part Two</h3>
 
   <pre>
   By selecting the continue button the extension will issue the final commands 
-  for installing Prisma ORM; otherwise you can enter the following commands yourself 
-  DBNAME="MyDBNAME" # your database name 
-  DBOWNER='JohnDoe' # the name of the database owner
-  sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DBNAME;" 
+  for installing Prisma ORM; otherwise click the 'About This Page' at navigation
+  bar for commands to be issued manually. 
   
-  createdb "$DBNAME" -U "$DBOWNER" 
-  "GRANT ALL ON SCHEMA public TO $DBOWNER; GRANT CONNECT ON DATABASE $DBNAME TO $DBOWNER;" 
-  sudo -u postgres psql -d "$DBNAME" -c "GRANT ALL PRIVILEGES ON SCHEMA public TO $DBOWNER; 
-  ALTER SCHEMA public OWNER TO $DBOWNER; ALTER DATABASE dbtest OWNER TO $DBOWNER;" 
-  sudo -u postgres psql -d "$DBNAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA
-  public GRANT ALL ON TABLES TO $DBOWNER; ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON SEQUENCES TO $DBOWNER;"
-
-  pnpx prisma migrate dev --name init  # create first migration (when ready)
-  pnpx prisma generate
-  
-  <button id="installPartTwoBtnId"> Continue </button><button
-      id="cancelPartTwoBtnId">Cancel</button
+  After successful installation, the extension will switch to the next page for 
+  selecting models/tables to be used to create complete CRUD functionality in 
+  the application.
+  <button onclick={prismaPartTwo}> Continue </button><button
+      onclick={closeTheApp}>Close</button
     >
 </pre>
 </div>

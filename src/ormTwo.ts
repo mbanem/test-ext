@@ -1,8 +1,9 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { channelShow } from './extension.js'
-import { runCommandStream } from './run-command-stream.js'
+// import { runCommandStream } from './run-command-stream.js'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 
 const envWhatToDo = `# Environment variables declared in this file are automatically made available to Prisma.
 # See the documentation for more detail: https://pris.ly/d/prisma-schema#accessing-environment-variables-from-the-schema
@@ -52,77 +53,158 @@ function xPackageManager(pm: string): string {
   }
   return 'unknown'
 }
-
-export async function setupOrmTwoMessageHandler(panel: vscode.WebviewPanel) {
-  channelShow('[ormTwo.ts] setupOrmTwoMessageHandlerTwo entry point')
-  panel.webview.onDidReceiveMessage(async (message: any) => {
-    if (message === 'prismaPartTwo' || message.command === 'prismaPartTwo') {
-      detectPackageManager()
-      if (pm === 'unknown') {
-        vscode.window.showInformationMessage('detectPackageManager err:' + pm)
-        return { success: false }
-      } else {
-        ex = xPackageManager(pm)
+const ErrCommandResult = {
+  success: false,
+  code: -1,
+  stdout: '',
+  stderr: '',
+  command: '',
+  args: [],
+}
+export async function setupOrmTwoMessageHandler(
+  panel: vscode.WebviewPanel,
+  paths: TPaths,
+): Promise<CommandResult> {
+  let result: CommandResult = ErrCommandResult
+  console.log('[ormTwo] setupOrmTwoMessageHandlerTwo entry point')
+  const messageListener = panel.webview.onDidReceiveMessage(
+    async (msg: any) => {
+      if (msg.command === 'prismaPartTwo') {
+        console.log('[ormTwo] received message prismaPartTwo')
+        detectPackageManager()
+        if (pm === 'unknown') {
+          console.log('[ormTwo] detectPackageManager err:' + pm)
+          return result
+        } else {
+          console.log('[ormTwo] packageManager found', pm)
+          ex = xPackageManager(pm)
+        }
+        console.log(
+          '[ormTwo] calling installPrismaPartTwo(panel, [ex, "prisma", "generate"]',
+        )
+        await installPrismaPartTwo(panel, paths, ['prisma', 'generate'])
       }
-      await installPrismaPartTwo(panel, [ex, 'prisma', 'generate'])
-    }
+    },
+  )
+  console.log('[ormTwo] setupOrmTwoMessageHandler: sending showPage OrmThree')
+  panel.webview.postMessage({
+    command: 'showPage',
+    page: 'OrmThree',
   })
-  return { success: true }
+  messageListener.dispose()
+  result.success = true
+
+  return result
 }
 
 // Main install function
 export async function installPrismaPartTwo(
   panel: vscode.WebviewPanel,
+  paths: TPaths,
   args: string[],
 ): Promise<{ success: boolean }> {
-  // const cmd2 = ' prisma generate' // TODO
-  // }
+  let result: CommandResult = ErrCommandResult
+  console.log('[ormTwo] installPrismaPartTwo entry point')
 
+  console.log('[ormTwo] postMessage prismaInstallStart')
   panel!.webview.postMessage({
     command: 'prismaInstallStart',
-    message: 'Starting installation...',
+    message: 'Starting prismaPartTwo installation...',
   })
-  return { success: true }
-  const result = await runCommandStream(pm, [...args], {
-    cwd: paths.root,
-    timeoutMs: 600000, // 10 minutes
 
-    onProgress: (p) => {
-      panel!.webview.postMessage({
-        command: 'prismaProgress',
-        percent: p.percent ?? 0,
-        added: p.added,
-        total: p.total,
-        message: p.done
-          ? 'Finalizing...'
-          : `Installing: ${p.added || 0}/${p.total || '?'}`,
-      })
-    },
+  let executable = 'npx'
+  // let args: string[] = ['prisma', 'generate']
+  // [pm, ex, 'prisma', 'generate']
 
-    onStdout: (text) =>
-      panel.webview.postMessage({
-        command: 'prismaLog',
-        type: 'stdout',
-        text: text.trim(),
-      }),
-    onStderr: (text) =>
-      panel.webview.postMessage({
-        command: 'prismaLog',
-        type: 'stderr',
-        text: text.trim(),
-      }),
-  })
+  if (pm === 'pnpm') {
+    executable = 'pnpm'
+    args = ['dlx', 'prisma', 'generate']
+  } else if (pm === 'yarn') {
+    executable = 'yarn'
+    args = ['dlx', 'prisma', 'generate']
+  }
+
+  console.log(`[ormTwo] Executing: ${executable} ${args.join(' ')}`)
+
+  try {
+    const execFileAsync = promisify(execFile)
+    const { stdout, stderr } = await execFileAsync(executable, args, {
+      cwd: paths.root,
+      timeout: 60000, // 60 seconds
+    })
+
+    if (stdout) {
+      console.log('[prisma stdout]', stdout)
+    }
+    if (stderr) {
+      console.log('[prisma stderr]', stderr)
+    }
+
+    panel.webview.postMessage({
+      command: 'prismaLog',
+      text: stdout || stderr || 'Done',
+    })
+
+    result.success = true
+  } catch (error: any) {
+    console.log('[ormTwo] Prisma init error:', error)
+    ;((result.success = false),
+      (result.stderr = error.message || 'Prisma init failed'))
+  }
+  // return { success: true }
+  // const result = await runCommandStream(pm, [...args], {
+  //   cwd: paths.root,
+  //   timeoutMs: 600000, // 10 minutes
+
+  //   onProgress: (p) => {
+  //     panel!.webview.postMessage({
+  //       command: 'prismaProgress',
+  //       percent: p.percent ?? 0,
+  //       added: p.added,
+  //       total: p.total,
+  //       message: p.done
+  //         ? 'Finalizing...'
+  //         : `Installing: ${p.added || 0}/${p.total || '?'}`,
+  //     })
+  //   },
+
+  //   onStdout: (text) =>
+  //     panel.webview.postMessage({
+  //       command: 'prismaLog',
+  //       type: 'stdout',
+  //       text: text.trim(),
+  //     }),
+  //   onStderr: (text) =>
+  //     panel.webview.postMessage({
+  //       command: 'prismaLog',
+  //       type: 'stderr',
+  //       text: text.trim(),
+  //     }),
+  // })
+  console.log('[ormTwo] installPrismaPartTwo tries to delete pending file')
+  if (fs.existsSync(paths.pending)) {
+    console.log('[ormTwo] installPrismaPartTwo pending fils exists')
+    fs.unlink(paths.pending, (err) => {
+      if (err) {
+        vscode.window.showInformationMessage(
+          'Could not delete installPartTwo.pending file at App Root. Delete it yourself',
+        )
+      } else {
+        console.log('[ormTwo] installPrismaPartTwo: pending file deleted')
+      }
+    })
+  }
 
   if (result.success) {
     panel.webview.postMessage({
-      command: 'prismaInstallSuccess',
+      command: 'prismaInstallOutcome',
       message: '✅ Installation completed successfully!',
     })
   } else {
     panel.webview.postMessage({
-      command: 'prismaInstallError',
+      command: 'prismaInstallOutcome',
       message: 'Installation failed',
-      error: result.error?.message,
+      error: result.stderr,
     })
   }
   return result

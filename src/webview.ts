@@ -1,7 +1,6 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
-import { info } from './extension.js'
 
 function getNonce(): string {
   let text = ''
@@ -13,46 +12,43 @@ function getNonce(): string {
   return text
 }
 
-/**
- * Find and load the starting OrmOne.html page from /out/webview-assets
- * Insert CSP security part into its markup and set into panel.webview.html
- * This is an old way of finding and loading every .html page.
- * New way is to do so for the first required page and then calling App.svelte
- *
- * ---- The old way -----
-  export function displayWebview(
-    context: vscode.ExtensionContext,
-    panel: vscode.WebviewPanel,showPage
-    pageName: TPageName,
-    owner?: string,
-  ): { success: boolean } {
-    console.log(`displayWebview entry point: display ${pageName}`)
-    const html = getWebviewHtml(context, panel.webview, pageName)
-    panel.webview.html = html
-    return { success: true }
-  }
-*/
-
-// The new way
 export function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
+  initialPage: 'OrmOne' | 'OrmTwo' | 'OrmThree',
 ): TResult {
-  info('[Webview] displayWebview entry point')
-
-  const html = getWebviewHtml(context, panel.webview, 'OrmOne')
-  panel.webview.html = html
-  info('[Webview] displayWebview inital page returns {success: true}')
-  return { success: true }
+  // initialPage = 'index'
+  console.log('[Webview] displayWebview with initialPage', initialPage)
+  try {
+    const html = loadMainMarkup(context, panel.webview, initialPage)
+    // console.log(`[Webview] Setting panel.webview.html (length: ${html.length})`)
+    panel.webview.html = html
+    // console.log(
+    //   '[Webview] displayWebview: HTML loaded into panel.webview.html successfully',
+    // )
+    setTimeout(() => {
+      panel.webview.postMessage({
+        command: 'showPage',
+        page: initialPage,
+      })
+    }, 500)
+    console.log(`[Webview] displayWebview FINISHED successfully`)
+    return { success: true }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[Webview] CRITICAL ERROR in displayWebview:`, msg)
+    return { success: false, error: msg }
+  }
 }
-/**
- * Returns the final HTML string — with automatic dev fallback
- */
-function getWebviewHtml(
+
+function loadMainMarkup(
   context: vscode.ExtensionContext,
   webview: vscode.Webview,
-  pageName: string,
+  initialPage: string,
 ): string {
+  // console.log(
+  //   `[webview] loadMainMarkup: Injecting data-initial-page or window.__INITIAL_PAGE = ${initialPage}`,
+  // )
   const nonce = getNonce()
 
   // Locate the HTML file
@@ -66,35 +62,36 @@ function getWebviewHtml(
   let htmlPath = ''
 
   for (const root of possibleRoots) {
-    const c1 = path.join(root, 'out', 'webview-assets', `${pageName}.html`)
-    const c2 = path.join(
-      root,
-      'out',
-      'webview-assets',
-      'src',
-      'webview-ui',
-      `${pageName}.html`,
-    )
-
-    for (const candidate of [c1, c2]) {
-      if (fs.existsSync(candidate)) {
-        htmlPath = candidate
-        info(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
-        break
-      }
-    }
-    if (htmlPath) {
+    // const c1 = path.join(root, 'out', 'webview-assets', 'index.html')
+    const c1 = path.join(root, 'out', 'webview-assets', `index.html`)
+    // const c2 = path.join(
+    //   root,
+    //   'out',
+    //   'webview-assets',
+    //   'src',
+    //   'webview-ui',
+    //   'index.html',
+    // )
+    // console.log('[webview] loadMainMarkup path', c1) // c2)
+    // for (const candidate of [c1, c2]) {
+    if (fs.existsSync(c1)) {
+      htmlPath = c1
+      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
       break
     }
+    // }
+    // if (htmlPath) {
+    //   break
+    // }
   }
-
+  // console.log('[webview] htmlPath?', htmlPath)
   if (!htmlPath) {
-    info(
-      `[Webview] ⚠️ HTML not found for ${pageName}, falling back to dev mode`,
+    console.log(
+      `[Webview] ⚠️ HTML not found for index.html, falling back to dev mode`,
     )
-    return getDevHtml(webview, pageName)
+    return getDevHtml(webview, 'index')
   }
-  info(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -127,7 +124,8 @@ function getWebviewHtml(
       }
     },
   )
-  info(`raw ${pageName}html length: ${html.length}`)
+
+  // console.log(`[webview] raw ${initialPage}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -142,19 +140,35 @@ function getWebviewHtml(
     /<\/head>/i,
     `<meta http-equiv="Content-Security-Policy" content="${csp}">\n</head>`,
   )
-  info(`final ${pageName}html length: ${html.length}`)
+  html = html.replace(
+    '<div id="app"></div>',
+    `<div id="app" data-initial-page="${initialPage}"></div>`,
+  )
+  // Inject initial page as global variable
+  html = html.replace(
+    '<script type="module"',
+    `<script>
+      window.__INITIAL_PAGE = "${initialPage}";
+    </script>
+    <script type="module"`,
+  )
+  // console.log(`[Webview] Final HTML length: ${html.length}`)
+  console.log(
+    `[Webview] HTML contains __INITIAL_PAGE:`,
+    html.includes(initialPage),
+  )
   return html
 }
 
-function getDevHtml(webview: vscode.Webview, pageName: string): string {
-  const devUrl = `http://localhost:5174/${pageName}.html`
+function getDevHtml(webview: vscode.Webview, initialPage: string): string {
+  const devUrl = `http://localhost:5174/${initialPage}.html`
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-eval' 'unsafe-inline' http://localhost:5174; connect-src http://localhost:5174 ws://localhost:5174;">
-  <title>CRUD DEV — ${pageName}</title>
+  <title>CRUD DEV — ${initialPage}</title>
 </head>
 <body>
   <div id="app"></div>
