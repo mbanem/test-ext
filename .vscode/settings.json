@@ -27,6 +27,6 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   {
-    "debug.console.filterText": "/^(?:\\[Extension Host\\] \\[ (extension|webview|Webview|setupOrmOneMessageHandler) \\]|\\[(main|App)\\])/"
+    "debug.console.filterText": "/^(?:\\[Extension Host\\] \\[ (extension|webview|ormOne|ormTwo|setupOrmOneMessageHandler) \\]|\\[(main|App)\\])/i"
 
 }

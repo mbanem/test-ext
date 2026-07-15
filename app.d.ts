@@ -18,24 +18,27 @@ declare global {
     permissions?: string
   }
   export type Models = Record<string, Model>
-  export type ModelName = string
-  export type SelectedModel = {
-    routeName: string
-    permissions?: string
-  }
-
-  export type SelectedModels = Record<ModelName, SelectedModel>
-  export type Payload = Record<
-    string,
-    SelectedModels | Model | string[] | string
-  > // { route: string | null } = { route: null };
   export type RouteName = string
+  export type SelectedModel = Record<
+    string /* modelName */,
+    {
+      routeName: string
+      permissions?: string
+    }
+  >
+  export type SelectedModels = Record<RouteName, SelectedModel>
   export type Components = string[]
-  export type SelectedModels = Record<RouteName, Model>
   export type Payload = Record<
     string,
     SelectedModels | Model | Components | string
+  > // { route: string | null } = { route: null };
+  export type RouteName = string
+  export type SelectedModels = Record<RouteName, Model>
+  export type Payload = Record<
+    string,
+    SelectedModels | Model | string[] | string
   >
+  export type TToggleFunc = (() => void) | undefined
   export type TPaths = Record<string, string>
   export type DbParams = Record<string, string | number>
 
@@ -44,12 +47,12 @@ declare global {
     routeName: string
     model: Model
   }
+  export type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
   export type TEnum = Record<string, string>
   export type TEnums = Record<string, TEnum>
-  export type TToggleFunc = (() => void) | undefined
   export type TResult = { success: boolean; error?: string }
-  export type CommandResult = {
-    success: boolean
+  export type TCommandResult<TF extends boolean = false> = {
+    success: TF
     code: number
     stdout: string
     stderr: string
@@ -59,7 +62,6 @@ declare global {
   }
   export type TStickMsgToElement =
     'StickLefts' | 'StickRights' | 'StickMiddles' | 'MiddleToLeft'
-
   // export type DependencyType = 'dependencies' | 'devDependencies'
   namespace App {
     // interface Error {}

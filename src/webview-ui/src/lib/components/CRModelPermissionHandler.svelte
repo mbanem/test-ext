@@ -75,7 +75,10 @@
 
         const modelName = (chkbox as HTMLInputElement).value as string
         const permissions = models[modelName]?.permissions as string
-        selectedModels[modelName] = {
+        if (!selectedModels[routeName]) {
+          selectedModels[routeName] = {}
+        }
+        selectedModels[routeName][modelName] = {
           routeName,
           permissions,
         }

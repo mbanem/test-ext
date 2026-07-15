@@ -19,6 +19,8 @@
   let nodeModulesEl: HTMLDetailsElement
   let checkThisEl: HTMLDetailsElement
   let otherLinesEl: HTMLDetailsElement
+  let installPrismaButton: HTMLButtonElement
+  // let continueButton: HTMLButtonElement
 
   let db: DbParams = $state({
     name: 'dbrony',
@@ -31,8 +33,7 @@
   let isButtonDisabled: boolean = $derived(
     !(db.name && db.owner && db.password),
   )
-  let buttonStartPartTwoEl: HTMLButtonElement
-  let partTwoMsgEl: HTMLParagraphElement
+
   let pEl: HTMLParagraphElement
   // begin of parsing progress rawLine for kind ot output
   // what does this page do handler
@@ -41,7 +42,6 @@
   }
   let { pageInfo = $bindable() }: TProps = $props()
   let isActive = $state(false)
-  let partTwoMessage = $state('')
 
   function handlePageInfo() {
     isActive = isActive ? false : true
@@ -51,20 +51,9 @@
 
   const inputStyle =
     'display: block;width: 18rem;height: 1.5rem !important;margin: 8px 0 10px 0;padding: 6px 0 8px 1rem;border-radius: 4px;outline: none;'
-  function closetheApp() {
-    vscode.postMessage({
-      command: 'close',
-      payload: 'close the extension',
-    })
-  }
-  function startPrismaPartTwo() {
-    console.log('[OrmOne] startPrismaPartTwo')
-    vscode.postMessage({
-      command: 'showPage',
-      page: 'OrmTwo',
-    })
-  }
+
   function startPrismaInstall() {
+    installPrismaButton.classList.add('hidden')
     isInstalling = true
     progressPercents = 0
     logs = []
@@ -76,6 +65,7 @@
       host: db.host ?? 'localhost',
       port: db.port ?? '5432',
     }
+    console.log('[OrmOne] postCommand prismaPartOne')
     vscode.postMessage({
       command: 'prismaPartOne',
       useOnlyBuiltDependencies,
@@ -121,11 +111,21 @@
     pel.textContent = line
   }
 
+  function closetheApp() {
+    console.log(
+      '[OrmOne] closetheApp',
+      vscode ? 'vscode is defined' : 'vscode is undefined',
+    )
+    vscode.postMessage({
+      command: 'close',
+      payload: 'close the extension',
+    })
+  }
   onMount(() => {
-    // vscode.postMessage({
-    //   command: 'progress',
-    //   payload: '[OrmOne] onMount',
-    // })
+    vscode.postMessage({
+      command: 'showInfo',
+      payload: '[OrmOne] onMount test message',
+    })
     window.addEventListener('message', (event) => {
       const msg = event.data
       // console.log('[OrmOne] listener msg', msg)
@@ -136,12 +136,26 @@
       switch (msg.command) {
         case 'prismaInstallStart':
           break
+        case 'prismaPartOneDone':
+          console.log('[OrmOne] got message', msg.command, msg.payloads)
+          // console.log('[OrmOne] postMessage prismaPartTwo')
+          // vscode.postMessage({
+          //   command: 'prismaPartTwo',
+          //   payload: 'sent from OrmOne after receviing prismaPartOneDone',
+          // })
+          break
+        case 'notValidSchemaOrEnv':
+          console.log('[OrmOne] invalid models or env', msg)
+          break
         case 'prismaProgress':
           progressPercents = msg.percent
           statusMessage = msg.message
           const rl = msg.rawLine
           pEl = document.createElement('p')
           rawLinesEl.appendChild(pEl)
+          if (rl.includes('[WARN] Issues with peer dependencies found.')) {
+            appendLine(checkThisEl, rl)
+          }
           ++rlCounter
           if (rlCounter === 1) {
             rawLinesEl.open = true
@@ -194,57 +208,29 @@
         case 'prismaInstallError':
           isInstalling = false
           statusMessage = msg.message + ' - ' + msg.error
+          console.log('[OrmOne] prismaInstallError msg', msg)
           break
         case 'prismaBuildApprovalNeeded':
           approvalPackages = msg.packages || []
           break
-        case 'enableContinueButton':
-          buttonStartPartTwoEl.classList.remove('hidden')
-          partTwoMsgEl.classList.remove('hidden')
-          break
 
-        case 'notValidSchemaOrEnv':
-          const { schema, conn } = msg.payload
-          buttonStartPartTwoEl.classList.add('hidden')
-          let message = !schema
-            ? 'Prisma schema is not valid'
-            : '' + !conn
-              ? 'Connection string in .env is not valid'
-              : ''
-          partTwoMsgEl.innerText = message
-          break
         case 'prismaInstallSuccess':
           console.log('[OrmOne] prismaInstallSuccess msg', msg)
           isInstalling = false
           progressPercents = 100
           statusMessage = msg.message
           console.log('[OrmOne] sent prismaInstallSuccess msg', msg)
-          vscode.postMessage({
-            command: 'showPage',
-            page: 'OrmTwo',
-          })
-          console.log('[OrmOne] postMessage showPage -- OrmTwo')
-          setTimeout(() => {
-            // Tell App.svelte to switch page
-            vscode.postMessage({
-              command: 'stepCompleted',
-              from: 'OrmOne',
-              to: 'OrmTwo',
-            })
-          }, 1000)
-          console.log(
-            '[OrmOne] setTimeot=1000 postMessage stepCompleted -- from OrmOne to OrmTwo',
-          )
+
+          break
+
+        case 'prismaPartOneFailed':
+          console.log('[OrmOne] prismaPartOne failed')
           break
       }
     })
   })
 </script>
 
-<button
-  style="position:static;top:0;left:15rem;"
-  onclick={() => (isActive = !isActive)}>About This Page</button
->
 {#snippet pagePurpose()}
   <pre>
     
@@ -325,6 +311,7 @@ Package Manager e.g. pnpm.
   </details>
 
   <button
+    bind:this={installPrismaButton}
     cLass="button-install"
     onclick={startPrismaInstall}
     style="font-size: 14px !important;cursor:pointer;margin:0'"
@@ -335,19 +322,11 @@ Package Manager e.g. pnpm.
     <span class:spinner={isInstalling}></span>
     Install Prisma + Dependencies
   </button>
+  <!-- <button bind:this={continueButton} onclick={} class="button-install hidden"
+    >Continue</button
+  > -->
   <button class="button-close" onclick={closetheApp}>close</button>
-  <button
-    bind:this={buttonStartPartTwoEl}
-    class="button-start-prisma-part-two hidden"
-    onclick={startPrismaPartTwo}>continus</button
-  >
-  <p
-    bind:this={partTwoMsgEl}
-    class="hidden"
-    style="color:var(--candidate-color);background-color:var(--candidate-bg-color);"
-  >
-    {partTwoMessage}
-  </p>
+
   {#if isInstalling || progressPercents > 0}
     <div class="progress-container">
       <progress value={progressPercents} max="100" style="width: 100%;"
@@ -452,6 +431,9 @@ Package Manager e.g. pnpm.
     margin: 2px 0;
     font-size: 0.9em;
     white-space: pre-wrap;
+    color: var(--pre-color);
+    // color: var(--candidate-color);
+    background-color: var(--candidate-bg-color);
   }
   .stderr {
     color: #ff6666;
@@ -502,7 +484,7 @@ Package Manager e.g. pnpm.
         width: 1em;
       }
     }
-    .button-closem .button-start-prisma-part-two {
+    .button-close {
       display: inline-block;
       outline: none;
       border: 1px solid gray;
@@ -660,5 +642,8 @@ Package Manager e.g. pnpm.
       height: 14rem;
       overflow-y: auto;
     }
+  }
+  .hidden {
+    display: none;
   }
 </style>

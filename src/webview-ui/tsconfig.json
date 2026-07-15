@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "useDefineForClassFields": true,
-
+    "moduleResolution": "bundler",
     "paths": {
       "$lib/*": ["./src/lib/*"]
     },
@@ -14,7 +14,8 @@
     "src/**/*.svelte",
     "vite-env.d.ts",
     "../prisma-models.ts",
-    "src/app.ha"
+    "src/app.ha",
+    "../../app.d.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }],
   "exclude": ["node_modules", "dist"]

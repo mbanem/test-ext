@@ -91,7 +91,7 @@ function loadMainMarkup(
     )
     return getDevHtml(webview, 'index')
   }
-  console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  // console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===

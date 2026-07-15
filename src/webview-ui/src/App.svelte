@@ -11,7 +11,7 @@
     type Theme,
   } from '$lib/utils/toggle-theme'
 
-  type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
+  // type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
   type TImports =
     | typeof import('./OrmOne.svelte')
     | typeof import('./OrmTwo.svelte')
@@ -59,7 +59,7 @@
       const loader = pageLoaders[pageKey]
       const module = await loader() // { default: Component, ... }
       Current = module.default // This is the Svelte component constructor
-      console.log('[App] loadPage set Current')
+      console.log(`[App] loadPage set ${pageKey} as the Current`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[App] loadPage error for', pageKey, msg)
@@ -98,18 +98,28 @@
     console.log('[App] got initialPage', initialPage)
 
     loadPage(initialPage)
-
+    console.log('[App] after loadPage', initialPage)
     // listener for server-side messages
     const handler = (event: MessageEvent) => {
-      const msg = event.data
-      console.log(`[App] Received message:`, msg)
-      switch (msg.command) {
-        case 'showPage':
-          const page = msg.page as PageKey
-          if (['OrmOne', 'OrmTwo', 'OrmThree'].includes(page)) {
-            loadPage(page)
-          }
-          break
+      try {
+        const msg = event.data
+        switch (msg.command) {
+          case 'showPage':
+            console.log('[App] showPage', msg)
+            const page = msg.page as PageKey
+            if (['OrmOne', 'OrmTwo', 'OrmThree'].includes(page)) {
+              console.log('[App] calling loadPage', page)
+              loadPage(page)
+            }
+            break
+          case 'prismaInitDone':
+            console.log('[App] prismaInitDone display OrmThree', msg.payload)
+            loadPage('OrmThree')
+            break
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.log('[App] listenner error msg and event.data', msg)
       }
     }
     window.addEventListener('message', handler)

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import * as ts from 'typescript' // TypeScript for AST
 
+
 const MOUSE_EVENTS = new Set([
   'click',
   'mouseover',
@@ -201,6 +202,36 @@ function extractScriptBlocks(code: string): string[] {
   return blocks
 }
 
+// function extractFunctionNamesWithAST(scriptContent: string): string[] {
+//   const functions = new Set<string>()
+//   const sourceFile = ts.createSourceFile(
+//     'temp.ts',~
+//     scriptContent,
+//     ts.ScriptTarget.Latest,
+//     true,
+//   )
+
+//   function visit(node: ts.Node) {
+//     if (ts.isFunctionDeclaration(node) && node.name) {
+//       functions.add(node.name.text)
+//     }
+//     if (
+//       ts.isVariableDeclaration(node) &&
+//       node.initializer &&
+//       (ts.isArrowFunction(node.initializer) ||
+//         ts.isFunctionExpression(node.initializer)) &&
+//       ts.isIdentifier(node.name)
+//     ) {
+//       functions.add(node.name.text)
+//     }
+//     ts.forEachChild(node, visit)
+//   }
+
+//   visit(sourceFile)
+//   return Array.from(functions)
+// }
+
+
 function extractFunctionNamesWithAST(scriptContent: string): string[] {
   const functions = new Set<string>()
   const sourceFile = ts.createSourceFile(
@@ -210,7 +241,8 @@ function extractFunctionNamesWithAST(scriptContent: string): string[] {
     true,
   )
 
-  function visit(node: ts.Node) {
+  // Explicitly typing 'node' as ts.Node
+  function visit(node: ts.Node): void {
     if (ts.isFunctionDeclaration(node) && node.name) {
       functions.add(node.name.text)
     }
@@ -229,7 +261,6 @@ function extractFunctionNamesWithAST(scriptContent: string): string[] {
   visit(sourceFile)
   return Array.from(functions)
 }
-
 // ====================== AST-BASED REGISTRY FINDER ======================
 
 function findExistingRegistryWithAST(

@@ -10,12 +10,12 @@
     "outDir": "out",
     "rootDir": "src",
     "module": "CommonJS",
-    "moduleResolution": "Node10",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "ignoreDeprecations": "6.0",
     "sourceMap": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "app.d.ts"],
   "exclude": [
     "node_modules",
     "out",

@@ -13,6 +13,7 @@
   }
   pageInfo = handlePageInfo as TToggleFunc
 
+  console.log('[App] top point after $props()')
   let appName = $state('')
   let isLoading = $state(true)
   // // const vscode = acquireVsCodeApi()
@@ -85,30 +86,51 @@
   let buttonNotAllowed = $derived(
     Object.keys(selectedModels).length === 0,
   ) as boolean
+
   onMount(() => {
-    vscode.postMessage({ command: 'ready' })
+    try {
+      console.log('[OrmThree] postMessage "ready" to extension')
+      vscode.postMessage({
+        command: 'ready',
+        payload: 'wait for sendingModels from extension',
+      })
 
-    window.addEventListener('message', (event) => {
-      const msg = event.data
+      const handler = (event: MessageEvent) => {
+        const msg = event.data
+        console.log('[OrmThree] got message', msg.command)
+        switch (msg.command) {
+          case 'sendingModels':
+            console.log('[OrmThree] got models', msg.payload)
+            const pload = $state.snapshot(JSON.parse(msg.payload))
+            models = pload.models
+            userRoles = Object.keys(
+              Object.values(pload.enums)[0] as TEnum,
+            ).filter(Boolean)
+            appName = pload.appName
+            break
 
-      if (msg.command === 'sendingModels') {
-        const pload = $state.snapshot(JSON.parse(msg.payload))
-        models = pload.models
-        userRoles = Object.keys(Object.values(pload.enums)[0] as TEnum).filter(
-          Boolean,
-        )
-        appName = pload.appName
+          case 'crudSuportDone':
+            console.log('[OrmThree] crudSuportDone')
+            const crudButton = document.getElementById(
+              'createBtnId',
+            ) as HTMLDivElement
+            inAction = false
+            crudButton.style.cursor = 'pointer'
+            break
+          default:
+            console.log('[App] not handled', msg.command, msg)
+        }
+        isLoading = false
       }
+      window.addEventListener('message', handler)
+      console.log('[OrmThree] mounted event listener for "message"')
 
-      if (msg.command === 'crudSuportDone') {
-        const crudButton = document.getElementById(
-          'createBtnId',
-        ) as HTMLDivElement
-        inAction = false
-        crudButton.style.cursor = 'pointer'
+      return () => {
+        window.removeEventListener('message', handler)
       }
-      isLoading = false
-    })
+    } catch (err: unknown) {
+      console.log('[App] onMount try/catch', err)
+    }
   })
 </script>
 

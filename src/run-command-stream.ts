@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { spawn, ChildProcess } from 'child_process'
+import { CommandResultTracker } from './extension'
 
 export interface CommandResult {
   success: boolean
@@ -39,7 +40,8 @@ export function runCommandStream(
     onProgress?: (progress: ProgressInfo) => void
     terminal?: vscode.Terminal
   } = {},
-): Promise<CommandResult> {
+): Promise<CommandResultTracker<boolean>> {
+  // let result = new CommandResultTracker<boolean>(false)
   return new Promise((resolve) => {
     const stdoutChunks: string[] = []
     const stderrChunks: string[] = []
@@ -86,16 +88,16 @@ export function runCommandStream(
       }
 
       if (options.onProgress) {
-        const lines = text.split(/\r?\n/) // \r? windows or linux
+        const lines = text.split(/\r?\n/)
         for (const line of lines) {
           const trimmed = line.trim()
           if (!trimmed) {
             continue
           }
 
-          // pnpm i print a line in the following format
+          // the 'pnpm i' prints a line in the following format
           // Progress: resolved 406, reused 326, downloaded 1, added 326, done
-          // appending done when finished
+          // appending a 'done' when finished
           let progress: ProgressInfo = { done: false, rawLine: trimmed }
 
           // NDJSON parsing (preferred)
@@ -181,14 +183,8 @@ export function runCommandStream(
 
       const success = code === 0 && !signal
 
-      const result: CommandResult = {
-        success,
-        code: code ?? 1,
-        stdout,
-        stderr,
-        command,
-        args: finalArgs,
-      }
+      let result = new CommandResultTracker<boolean>(success)
+      result.args = finalArgs
 
       if (!success) {
         result.error = new Error(
@@ -205,15 +201,15 @@ export function runCommandStream(
       cleanup()
       disposable?.dispose()
 
-      const result: CommandResult = {
-        success: false,
-        code: 1,
-        stdout: stdoutChunks.join(''),
-        stderr: stderrChunks.join(''),
-        command,
-        args: finalArgs,
-        error: err,
-      }
+      let result = new CommandResultTracker<boolean>(false)
+      result.error = err
+      result.stderr = err.message
+      result.code = 1
+      result.stdout = stdoutChunks.join('')
+      result.stderr = stderrChunks.join('')
+      result.command = command
+      result.args = finalArgs
+
       resolve(result)
     })
 

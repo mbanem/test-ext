@@ -5,6 +5,3 @@ node_modules
 *.vsix
 /src/generated/prisma
 *.tgz
-/src/generated/prisma
-
-/src/generated/prisma

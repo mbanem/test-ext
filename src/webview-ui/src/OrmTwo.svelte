@@ -16,10 +16,17 @@
   pageInfo = handlePageInfo as TToggleFunc
 
   function postMessage(command: string, payload?: Payload) {
+    console.log('[OrmTwo] to postMessage', command, payload)
     vscode.postMessage({ command, payload })
+    console.log('[OrmTwo] postMessage done', command, payload)
   }
   // const eh = createEventHandler()
   // let button: HTMLButtonElement | null = null
+
+  let canContinue = 'Files schema.prisma and connection string are valid'
+  let buttonStartPartTwoEl: HTMLButtonElement
+  let partTwoMsgEl: HTMLParagraphElement
+  let partTwoMessage = $state('schema.prisma and .env connection string status')
 
   // -------- toggle theme begin ---------
   let currentTheme: Theme = $state('light') // Svelte 5 runes syntax
@@ -71,15 +78,30 @@
   //   applyTheme()
   // }
   // -------- toggle theme end ---------
+  // function startPrismaPartTwo() {
+  //   console.log('[OrmOne] startPrismaPartTwo')
+  //   vscode.postMessage({
+  //     command: 'showPage',
+  //     page: 'OrmTwo',
+  //   })
+  // }
   function prismaPartTwo() {
+    console.log('[OrmOne] postCommand "prismaPartTwo"')
     postMessage('prismaPartTwo', {
-      payload: 'do prisma generate and call OrmPageThree',
+      payload: 'do prisma init and call OrmPageThree',
     })
   }
   function closeTheApp() {
-    postMessage('close')
+    console.log('[OrmOne] postMessage "close" who is listening?')
+    postMessage('close', { payload: 'close the extension' })
+  }
+  function setMessage(msg: string) {
+    partTwoMsgEl.innerText = msg
+    partTwoMsgEl.style.color = msg === canContinue ? 'lightgreen' : 'tomato'
+    partTwoMsgEl.classList.remove('hidden')
   }
   onMount(() => {
+    console.log('[OrmTwo] onMount')
     // -------- toggle theme begin ---------
 
     currentTheme = getInitialTheme()
@@ -92,11 +114,26 @@
       const msg = event.data
       console.log('[OrmTwo] got message', msg.command)
       switch (msg.command) {
-        case 'prismaInstallStart':
-          console.log('[OrmTwo] got message prismaInstallStart executing')
-          break
         case 'prismaLog':
           console.log('[OrmTwo] prismaLog', msg.text)
+          break
+        case 'enableContinueButton':
+          // buttonStartPartTwoEl.classList.remove('hidden')
+          setMessage(canContinue)
+          break
+        case 'notValidSchemaOrEnv':
+          const { modelsLength, connOK } = msg.payload
+          // buttonStartPartTwoEl.classList.add('hidden')
+          let message =
+            modelsLength === 0
+              ? 'Prisma schema is not valid'
+              : !connOK
+                ? 'Connection string in .env is not valid'
+                : setMessage(canContinue)
+          setMessage(message as string)
+          break
+        case 'noSchemaOrEnvDoc':
+          setMessage(msg.payload)
           break
       }
     }
@@ -139,10 +176,19 @@
   After successful installation, the extension will switch to the next page for 
   selecting models/tables to be used to create complete CRUD functionality in 
   the application.
-  <button onclick={prismaPartTwo}> Continue </button><button
-      onclick={closeTheApp}>Close</button
-    >
+
 </pre>
+  <button onclick={prismaPartTwo}> Continue </button><button
+    onclick={closeTheApp}>Close</button
+  >
+
+  <p
+    bind:this={partTwoMsgEl}
+    class="hidden"
+    style="color:var(--candidate-color);background-color:var(--candidate-bg-color);"
+  >
+    {partTwoMessage}
+  </p>
 </div>
 
 <style lang="scss">
@@ -155,8 +201,31 @@
     // background-color: var(--bg);
     color: var(--text);
   }
+  .page-info {
+    @include page-info();
+    z-index: 2027;
+  }
+  .button-start-prisma-part-two {
+    display: inline-block;
+    outline: none;
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-weight: 400;
+    color: var(--candidate-color);
+    background-color: var(--candidate-bg-color);
+    width: max-content;
+    height: 1.6rem;
+    padding: 2px 1rem 2px 1rem;
+    cursor: pointer;
+  }
+
   pre {
+    margin: 2px 0;
+    font-size: 0.9em;
+    white-space: pre-wrap;
     color: var(--pre-color);
+    // color: var(--candidate-color);
+    background-color: var(--candidate-bg-color);
   }
   // button {
   //   width: 5rem;
