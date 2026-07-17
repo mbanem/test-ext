@@ -264,6 +264,7 @@ const deps = [
   '@prisma/client',
   '@prisma/internals',
   'bcrypt',
+  'dotenv',
   'pg',
 ]
 let initial = true
@@ -444,24 +445,24 @@ export async function setupOrmOneMessageHandler(
             return result
           }
           console.log('[ormOne] installPrisma second call')
-          // result = await installPrisma(
-          //   webview,
-          //   {
-          //     useOnlyBuiltDependencies: msg.useOnlyBuiltDependencies ?? true,
-          //   },
-          //   deps,
-          //   'dotenv',
-          // )
-          // if (!result.success) {
-          //   webview.postMessage({
-          //     command: 'prismaInstallError',
-          //     message: '❌ Install dependencies failed',
-          //   })
-          //   console.log(
-          //     '[ormOne] setupOrmOneMessageHandler install dependencies failed',
-          //   )
-          //   return result
-          // }
+          result = await installPrisma(
+            webview,
+            {
+              useOnlyBuiltDependencies: msg.useOnlyBuiltDependencies ?? true,
+            },
+            deps,
+            '',
+          )
+          if (!result.success) {
+            webview.postMessage({
+              command: 'prismaInstallError',
+              message: '❌ Install dependencies failed',
+            })
+            console.log(
+              '[ormOne] setupOrmOneMessageHandler install dependencies failed',
+            )
+            return result
+          }
 
           console.log('[ormOne] NEXT -- IMPORTANT PRISMA INIT MESSAGE')
           // ===================================================================
@@ -764,7 +765,7 @@ async function installPrisma(
   dd: string,
 ): Promise<CommandResultTracker<boolean>> {
   let result = new CommandResultTracker<boolean>(false)
-  let installArgs = ['i', dd, ...packages]
+  let installArgs = dd === '' ? ['i', ...packages] : ['i', dd, ...packages]
   console.log('[ormOne] installArgs', installArgs)
   // if (options.useOnlyBuiltDependencies) {
   //   installArgs.push(
