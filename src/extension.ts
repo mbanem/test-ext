@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { ExtensionContext, ExtensionMode } from 'vscode'
+import { inspect } from 'util'
 import * as fs from 'fs'
 import * as path from 'path'
 import { displayWebview } from './webview.js'
@@ -9,7 +10,7 @@ import { setupOrmOneMessageHandler } from './ormOne.js'
 import { setupOrmTwoMessageHandler } from './ormTwo.js'
 import { generateParts } from './partsGenerator.js'
 
-let paths: TPaths = {}
+let paths: Paths
 let db: DbParams = {}
 let appName = ''
 let inDevelopmentMode = false
@@ -25,12 +26,42 @@ export const sleep = async (ms: number) => {
     }, ms)
   })
 }
+
+export class Paths {
+  // Read-only property so the root path cannot be accidentally overwritten
+  public readonly _root: string
+
+  constructor(rootPath: string) {
+    this._root = rootPath
+  }
+
+  // Getters that dynamically construct paths on the fly
+  get root(): string {
+    return this._root
+  }
+
+  get env(): string {
+    return path.join(this._root, '.env')
+  }
+
+  get pending(): string {
+    return path.join(this._root, 'prisma', 'installORMPartTwoPending.txt')
+  }
+
+  get schema(): string {
+    return path.join(this._root, 'prisma', 'schema.prisma')
+  }
+
+  get components(): string {
+    return path.join(this._root, 'src', 'lib', 'components')
+  }
+}
 // Factory function
 export class CommandResultTracker<
   TF extends boolean = false,
 > implements TCommandResult<TF> {
   // 🚀 Native private field declaration
-  #success: TF
+  success: TF
   code = -1
   stdout = ''
   stderr = ''
@@ -39,24 +70,32 @@ export class CommandResultTracker<
   error?: Error
 
   constructor(initialSuccess: TF) {
-    this.#success = initialSuccess
+    this.success = initialSuccess
   }
 
-  get success(): TF {
-    return this.#success
-  }
-
-  set success(value: TF) {
-    this.#success = value
+  setSuccess(value: TF) {
+    this.success = value
     if (value === (true as unknown as TF)) {
       this.stderr = ''
       this.error = undefined
     }
+    return this
   }
 
   *[Symbol.iterator](): Generator<TCommandResult<TF>, void, unknown> {
     yield {
       success: this.success, // Calls the public getter safely
+      code: this.code,
+      stdout: this.stdout,
+      stderr: this.stderr,
+      command: this.command,
+      args: this.args,
+      error: this.error,
+    }
+  }
+  [inspect.custom](depth: number, options: any, inspectFn: typeof inspect) {
+    return {
+      success: this.success, // Explicitly pull the getter value
       code: this.code,
       stdout: this.stdout,
       stderr: this.stderr,
@@ -167,17 +206,14 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         appName = rootPath.match(/\/?([a-zA-z0-9_-]+)$/)?.[1] as string
         console.log(`[extension] Resolved Root Path: ${rootPath}`)
-        paths = {
-          root: rootPath,
-          env: path.join(rootPath, '.env'),
-          // pending: path.join(rootPath, 'prisma/installORMPartTwoPending.txt'),
-          schema: path.join(rootPath, 'prisma/schema.prisma'),
-          components: path.join(rootPath, 'src', 'lib', 'components'),
-        } as TPaths
+        paths = new Paths(rootPath)
 
         // set initial page based on progression state
         let initialpage = 'OrmThree'
-        if (paths.schema && !fs.existsSync(paths.schema)) {
+        if (
+          (paths.schema && !fs.existsSync(paths.schema)) ||
+          fs.existsSync(paths.pending)
+        ) {
           initialpage = 'OrmOne' as PageKey
         } else if (fs.existsSync(paths.pending)) {
           initialpage = 'OrmTwo'
@@ -217,58 +253,58 @@ export async function activate(context: vscode.ExtensionContext) {
         const messageHandler = panel!.webview.onDidReceiveMessage(
           async (msg) => {
             switch (msg.command) {
-              case 'ready':
-                console.log(
-                  '[extension] OrmThree is waiting for "sendingModels"',
-                )
+              // case 'ready':
+              //   console.log(
+              //     '[extension] OrmThree is waiting for "sendingModels"',
+              //   )
 
-                // when OrmThree.html is ready it sends 'ready' command and we respond
-                // by sending prisma models and field strips
-                let schema = '' // NOTE to set it to an empty string after parsing is done
-                try {
-                  console.log('[extension] reading schema.prisma')
-                  schema = fs.readFileSync(paths.schema, 'utf-8')
-                  if (!schema) {
-                    console.log('[extension] cannot read schema.prisma')
-                    vscode.window.showInformationMessage(
-                      `${paths.schema} not found, cannot continue`,
-                    )
-                    panel!.dispose()
-                  } else {
-                    console.log(
-                      '[extension] schema.prisma read length is',
-                      schema.length,
-                    )
-                  }
-                } catch (err) {
-                  const msg = err instanceof Error ? err.message : String(err)
-                  console.log(`[extension] reading schema.prisma err ${msg}`)
-                }
-                try {
-                  console.log('[extension] calling parsePrismaSchema')
-                  const { models, enums } = parsePrismaSchema(schema)
-                  console.log(
-                    '[extension] models.lebgth?',
-                    Object.keys(models).length,
-                  )
-                  console.log(
-                    '[extension] postMessage "sendingModels" stringified',
-                  )
-                  panel!.webview.postMessage({
-                    command: 'sendingModels',
-                    payload: JSON.stringify({
-                      models,
-                      enums,
-                      appName,
-                    }),
-                  })
-                } catch (err: unknown) {
-                  const msg = err instanceof Error ? err.message : String(err)
-                  console.log('[extension] parsePrismaSchema err', msg)
-                }
+              //   // when OrmThree.html is ready it sends 'ready' command and we respond
+              //   // by sending prisma models and field strips
+              //   let schema = '' // NOTE to set it to an empty string after parsing is done
+              //   try {
+              //     console.log('[extension] reading schema.prisma')
+              //     schema = fs.readFileSync(paths.schema, 'utf-8')
+              //     if (!schema) {
+              //       console.log('[extension] cannot read schema.prisma')
+              //       vscode.window.showInformationMessage(
+              //         `${paths.schema} not found, cannot continue`,
+              //       )
+              //       panel!.dispose()
+              //     } else {
+              //       console.log(
+              //         '[extension] schema.prisma read length is',
+              //         schema.length,
+              //       )
+              //     }
+              //   } catch (err) {
+              //     const msg = err instanceof Error ? err.message : String(err)
+              //     console.log(`[extension] reading schema.prisma err ${msg}`)
+              //   }
+              //   try {
+              //     console.log('[extension] calling parsePrismaSchema')
+              //     const { models, enums } = parsePrismaSchema(schema)
+              //     console.log(
+              //       '[extension] models.lebgth?',
+              //       Object.keys(models).length,
+              //     )
+              //     console.log(
+              //       '[extension] postMessage "sendingModels" stringified',
+              //     )
+              //     panel!.webview.postMessage({
+              //       command: 'sendingModels',
+              //       payload: JSON.stringify({
+              //         models,
+              //         enums,
+              //         appName,
+              //       }),
+              //     })
+              //   } catch (err: unknown) {
+              //     const msg = err instanceof Error ? err.message : String(err)
+              //     console.log('[extension] parsePrismaSchema err', msg)
+              //   }
 
-                schema = '' // free up memory by clearing schema string after parsing
-                break
+              //   schema = '' // free up memory by clearing schema string after parsing
+              //   break
               case 'AppSvelteReady':
                 console.log(
                   '[extension] App.svelte report it is ready; we post showPage OrmOne',

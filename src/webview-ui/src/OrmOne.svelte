@@ -20,6 +20,9 @@
   let checkThisEl: HTMLDetailsElement
   let otherLinesEl: HTMLDetailsElement
   let installPrismaButton: HTMLButtonElement
+  let dbParamsBlockEl: HTMLDivElement
+  let gridContainerEl: HTMLDivElement
+
   // let continueButton: HTMLButtonElement
 
   let db: DbParams = $state({
@@ -31,7 +34,7 @@
   })
 
   let isButtonDisabled: boolean = $derived(
-    !(db.name && db.owner && db.password),
+    !(db.name && db.owner && db.password) || isInstalling,
   )
 
   let pEl: HTMLParagraphElement
@@ -53,7 +56,6 @@
     'display: block;width: 18rem;height: 1.5rem !important;margin: 8px 0 10px 0;padding: 6px 0 8px 1rem;border-radius: 4px;outline: none;'
 
   function startPrismaInstall() {
-    installPrismaButton.classList.add('hidden')
     isInstalling = true
     progressPercents = 0
     logs = []
@@ -122,19 +124,19 @@
     })
   }
   onMount(() => {
+    console.log('[OrmOne] to ormOne checkOnPendingFile')
     vscode.postMessage({
-      command: 'showInfo',
-      payload: '[OrmOne] onMount test message',
+      command: 'checkOnPendingFile',
     })
     window.addEventListener('message', (event) => {
       const msg = event.data
-      // console.log('[OrmOne] listener msg', msg)
-      vscode.postMessage({
-        command: 'progress',
-        payload: `[OrmOne] listener ${msg.command}`,
-      })
       switch (msg.command) {
         case 'prismaInstallStart':
+          console.log('[OrmOne] got message prismaInistallStart')
+          break
+        case 'editorTabsEnvAndSchema':
+          // dbParamsBlockEl.classList.add('hidden')
+          // gridContainerEl.classList.add('hidden')
           break
         case 'prismaPartOneDone':
           console.log('[OrmOne] got message', msg.command, msg.payloads)
@@ -215,16 +217,15 @@
           break
 
         case 'prismaInstallSuccess':
-          console.log('[OrmOne] prismaInstallSuccess msg', msg)
           isInstalling = false
           progressPercents = 100
           statusMessage = msg.message
-          console.log('[OrmOne] sent prismaInstallSuccess msg', msg)
+          console.log('[OrmOne] got prismaInstallSuccess msg', msg)
 
           break
 
         case 'prismaPartOneFailed':
-          console.log('[OrmOne] prismaPartOne failed')
+          console.log('[OrmOne] got prismaPartOne failed')
           break
       }
     })
@@ -263,7 +264,7 @@ Package Manager e.g. pnpm.
   </div>
 {/if}
 
-<div class="buttons-row">
+<div bind:this={dbParamsBlockEl} class="db-params-block">
   <details style="position:relative;z-index:2;">
     <summary class="summary">Parameters for Creating Database </summary>
     <div
@@ -315,9 +316,6 @@ Package Manager e.g. pnpm.
     cLass="button-install"
     onclick={startPrismaInstall}
     style="font-size: 14px !important;cursor:pointer;margin:0'"
-    disabled={isButtonDisabled}
-    class:notallowed={isButtonDisabled}
-    aria-hidden={true}
   >
     <span class:spinner={isInstalling}></span>
     Install Prisma + Dependencies
@@ -327,7 +325,7 @@ Package Manager e.g. pnpm.
   > -->
   <button class="button-close" onclick={closetheApp}>close</button>
 
-  {#if isInstalling || progressPercents > 0}
+  {#if isInstalling || progressPercents}
     <div class="progress-container">
       <progress value={progressPercents} max="100" style="width: 100%;"
       ></progress>
@@ -337,7 +335,7 @@ Package Manager e.g. pnpm.
 </div>
 
 <!-- <div style="border:1px solid red;height:36rem;"> -->
-<div class="grid-container">
+<div bind:this={gridContainerEl} class="grid-container">
   <div class="left-column">
     <label class="dependencies-label">
       <input
@@ -377,12 +375,14 @@ Package Manager e.g. pnpm.
     <details bind:this={devDepEl} class="dev-dependencies-list overflow-y">
       <summary>Installed devDependencies</summary>
     </details>
-  </div>
-  <div class="logs">
-    <h4>Installation Logs</h4>
-    {#each logs as log (log)}
-      <pre class={log.type}>{log.text}</pre>
-    {/each}
+    <details class="dev-dependencies-list overflow-y">
+      <summary>Installation Logs</summary>
+      <div class="logs">
+        {#each logs as log (log)}
+          <pre class={log.type}>{log.text}</pre>
+        {/each}
+      </div>
+    </details>
   </div>
 </div>
 
@@ -407,6 +407,7 @@ Package Manager e.g. pnpm.
 <style lang="scss">
   .page-info {
     @include page-info();
+    margin-top: 1.5rem;
     z-index: 2027;
   }
   div,
@@ -421,7 +422,7 @@ Package Manager e.g. pnpm.
   }
   .logs {
     margin-top: 20px;
-    max-height: 400px;
+    height: clamp(2rem, 5rem, 12rem);
     overflow-y: auto;
     background: #1e1e1e;
     padding: 10px;
@@ -455,7 +456,7 @@ Package Manager e.g. pnpm.
       transform: rotate(360deg);
     }
   }
-  .buttons-row {
+  .db-params-block {
     position: absolute;
     top: 0;
     left: 0;
@@ -545,11 +546,11 @@ Package Manager e.g. pnpm.
     .right-column {
       .dependencies-list {
         @include progress-field();
-        height: 3.5rem;
+        height: clamp(2rem, 5rem, 10rem);
       }
       .dev-dependencies-list {
         @include progress-field();
-        height: 3.5rem;
+        height: clamp(2rem, 4rem, 6rem);
       }
     }
 
@@ -633,6 +634,8 @@ Package Manager e.g. pnpm.
     z-index: 1;
     border: 1px solid gray;
     width: 19rem;
+    font-size: 13px;
+    font-weight: 400;
     border-radius: 6px;
     padding: 0 0.5rem;
     overflow: hidden;

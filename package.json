@@ -41,8 +41,8 @@
     "compile": "tsc -p .",
     "package-grok": "vsce package --no-dependencies --ignore-file .vscodeignore",
     "package": "pnpm build && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file",
-    "ix": "pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force",
     "x": "rm -rf out *.vsix node_modules/.cache node_modules/.vite; pnpm ix",
+    "ix": "pnpm build; pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force",
     "rx": "rm -rf *.vsix out .env prisma prisma.config.ts node_modules/.cache node_modules/.vite; printf \"NODE_ENV=development\\nDATABASE_URL=postgresql://mili:kiki-fake@localhost:5432/forms?schema=public\" > .env; pnpm ix"
   },
   "devDependencies": {

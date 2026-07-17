@@ -28,7 +28,7 @@ export interface ProgressInfo {
 
 export function runCommandStream(
   command: string,
-  args: string[],
+  args: string[] = [],
   options: {
     cwd?: string
     title?: string
@@ -69,75 +69,90 @@ export function runCommandStream(
 
     proc = spawn(command, finalArgs, {
       cwd: options.cwd,
-      shell: true,
+      shell: false,
     })
-
-    const ndjsonRegex = /^\{.*\}$/
 
     // attaches an event listener to the standard output stream (stdout),
     // which executes a callback function whenever the child process prints
     // text or data
     proc.stdout?.on('data', (data: Buffer) => {
-      // The data arrives as a Buffer, so convert it to a string
       const text = data.toString()
       stdoutChunks.push(text)
       options.onStdout?.(text)
-      if (options.terminal) {
-        // false: no newline
-        options.terminal.sendText(text, false)
+      if (options.terminal) options.terminal.sendText(text, false)
+
+      if (!options.onProgress) {
+        return
       }
 
-      if (options.onProgress) {
-        const lines = text.split(/\r?\n/)
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed) {
-            continue
-          }
-
-          // the 'pnpm i' prints a line in the following format
-          // Progress: resolved 406, reused 326, downloaded 1, added 326, done
-          // appending a 'done' when finished
-          let progress: ProgressInfo = { done: false, rawLine: trimmed }
-
-          // NDJSON parsing (preferred)
-          if (options.useNdjson && ndjsonRegex.test(trimmed)) {
-            try {
-              const json = JSON.parse(trimmed)
-              progress.status = json.status
-              if (json.data?.added) {
-                progress.added = json.data.added
-              }
-              if (json.data?.total) {
-                progress.total = json.data.total
-              }
-              if (json.status === 'done') {
-                progress.done = true
-              }
-            } catch (e) {}
-          }
-          // Fallback to append-only regex
-          else {
-            const match = trimmed.match(
-              /Progress:\s+resolved\s+(\d+).*?added\s+(\d+)/i,
-            )
-            if (match) {
-              progress.resolved = parseInt(match[1], 10)
-              progress.added = parseInt(match[2], 10)
-              progress.total = progress.resolved
-              progress.done = trimmed.includes('done')
-            }
-          }
-
-          if (progress.total && progress.added !== undefined) {
-            progress.percent = Math.min(
-              Math.round((progress.added / progress.total) * 100),
-              100,
-            )
-          }
-
-          options.onProgress(progress)
+      const lines = text.split(/\r?\n/)
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) {
+          continue
         }
+
+        const progress: ProgressInfo = { done: false, rawLine: trimmed }
+
+        // ==================== NDJSON ====================
+        if (
+          options.useNdjson &&
+          trimmed.startsWith('{') &&
+          trimmed.endsWith('}')
+        ) {
+          try {
+            const json = JSON.parse(trimmed)
+
+            // Only treat it as progress if it has progress-related fields
+            if (
+              json.status === 'progress' ||
+              json.data?.added !== undefined ||
+              json.status === 'done'
+            ) {
+              progress.status = json.status
+              progress.added = json.data?.added ?? 0
+              progress.total = json.data?.total ?? json.data?.resolved ?? 1
+              progress.done = json.status === 'done' || json.data?.done === true
+            }
+          } catch (e) {}
+        }
+        // ==================== append-only fallback ====================
+        else {
+          const match = trimmed.match(
+            /Progress:\s+resolved\s+(\d+)[^,]*?added\s+(\d+)/i,
+          )
+          if (match) {
+            const resolved = parseInt(match[1], 10)
+            const added = parseInt(match[2], 10)
+            progress.resolved = resolved
+            progress.added = added
+            progress.total = Math.max(resolved, added, 1)
+            progress.done = trimmed.toLowerCase().includes(', done')
+          } else if (
+            trimmed.includes('done') ||
+            trimmed.match(/Packages:\s*\+\d+/)
+          ) {
+            progress.done = true
+            progress.percent = 100
+          }
+        }
+
+        // Calculate percentage
+        if (
+          progress.total &&
+          progress.total > 0 &&
+          progress.added !== undefined
+        ) {
+          progress.percent = Math.min(
+            Math.round((progress.added / progress.total) * 100),
+            100,
+          )
+        }
+        if (progress.done) {
+          progress.percent = 100
+        }
+
+        options.onProgress(progress)
       }
     })
 

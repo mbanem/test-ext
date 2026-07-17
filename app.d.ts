@@ -1,7 +1,10 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 // import * as Types from '$lib/types/types';
+import { Paths as PathsClass } from './src/extension.js'
+
 declare global {
+  type TPaths = PathsClass
   export type Field = {
     name: string
     type: string
@@ -39,7 +42,7 @@ declare global {
     SelectedModels | Model | string[] | string
   >
   export type TToggleFunc = (() => void) | undefined
-  export type TPaths = Record<string, string>
+  // export type TPaths = Record<string, string>
   export type DbParams = Record<string, string | number>
 
   // props for creating +page.svelte/+page.server.ts route pager
@@ -74,4 +77,5 @@ declare global {
   }
 }
 
+// Crucial: d.ts files with imports need an empty export to be treated as a module
 export {}

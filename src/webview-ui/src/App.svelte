@@ -193,6 +193,7 @@ so no page would be rendered
         width: 25px;
         height: 25px;
         background-color: var(--icon-bg);
+        border: 1px solid var(--icon-border-color);
         cursor: pointer;
         & > * {
           padding-top: 5px;

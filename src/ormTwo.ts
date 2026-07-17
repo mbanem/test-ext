@@ -24,7 +24,7 @@ SECRET_APT_KEY="kiki:kiki@localhost:5432
 SECRET_APT_ENV=development
 SECRET_API_KEY=1234567890`
 
-let paths: TPaths = {}
+let paths: TPaths
 let panel: vscode.WebviewPanel | undefined = undefined
 
 let pm = 'unknown'
@@ -66,8 +66,9 @@ const ErrCommandResult = {
 export async function setupOrmTwoMessageHandler(
   context: vscode.ExtensionContext,
   webview: vscode.Webview,
-  paths: TPaths,
+  paths_: TPaths,
 ): Promise<CommandResultTracker<boolean>> {
+  paths = paths_
   let result = new CommandResultTracker<boolean>(false)
   console.log('[ormTwo] setupOrmTwoMessageHandlerTwo entry point')
 
@@ -112,7 +113,7 @@ export async function setupOrmTwoMessageHandler(
   //   page: 'OrmThree',
   // })
   // messageListener.dispose()
-  result.success = true
+  result.setSuccess(true)
 
   return result
 }
@@ -165,11 +166,11 @@ export async function installPrismaPartTwo(
       text: stdout || stderr || 'Done',
     })
 
-    result.success = true
+    result.setSuccess(true)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.log('[ormTwo] Prisma init error:', err)
-    result.success = false
+    result.setSuccess(false)
     result.stderr = msg || 'Prisma init failed'
   }
   // return { success: true }
