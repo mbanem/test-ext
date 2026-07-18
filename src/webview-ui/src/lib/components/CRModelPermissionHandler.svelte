@@ -122,7 +122,6 @@
       return {
         name: 'password',
         isDataEntry: true,
-        isOptional: false,
         isArray: false,
         attrs: 'saved excrypted',
       } as Field

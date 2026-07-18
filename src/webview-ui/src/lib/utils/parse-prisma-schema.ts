@@ -115,9 +115,13 @@ function isUICandidate(field: Field): boolean {
   const { name, type, isArray, attrs } = field
   // type = type.toLowerCase().trim();
   // model name could appear in schema as 'model User {' or as field type 'posts Post[]', so
-  // the name and type arguments cannot bear model name, which is not ui candidates
+  // the name and type arguments cannot bear model name, which is not ui candidate
   if (models[name] || models[type] || isArray) {
     return false
+  }
+  // fields that include 'passwprd' like passwordHash we rteat it as data-entry field
+  if ((name as string).includes('password')) {
+    return true
   }
   if (
     name.includes('@@') ||
