@@ -43,17 +43,17 @@
           break
       }
     }
-    console.log(
-      'x',
-      x,
-      'rect x width right',
-      rect.x,
-      rect.width,
-      rect.right,
-      'msg',
-      msgWidth,
-      window.scrollX,
-    )
+    // console.log(
+    //   'x',
+    //   x,
+    //   'rect x width right',
+    //   rect.x,
+    //   rect.width,
+    //   rect.right,
+    //   'msg',
+    //   msgWidth,
+    //   window.scrollX,
+    // )
     return x
   }
   export function showMessage(
@@ -65,7 +65,7 @@
       color: 'navy',
     },
   ) {
-    // console.log('showing message', msg)
+    //// console.log('showing message', msg)
     if (!msgEl) {
       // console.warn('msgEl not found')
       return
@@ -122,7 +122,7 @@
       }, 2000)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.log('el not found', msg)
+      //      console.log('el not found', msg)
     }
   }
 </script>

@@ -70,44 +70,44 @@ export async function setupOrmTwoMessageHandler(
 ): Promise<CommandResultTracker<boolean>> {
   paths = paths_
   let result = new CommandResultTracker<boolean>(false)
-  console.log('[ormTwo] setupOrmTwoMessageHandlerTwo entry point')
+  //  console.log('[ormTwo] setupOrmTwoMessageHandlerTwo entry point')
 
-  console.log(
-    '[ormOne] createRoleAndDb success, now opening schema.prisma and .env in editor',
-  )
+  //  console.log(
+  //   '[ormOne] createRoleAndDb success, now opening schema.prisma and .env in editor',
+  // )
 
   // const messageListener = webview.onDidReceiveMessage(async (msg: any) => {
   // switch (msg.command) {
   // case 'prismaPartTwo':
-  console.log('[ormTwo] received message prismaPartTwo')
+  //  console.log('[ormTwo] received message prismaPartTwo')
 
   detectPackageManager()
   if (pm === 'unknown') {
-    console.log('[ormTwo] detectPackageManager err:' + pm)
+    //    console.log('[ormTwo] detectPackageManager err:' + pm)
     return result
   } else {
-    console.log('[ormTwo] packageManager found', pm)
+    //    console.log('[ormTwo] packageManager found', pm)
     ex = xPackageManager(pm)
   }
-  console.log(
-    '[ormTwo] calling installPrismaPartTwo(panel, [ex, "prisma", "generate"]',
-  )
+  //  console.log(
+  //   '[ormTwo] calling installPrismaPartTwo(panel, [ex, "prisma", "generate"]',
+  // )
   result = await installPrismaPartTwo(webview, paths, ['prisma', 'generate'])
   if (result.success) {
-    console.log('[ormTwo] prisma install succeeded')
-    console.log('[ormTwo] postMessage showPage ormThree to App.svelte')
+    //    console.log('[ormTwo] prisma install succeeded')
+    //    console.log('[ormTwo] postMessage showPage ormThree to App.svelte')
 
     webview.postMessage({
       command: 'prismaInitDone',
       payload: 'should load OrmThree',
     })
   } else {
-    console.log('[ormTwo] failed success', result.success)
+    //    console.log('[ormTwo] failed success', result.success)
   }
   // }
   // })
 
-  // console.log('[ormTwo] setupOrmTwoMessageHandler: sending showPage OrmTwo')
+  //// console.log('[ormTwo] setupOrmTwoMessageHandler: sending showPage OrmTwo')
   // webview.postMessage({
   //   command: 'showPage',
   //   page: 'OrmThree',
@@ -125,9 +125,9 @@ export async function installPrismaPartTwo(
   args: string[],
 ): Promise<CommandResultTracker<boolean>> {
   let result = new CommandResultTracker<boolean>(false)
-  console.log('[ormTwo] installPrismaPartTwo entry point')
+  //  console.log('[ormTwo] installPrismaPartTwo entry point')
 
-  console.log('[ormTwo] postMessage prismaInstallStart')
+  //  console.log('[ormTwo] postMessage prismaInstallStart')
   panel!.webview.postMessage({
     command: 'prismaInstallStart',
     message: 'Starting prismaPartTwo installation...',
@@ -145,7 +145,7 @@ export async function installPrismaPartTwo(
     args = ['dlx', 'prisma', 'generate']
   }
 
-  console.log(`[ormTwo] Executing: ${executable} ${args.join(' ')}`)
+  //  console.log(`[ormTwo] Executing: ${executable} ${args.join(' ')}`)
 
   try {
     const execFileAsync = promisify(execFile)
@@ -155,10 +155,10 @@ export async function installPrismaPartTwo(
     })
 
     if (stdout) {
-      console.log('[prisma stdout]', stdout)
+      //      console.log('[prisma stdout]', stdout)
     }
     if (stderr) {
-      console.log('[prisma stderr]', stderr)
+      //      console.log('[prisma stderr]', stderr)
     }
 
     webview.postMessage({
@@ -169,7 +169,7 @@ export async function installPrismaPartTwo(
     result.setSuccess(true)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.log('[ormTwo] Prisma init error:', err)
+    //    console.log('[ormTwo] Prisma init error:', err)
     result.setSuccess(false)
     result.stderr = msg || 'Prisma init failed'
   }
@@ -203,16 +203,16 @@ export async function installPrismaPartTwo(
   //       text: text.trim(),
   //     }),
   // })
-  // console.log('[ormTwo] installPrismaPartTwo tries to delete pending file')
+  //// console.log('[ormTwo] installPrismaPartTwo tries to delete pending file')
   // if (fs.existsSync(paths.pending)) {
-  //   console.log('[ormTwo] installPrismaPartTwo pending fils exists')
+  ////   console.log('[ormTwo] installPrismaPartTwo pending fils exists')
   //   fs.unlink(paths.pending, (err) => {
   //     if (err) {
   //       vscode.window.showInformationMessage(
   //         'Could not delete installPartTwo.pending file at App Root. Delete it yourself',
   //       )
   //     } else {
-  //       console.log('[ormTwo] installPrismaPartTwo: pending file deleted')
+  ////       console.log('[ormTwo] installPrismaPartTwo: pending file deleted')
   //     }
   //   })
   // }

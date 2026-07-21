@@ -278,7 +278,7 @@ export function parsePrismaSchema(schemaContent: string): {
       fields = []
     }
   } catch (err) {
-    handleTryCatch(err)
+    handleTryCatch(err, 'parsePrismaSchema')
   }
   sortModelsByOrdered(UI.all)
 
@@ -294,9 +294,5 @@ export function parsePrismaSchema(schemaContent: string): {
       }
     }
   }
-  console.log(
-    '[ormOne] call parsePrismaSchema models.length',
-    Object.keys(models).length,
-  )
   return { models, enums }
 }

@@ -161,14 +161,14 @@ export const info = (msg: string) => {
 export async function activate(context: vscode.ExtensionContext) {
   try {
     // show('test-ext.crudTest ACTIVATED')
-    console.log(`CRUD TEST-EXT -- activated`)
+    //    console.log(`CRUD TEST-EXT -- activated`)
     inDevelopmentMode = context.extensionMode === ExtensionMode.Development
     if (panel) {
       context.subscriptions.push(panel)
     }
     context.subscriptions.push(
       vscode.commands.registerCommand('test-ext.crudTest', async () => {
-        console.log('test-ext.crudTest REGISTERED')
+        //        console.log('test-ext.crudTest REGISTERED')
 
         if (panel) {
           panel.reveal(vscode.ViewColumn.One)
@@ -186,7 +186,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // 4. Register lifecycle IMMEDIATELY after creation
         panel.onDidDispose(() => {
-          console.log('[extension] panel disposed, set panel = undefined')
+          //          console.log('[extension] panel disposed, set panel = undefined')
           panel = undefined // Safely clears the reference so it can be re-created later
         })
         let rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
@@ -194,18 +194,18 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!rootPath && inDevelopmentMode) {
           // NOTE launching from Command Palette is OK, debug needs this
           rootPath = '/home/mili/Ext/test-ext'
-          console.log(
-            '[extension] debug only! rootPath not found use /home/mili/Ext/test-ext',
-          )
+          //          console.log(
+          //   '[extension] debug only! rootPath not found use /home/mili/Ext/test-ext',
+          // )
         }
         if (!rootPath) {
-          console.log(
-            '[extension] No workspace folder found. Open a folder first.',
-          )
+          //          console.log(
+          //   '[extension] No workspace folder found. Open a folder first.',
+          // )
           return
         }
         appName = rootPath.match(/\/?([a-zA-z0-9_-]+)$/)?.[1] as string
-        console.log(`[extension] Resolved Root Path: ${rootPath}`)
+        //        console.log(`[extension] Resolved Root Path: ${rootPath}`)
         paths = new Paths(rootPath)
 
         // set initial page based on progression state
@@ -226,12 +226,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (initialpage === 'OrmOne') {
           let res = await setupOrmOneMessageHandler(context, panel!, paths)
-          console.log('[extension] setupOrmOneMessageHandler result', res)
+          //          console.log('[extension] setupOrmOneMessageHandler result', res)
           if (!res.success) {
-            console.log('[extension] setupOrmOneMessageHandler failed', res)
+            //            console.log('[extension] setupOrmOneMessageHandler failed', res)
             return
           } else {
-            console.log('[extension] setupOrmOneMessageHandler succeeded', res)
+            //            console.log('[extension] setupOrmOneMessageHandler succeeded', res)
           }
         }
         // else if (initialpage === 'OrmTwo') {
@@ -240,13 +240,13 @@ export async function activate(context: vscode.ExtensionContext) {
         //     panel!.webview,
         //     paths,
         //   )
-        //   console.log('[extension] setupOrmTwoMessageHandler result', res)
+        ////   console.log('[extension] setupOrmTwoMessageHandler result', res)
         //   if (!res.success) {
         //     return
         //   }
         // }
         panel!.onDidDispose(() => {
-          console.log('[extension] panel disposed, set panel to undefined')
+          //          console.log('[extension] panel disposed, set panel to undefined')
           panel = undefined
         })
 
@@ -254,7 +254,7 @@ export async function activate(context: vscode.ExtensionContext) {
           async (msg) => {
             switch (msg.command) {
               // case 'ready':
-              //   console.log(
+              ////   console.log(
               //     '[extension] OrmThree is waiting for "sendingModels"',
               //   )
 
@@ -262,32 +262,32 @@ export async function activate(context: vscode.ExtensionContext) {
               //   // by sending prisma models and field strips
               //   let schema = '' // NOTE to set it to an empty string after parsing is done
               //   try {
-              //     console.log('[extension] reading schema.prisma')
+              ////     console.log('[extension] reading schema.prisma')
               //     schema = fs.readFileSync(paths.schema, 'utf-8')
               //     if (!schema) {
-              //       console.log('[extension] cannot read schema.prisma')
+              ////       console.log('[extension] cannot read schema.prisma')
               //       vscode.window.showInformationMessage(
               //         `${paths.schema} not found, cannot continue`,
               //       )
               //       panel!.dispose()
               //     } else {
-              //       console.log(
+              ////       console.log(
               //         '[extension] schema.prisma read length is',
               //         schema.length,
               //       )
               //     }
               //   } catch (err) {
               //     const msg = err instanceof Error ? err.message : String(err)
-              //     console.log(`[extension] reading schema.prisma err ${msg}`)
+              ////     console.log(`[extension] reading schema.prisma err ${msg}`)
               //   }
               //   try {
-              //     console.log('[extension] calling parsePrismaSchema')
+              ////     console.log('[extension] calling parsePrismaSchema')
               //     const { models, enums } = parsePrismaSchema(schema)
-              //     console.log(
+              ////     console.log(
               //       '[extension] models.lebgth?',
               //       Object.keys(models).length,
               //     )
-              //     console.log(
+              ////     console.log(
               //       '[extension] postMessage "sendingModels" stringified',
               //     )
               //     panel!.webview.postMessage({
@@ -300,15 +300,15 @@ export async function activate(context: vscode.ExtensionContext) {
               //     })
               //   } catch (err: unknown) {
               //     const msg = err instanceof Error ? err.message : String(err)
-              //     console.log('[extension] parsePrismaSchema err', msg)
+              ////     console.log('[extension] parsePrismaSchema err', msg)
               //   }
 
               //   schema = '' // free up memory by clearing schema string after parsing
               //   break
               case 'AppSvelteReady':
-                console.log(
-                  '[extension] App.svelte report it is ready; we post showPage OrmOne',
-                )
+                //                console.log(
+                //   '[extension] App.svelte report it is ready; we post showPage OrmOne',
+                // )
                 panel!.webview.postMessage({
                   command: 'showPage',
                   page: 'OrmOne',
@@ -322,7 +322,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 panel!.dispose()
                 break
               // case 'prismaPartOne':
-              // console.log(
+              //// console.log(
               //   `[Ext onDid] prismaPartOne comand request from OrmOne ${msg.command}`,
               // )
               // // db = JSON.parse(msg.payload) as DbParams
@@ -330,13 +330,13 @@ export async function activate(context: vscode.ExtensionContext) {
               // // if (db && paths) {
               // setupOrmOneMessageHandler(context, panel!.webview, paths) // ← Pass webview
               // // }
-              // // console.log(`after call to prismaPartOne success is ${result.success}`)
-              // // // send console.log to OrmOne postMessage(message:any) so we send an object message is object {command,siccess}
+              // //// console.log(`after call to prismaPartOne success is ${result.success}`)
+              // // // send// console.log to OrmOne postMessage(message:any) so we send an object message is object {command,siccess}
               // panel!.webview.postMessage({
               //   command: 'partOneDone',
               //   success: result.success,
               // })
-              // console.log(`sent message partOneDone to OrmOne`)
+              //// console.log(`sent message partOneDone to OrmOne`)
               // if (!result.success) {
               //   panel!.webview.postMessage({
               //     command: 'showPage',
@@ -346,7 +346,7 @@ export async function activate(context: vscode.ExtensionContext) {
               // break
 
               // case 'prismaPartTwo':
-              //   console.log(
+              ////   console.log(
               //     '[extension] prismaPartTwo command request from OrmOne.svelte',
               //     msg.payload,
               //   )
@@ -359,13 +359,13 @@ export async function activate(context: vscode.ExtensionContext) {
               //       )
               //     ).success
               //   ) {
-              //     console.log('[extension] PrismaPartTwo done, open OrmThree')
+              ////     console.log('[extension] PrismaPartTwo done, open OrmThree')
               //     // panel!.webview.postMessage({
               //     //   command: 'showPage',
               //     //   page: 'OrmThree',
               //     // })
               //   } else {
-              //     console.log('[extension] failed to install prismaPartTwo')
+              ////     console.log('[extension] failed to install prismaPartTwo')
               //   }
               //   break
 
@@ -406,13 +406,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 )
                 const payload = JSON.parse(msg.payload)
                 // const payload = msg.payload
-                console.log(
-                  '[extension] stringified payload',
-                  JSON.stringify(payload),
-                )
-                console.log('[extension] calling generateParts payload')
+                //                console.log(
+                //   '[extension] stringified payload',
+                //   JSON.stringify(payload),
+                // )
+                //                console.log('[extension] calling generateParts payload')
                 generateParts(context, panel!, channel, paths, payload)
-                console.log('[extension]  sending crudSuportDone')
+                //                console.log('[extension]  sending crudSuportDone')
                 setTimeout(() => {
                   panel!.webview.postMessage({
                     command: 'crudSuportDone',
@@ -421,14 +421,14 @@ export async function activate(context: vscode.ExtensionContext) {
                 break
 
               case 'fromAppSvelte':
-                console.log('[fromApp]', msg.payload)
+                //                console.log('[fromApp]', msg.payload)
                 break
               case 'progress':
-                console.log(msg.payload)
+                //                console.log(msg.payload)
                 break
 
               case 'showInfo':
-                console.log(msg.message)
+                //                console.log(msg.message)
                 break
               case 'stepCompleted':
                 console.log(
@@ -444,7 +444,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 break
 
               // default:
-              //   console.log(`[extension] Unknown command: ${msg.command}`)
+              ////   console.log(`[extension] Unknown command: ${msg.command}`)
             }
           },
         )
@@ -452,7 +452,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.log('Extension failed to activate. Check output logs.')
+    //    console.log('Extension failed to activate. Check output logs.')
   }
 }
 export function deactivate() {}

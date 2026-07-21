@@ -1,28 +1,31 @@
 <script lang="ts">
   import { vscode } from '$lib/utils/event-handler.browser'
   import { onMount } from 'svelte'
+  import HoveringDetails from '$lib/components/HoverableDetails.svelte'
+  import ConfigurationRequired from '$lib/components/ConfigurationRequired.svelte'
   const RX =
     /^Progress:|\.\.\.\/node_modules\/|dependencies:|devDependencies:|\+ /
   let currentDetailsEl: HTMLDetailsElement | undefined = $state()
   let rlCounter = $state(0)
-  let rawLinesEl: HTMLDetailsElement
-  let depEl: HTMLDetailsElement
-  let devDepEl: HTMLDetailsElement
-  let follow = $state('') // dependencies | devDependencies
+  // let rawLinesEl: HTMLDetailsElement
+  // let depEl: HTMLDetailsElement
+  // let devDepEl: HTMLDetailsElement
+  // let follow = $state('') // dependencies | devDependencies
   let useOnlyBuiltDependencies = $state(true) // Default: safe for most users
   let approvalPackages = $state<string[]>([])
   let progressPercents = $state(0)
   let statusMessage = $state('Ready to install Prisma')
   let isInstalling = $state(false)
   let logs: { type: 'stdout' | 'stderr'; text: string }[] = $state([])
-  let progressLineEl: HTMLParagraphElement
-  let nodeModulesEl: HTMLDetailsElement
-  let checkThisEl: HTMLDetailsElement
-  let otherLinesEl: HTMLDetailsElement
-  let installPrismaButton: HTMLButtonElement
-  let dbParamsBlockEl: HTMLDivElement
-  let gridContainerEl: HTMLDivElement
+  // let progressLineEl: HTMLParagraphElement
+  // let nodeModulesEl: HTMLDetailsElement
+  // let checkThisEl: HTMLDetailsElement
+  // let otherLinesEl: HTMLDetailsElement
+  // let dbParamsBlockEl: HTMLDivElement
+  // let gridContainerEl: HTMLDivElement
 
+  let installPrismaButton: HTMLButtonElement
+  let progressCollector = $state<Record<string, string[]>>({})
   // let continueButton: HTMLButtonElement
 
   let db: DbParams = $state({
@@ -32,10 +35,10 @@
     host: 'localhost',
     port: 5432,
   })
-
-  let isButtonDisabled: boolean = $derived(
-    !(db.name && db.owner && db.password) || isInstalling,
-  )
+  let schemaInEditorTab = $state(false)
+  // let isButtonDisabled: boolean = $derived(
+  //   !(db.name && db.owner && db.password) || isInstalling,
+  // )
 
   let pEl: HTMLParagraphElement
   // begin of parsing progress rawLine for kind ot output
@@ -67,7 +70,7 @@
       host: db.host ?? 'localhost',
       port: db.port ?? '5432',
     }
-    console.log('[OrmOne] postCommand prismaPartOne')
+    //// console.log('[OrmOne] postCommand prismaPartOne')
     vscode.postMessage({
       command: 'prismaPartOne',
       useOnlyBuiltDependencies,
@@ -104,9 +107,9 @@
       currentDetailsEl.open = false
     }
     el.open = true
-    if (rawLinesEl.open) {
-      rawLinesEl.open = false
-    }
+    // if (rawLinesEl.open) {
+    //   rawLinesEl.open = false
+    // }
     const pel = document.createElement('p')
     el.appendChild(pel)
     Object.assign(pel.style, { padding: 0, margin: 0 })
@@ -114,17 +117,17 @@
   }
 
   function closetheApp() {
-    console.log(
-      '[OrmOne] closetheApp',
-      vscode ? 'vscode is defined' : 'vscode is undefined',
-    )
+    //// console.log(
+    //   '[OrmOne] closetheApp',
+    //   vscode ? 'vscode is defined' : 'vscode is undefined',
+    // )
     vscode.postMessage({
       command: 'close',
       payload: 'close the extension',
     })
   }
   onMount(() => {
-    console.log('[OrmOne] to ormOne checkOnPendingFile')
+    //// console.log('[OrmOne] to ormOne checkOnPendingFile')
     vscode.postMessage({
       command: 'checkOnPendingFile',
     })
@@ -132,75 +135,82 @@
       const msg = event.data
       switch (msg.command) {
         case 'prismaInstallStart':
-          console.log('[OrmOne] got message prismaInistallStart')
+          //// console.log('[OrmOne] got message prismaInistallStart')
           break
-        case 'editorTabsEnvAndSchema':
-          // dbParamsBlockEl.classList.add('hidden')
-          // gridContainerEl.classList.add('hidden')
+        case 'schemaAndEnvInEditorTabs':
+          schemaInEditorTab = true
           break
         case 'prismaPartOneDone':
-          console.log('[OrmOne] got message', msg.command, msg.payloads)
-          // console.log('[OrmOne] postMessage prismaPartTwo')
+          //// console.log('[OrmOne] got message', msg.command, msg.payloads)
+          //// console.log('[OrmOne] postMessage prismaPartTwo')
           // vscode.postMessage({
           //   command: 'prismaPartTwo',
           //   payload: 'sent from OrmOne after receviing prismaPartOneDone',
           // })
           break
         case 'notValidSchemaOrEnv':
-          console.log('[OrmOne] invalid models or env', msg)
+          //// console.log('[OrmOne] invalid models or env', msg)
           break
         case 'prismaProgress':
           progressPercents = msg.percent
           statusMessage = msg.message
           const rl = msg.rawLine
-          pEl = document.createElement('p')
-          rawLinesEl.appendChild(pEl)
-          if (rl.includes('[WARN] Issues with peer dependencies found.')) {
-            appendLine(checkThisEl, rl)
-          }
+          // pEl = document.createElement('p')
+          // rawLinesEl.appendChild(pEl)
+          // if (rl.includes('[WARN] Issues with peer dependencies found.')) {
+          //   appendLine(checkThisEl, rl)
+          // }
           ++rlCounter
-          if (rlCounter === 1) {
-            rawLinesEl.open = true
-          }
-          Object.assign(pEl.style, { padding: 0, margin: 0 })
-          pEl.textContent = rl
+          // if (rlCounter === 1) {
+          //   rawLinesEl.open = true
+          // }
+          // Object.assign(pEl.style, { padding: 0, margin: 0 })
+          // pEl.textContent = rl
           const m = RX.exec(rl)
           if (m) {
-            switch (m[0]) {
-              case 'Progress:':
-                progressLineEl.innerText = rl
-                break
-              case '.../node_modules/':
-                appendLine(nodeModulesEl, rl.slice(17))
-                break
-              case 'dependencies:':
-                follow = 'dependencies'
-                // depEl.innerText = 'dependencies'
-                break
-              case 'devDependencies:':
-                follow = 'devDependencies'
-                // devDepEl.innerText = 'devDependencies'
-                break
-              case '+ ':
-                if (follow === 'dependencies') {
-                  appendLine(depEl, rl)
-                }
-                if (follow === 'devDependencies') {
-                  appendLine(devDepEl, rl)
-                }
-                break
-              default:
-                if (follow) {
-                  follow = ''
-                }
-                if (rl.includes('check')) {
-                  appendLine(checkThisEl, rl)
-                  checkThisEl.classList.remove('hidden')
-                } else {
-                  appendLine(otherLinesEl, rl)
-                }
-                break
+            //// console.log('M[0] RAW LINE', m[0] ?? 'NULL', rl)
+            if (m[0] && !progressCollector[m[0]]) {
+              $inspect('create empty progressCollector for', m[0])
+              progressCollector[m[0]] = []
             }
+            progressCollector[m[0]].push(msg.rawLine.slice(10).trim())
+            $inspect('progressCollector[m[0]]', progressCollector[m[0]])
+            // p[m[0]] = rl.trim()
+            // switch (m[0]) {
+            //   case 'Progress:':
+            //     progressLineEl.innerText = rl
+            //     break
+            //   case '.../node_modules/':
+            //     appendLine(nodeModulesEl, rl.slice(17))
+            //     break
+            //   case 'dependencies:':
+            //     follow = 'dependencies'
+            //     // depEl.innerText = 'dependencies'
+            //     break
+            //   case 'devDependencies:':
+            //     follow = 'devDependencies'
+            //     // devDepEl.innerText = 'devDependencies'
+            //     break
+            //   case '+ ':
+            //     if (follow === 'dependencies') {
+            //       appendLine(depEl, rl)
+            //     }
+            //     if (follow === 'devDependencies') {
+            //       appendLine(devDepEl, rl)
+            //     }
+            //     break
+            //   default:
+            //     if (follow) {
+            //       follow = ''
+            //     }
+            //     if (rl.includes('check')) {
+            //       appendLine(checkThisEl, rl)
+            //       checkThisEl.classList.remove('hidden')
+            //     } else {
+            //       appendLine(otherLinesEl, rl)
+            //     }
+            //     break
+            // }
           }
           break
         case 'prismaLog':
@@ -210,7 +220,7 @@
         case 'prismaInstallError':
           isInstalling = false
           statusMessage = msg.message + ' - ' + msg.error
-          console.log('[OrmOne] prismaInstallError msg', msg)
+          //// console.log('[OrmOne] prismaInstallError msg', msg)
           break
         case 'prismaBuildApprovalNeeded':
           approvalPackages = msg.packages || []
@@ -220,12 +230,12 @@
           isInstalling = false
           progressPercents = 100
           statusMessage = msg.message
-          console.log('[OrmOne] got prismaInstallSuccess msg', msg)
+          //// console.log('[OrmOne] got prismaInstallSuccess msg', msg)
 
           break
 
         case 'prismaPartOneFailed':
-          console.log('[OrmOne] got prismaPartOne failed')
+          //// console.log('[OrmOne] got prismaPartOne failed')
           break
       }
     })
@@ -264,144 +274,131 @@ Package Manager e.g. pnpm.
   </div>
 {/if}
 
-<div bind:this={dbParamsBlockEl} class="db-params-block">
-  <details style="position:relative;z-index:2;">
-    <summary class="summary">Parameters for Creating Database </summary>
-    <div
-      class="dbname-block"
-      style="border: 1px solid gray;width:19.4rem;padding:0.5rem;
+{#if schemaInEditorTab}
+  <ConfigurationRequired></ConfigurationRequired>
+  <button
+    onclick={() => {
+      schemaInEditorTab = false
+    }}>will work on it</button
+  >
+  <button
+    onclick={() => {
+      closetheApp
+    }}>Close and will restar later</button
+  >
+{:else}
+  <div class="db-params-block">
+    <details style="position:relative;z-index:2;">
+      <summary class="summary">Parameters for Creating Database </summary>
+      <div
+        class="dbname-block"
+        style="border: 1px solid gray;width:19.4rem;padding:0.5rem;
 			border-radius: 6px;margin-top:0.1rem;
 			color: var(--candidate-color);
 			background-color: var(--candidate-bg-color);"
-    >
-      <label>
-        Database Name
-        <br /><input
-          bind:value={db.name}
-          type="text"
-          placeholder="avoid dashes in db-name"
-          style={inputStyle}
-        />
-      </label>
-      <label for="dbOwnerId">
-        Database Owner
-        <br /><input
-          bind:value={db.owner}
-          id="dbOwnerId"
-          type="text"
-          style={inputStyle}
-        />
-      </label>
-      <label>
-        Owner's Password
-        <br /><input
-          bind:value={db.password}
-          type="password"
-          style={inputStyle}
-        />
-      </label>
-      <label>
-        Host Name
-        <br /><input bind:value={db.host} type="text" style={inputStyle} />
-      </label>
-      <label>
-        Communication Port
-        <br /><input bind:value={db.port} type="number" style={inputStyle} />
-      </label>
-    </div>
-  </details>
-
-  <button
-    bind:this={installPrismaButton}
-    cLass="button-install"
-    onclick={startPrismaInstall}
-    style="font-size: 14px !important;cursor:pointer;margin:0'"
-  >
-    <span class:spinner={isInstalling}></span>
-    Install Prisma + Dependencies
-  </button>
-  <!-- <button bind:this={continueButton} onclick={} class="button-install hidden"
-    >Continue</button
-  > -->
-  <button class="button-close" onclick={closetheApp}>close</button>
-
-  {#if isInstalling || progressPercents}
-    <div class="progress-container">
-      <progress value={progressPercents} max="100" style="width: 100%;"
-      ></progress>
-      <p style="padding:0;margin:0;">{progressPercents}% — {statusMessage}</p>
-    </div>
-  {/if}
-</div>
-
-<!-- <div style="border:1px solid red;height:36rem;"> -->
-<div bind:this={gridContainerEl} class="grid-container">
-  <div class="left-column">
-    <label class="dependencies-label">
-      <input
-        type="checkbox"
-        bind:checked={useOnlyBuiltDependencies}
-        style="display:inline-block;"
-      />
-      Pre-approve common build dependencies (recommended)
-    </label>
-    <div class="progress-line">
-      <span class="progress-title" style="margin-left:0.5rem;width:93.3%;"
-        >Progress</span
       >
-      <p bind:this={progressLineEl}></p>
-    </div>
-    <details bind:this={nodeModulesEl} class="node-modules">
-      <summary>node modules</summary>
-    </details>
-    <details bind:this={rawLinesEl} class="raw-lines">
-      <summary>raw lines {rlCounter > 0 ? rlCounter : ''}</summary>
-    </details>
-    <details bind:this={otherLinesEl} class="other-progress-lines overflow-y">
-      <summary>Other Progress Lines</summary>
-    </details>
-    <details bind:this={checkThisEl} class="check-this" style="height:3.5rem">
-      <summary>Check This</summary>
-    </details>
-
-    <details bind:this={otherLinesEl} class="other-progress-lines overflow-y">
-      <summary>Other</summary>
-    </details>
-  </div>
-  <div class="right-column">
-    <details bind:this={depEl} class="dependencies-list overflow-y">
-      <summary>Installed dependencies</summary>
-    </details>
-    <details bind:this={devDepEl} class="dev-dependencies-list overflow-y">
-      <summary>Installed devDependencies</summary>
-    </details>
-    <details class="dev-dependencies-list overflow-y">
-      <summary>Installation Logs</summary>
-      <div class="logs">
-        {#each logs as log (log)}
-          <pre class={log.type}>{log.text}</pre>
-        {/each}
+        <label>
+          Database Name
+          <br /><input
+            bind:value={db.name}
+            type="text"
+            placeholder="avoid dashes in db-name"
+            style={inputStyle}
+          />
+        </label>
+        <label for="dbOwnerId">
+          Database Owner
+          <br /><input
+            bind:value={db.owner}
+            id="dbOwnerId"
+            type="text"
+            style={inputStyle}
+          />
+        </label>
+        <label>
+          Owner's Password
+          <br /><input
+            bind:value={db.password}
+            type="password"
+            style={inputStyle}
+          />
+        </label>
+        <label>
+          Host Name
+          <br /><input bind:value={db.host} type="text" style={inputStyle} />
+        </label>
+        <label>
+          Communication Port
+          <br /><input bind:value={db.port} type="number" style={inputStyle} />
+        </label>
       </div>
     </details>
-  </div>
-</div>
 
-{#if approvalPackages.length > 0}
-  <div class="approval-section">
-    <p>
-      <strong>Some packages require approval to run build scripts:</strong>
-    </p>
-    <ul>
-      {#each approvalPackages as pkg (pkg)}
-        <li>
-          <button onclick={(e: MouseEvent) => approvePackage(e, pkg)}
-            >{pkg}</button
-          >
-        </li>
-      {/each}
-    </ul>
-    <button onclick={approveAll}>Approve All</button>
+    <button
+      bind:this={installPrismaButton}
+      cLass="button-install"
+      onclick={startPrismaInstall}
+      style="font-size: 14px !important;cursor:pointer;margin:0'"
+    >
+      <span class:spinner={isInstalling}></span>
+      Install Prisma + Dependencies
+    </button>
+    <!-- <button bind:this={continueButton} onclick={} class="button-install hidden"
+    >Continue</button
+  > -->
+    <button class="button-close" onclick={closetheApp}>close</button>
+
+    {#if isInstalling || progressPercents}
+      <div class="progress-container">
+        <progress value={progressPercents} max="100" style="width: 100%;"
+        ></progress>
+        <p style="padding:0;margin:0;">{progressPercents}% — {statusMessage}</p>
+      </div>
+    {/if}
   </div>
+
+  <!-- <div style="border:1px solid red;height:36rem;"> -->
+  <div bind:this={gridContainerEl} class="grid-container">
+    <div class="left-column">
+      <label class="dependencies-label">
+        <input
+          type="checkbox"
+          bind:checked={useOnlyBuiltDependencies}
+          style="display:inline-block;"
+        />
+        Pre-approve common build dependencies (recommended)
+      </label>
+      <div class="progress-line">
+        <span class="progress-title" style="margin-left:0.5rem;width:93.3%;"
+          >Progress</span
+        >
+        <!-- <p bind:this={progressLineEl}></p> -->
+      </div>
+      <pre>Here is the #each loop</pre>
+      {#each Object.entries(progressCollector) as [summary, details]}
+        <p>each {summary}</p>
+        <HoveringDetails {summary} {details} />
+      {/each}
+    </div>
+  </div>
+
+  {#if approvalPackages.length > 0}
+    <div class="approval-section">
+      <p>
+        <strong>Some packages require approval to run build scripts:</strong>
+      </p>
+      <ul>
+        {#each approvalPackages as pkg (pkg)}
+          <li>
+            <button onclick={(e: MouseEvent) => approvePackage(e, pkg)}
+              >{pkg}</button
+            >
+          </li>
+        {/each}
+      </ul>
+      <button onclick={approveAll}>Approve All</button>
+    </div>
+  {/if}
 {/if}
 
 <style lang="scss">

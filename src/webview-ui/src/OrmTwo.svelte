@@ -16,15 +16,15 @@
   pageInfo = handlePageInfo as TToggleFunc
 
   function postMessage(command: string, payload?: Payload) {
-    console.log('[OrmTwo] to postMessage', command, payload)
+    //    console.log('[OrmTwo] to postMessage', command, payload)
     vscode.postMessage({ command, payload })
-    console.log('[OrmTwo] postMessage done', command, payload)
+    //    console.log('[OrmTwo] postMessage done', command, payload)
   }
   // const eh = createEventHandler()
   // let button: HTMLButtonElement | null = null
 
   let canContinue = 'Files schema.prisma and connection string are valid'
-  let buttonStartPartTwoEl: HTMLButtonElement
+  // let buttonStartPartTwoEl: HTMLButtonElement
   let partTwoMsgEl: HTMLParagraphElement
   let partTwoMessage = $state('schema.prisma and .env connection string status')
 
@@ -79,20 +79,20 @@
   // }
   // -------- toggle theme end ---------
   // function startPrismaPartTwo() {
-  //   console.log('[OrmOne] startPrismaPartTwo')
+  ////   console.log('[OrmOne] startPrismaPartTwo')
   //   vscode.postMessage({
   //     command: 'showPage',
   //     page: 'OrmTwo',
   //   })
   // }
   function prismaPartTwo() {
-    console.log('[OrmOne] postCommand "prismaPartTwo"')
+    //    console.log('[OrmOne] postCommand "prismaPartTwo"')
     postMessage('prismaPartTwo', {
       payload: 'do prisma init and call OrmPageThree',
     })
   }
   function closeTheApp() {
-    console.log('[OrmOne] postMessage "close" who is listening?')
+    //    console.log('[OrmOne] postMessage "close" who is listening?')
     postMessage('close', { payload: 'close the extension' })
   }
   function setMessage(msg: string) {
@@ -101,7 +101,7 @@
     partTwoMsgEl.classList.remove('hidden')
   }
   onMount(() => {
-    console.log('[OrmTwo] onMount')
+    //    console.log('[OrmTwo] onMount')
     // -------- toggle theme begin ---------
 
     currentTheme = getInitialTheme()
@@ -112,10 +112,10 @@
 
     const handler = (event: MessageEvent) => {
       const msg = event.data
-      console.log('[OrmTwo] got message', msg.command)
+      //      console.log('[OrmTwo] got message', msg.command)
       switch (msg.command) {
         case 'prismaLog':
-          console.log('[OrmTwo] prismaLog', msg.text)
+          //          console.log('[OrmTwo] prismaLog', msg.text)
           break
         case 'enableContinueButton':
           // buttonStartPartTwoEl.classList.remove('hidden')
@@ -138,7 +138,7 @@
       }
     }
     window.addEventListener('message', handler)
-    console.log('[OrmTwo] mounted event listener for "message"')
+    //    console.log('[OrmTwo] mounted event listener for "message"')
 
     return () => {
       window.removeEventListener('message', handler)

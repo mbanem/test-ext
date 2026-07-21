@@ -13,7 +13,7 @@
   }
   pageInfo = handlePageInfo as TToggleFunc
 
-  console.log('[App] top point after $props()')
+  //  console.log('[App] top point after $props()')
   let appName = $state('')
   let isLoading = $state(true)
   // // const vscode = acquireVsCodeApi()
@@ -89,7 +89,7 @@
 
   onMount(() => {
     try {
-      console.log('[OrmThree] postMessage "ready" to extension')
+      //      console.log('[OrmThree] postMessage "ready" to extension')
       vscode.postMessage({
         command: 'ready',
         payload: 'wait for sendingModels from extension',
@@ -97,10 +97,10 @@
 
       const handler = (event: MessageEvent) => {
         const msg = event.data
-        console.log('[OrmThree] got message', msg.command)
+        //        console.log('[OrmThree] got message', msg.command)
         switch (msg.command) {
           case 'sendingModels':
-            console.log('[OrmThree] got models', msg.payload)
+            //            console.log('[OrmThree] got models', msg.payload)
             const pload = $state.snapshot(JSON.parse(msg.payload))
             models = pload.models
             userRoles = Object.keys(
@@ -110,7 +110,7 @@
             break
 
           case 'crudSuportDone':
-            console.log('[OrmThree] crudSuportDone')
+            //            console.log('[OrmThree] crudSuportDone')
             const crudButton = document.getElementById(
               'createBtnId',
             ) as HTMLDivElement
@@ -118,18 +118,18 @@
             crudButton.style.cursor = 'pointer'
             break
           default:
-            console.log('[App] not handled', msg.command, msg)
+          //            console.log('[App] not handled', msg.command, msg)
         }
         isLoading = false
       }
       window.addEventListener('message', handler)
-      console.log('[OrmThree] mounted event listener for "message"')
+      //      console.log('[OrmThree] mounted event listener for "message"')
 
       return () => {
         window.removeEventListener('message', handler)
       }
     } catch (err: unknown) {
-      console.log('[App] onMount try/catch', err)
+      //      console.log('[App] onMount try/catch', err)
     }
   })
 </script>

@@ -3,11 +3,15 @@
 -- TODO
 [ormOne] continue to receive messages after it is done
 
-- making video shorter -- in Dev Tools filter enter [CRUD TEST-EXT] to get only e=xtensiion console.logs
-- console.log('%c🚀 Running in Webview DEV mode', 'color: lime; font-size: 13px')
+- making video shorter -- in Dev Tools filter enter [CRUD TEST-EXT] to get only extensiion// console.logs
+
+writig color messages in Firefox terminal from Svelte page
+-// console.log('%c🚀 Running in Webview DEV mode', 'color: lime; font-size: 13px')
+
 - rm -rf out *.vsix node_modules/.cache node_modules/.vite; pnpm ix
 - what Ubuntu version is in WSL
   cat /etc/os-release
+
 - Part One.
   On start it tries to find approot/prisma/schema.prisma and
   if not found it offers to install necessary npm packages

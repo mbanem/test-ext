@@ -1,70 +1,71 @@
 <script lang="ts">
   // CRActivity
-  import { onMount } from 'svelte';
-  import * as utils from '$lib/utils';
+  import { onMount } from 'svelte'
+  import * as utils from '../../webview-ui/src/lib/utils/'
+
   type ARGS = {
-    PageName: string;
-    result: string;
-    selectedUserId: string;
-    user: UserPartial;
-    users: UserPartial[] | [];
-  };
+    PageName: string
+    result: string
+    selectedUserId: string
+    user: UserPartial
+    users: UserPartial[] | []
+  }
   let {
     PageName,
     result = $bindable(),
     selectedUserId = $bindable(),
     user,
     users,
-  }: ARGS = $props();
+  }: ARGS = $props()
 
   if (users?.length === 0) {
-    users[0] = user as UserPartial;
+    users[0] = user as UserPartial
   }
   const selectedUserId_ = () => {
-    return selectedUserId;
-  };
+    return selectedUserId
+  }
 
   const getSelectedUserRole = () => {
-    if (!users) return '';
-    return users.filter((user) => user.id === selectedUserId)[0]?.role as Role;
-  };
+    if (!users) return ''
+    return users.filter((user) => user.id === selectedUserId)[0]?.role as Role
+  }
   // svelte-ignore non_reactive_update
   // let msgEl: HTMLSpanElement;
   // svelte-ignore non_reactive_update
-  let msgEl: HTMLSpanElement;
-  let selectBox: HTMLSelectElement;
-  let timer: NodeJS.Timeout | string | number | undefined; //ReturnValue<typeof setTimeout>;
+  let msgEl: HTMLSpanElement
+  let selectBox: HTMLSelectElement
+  let timer: NodeJS.Timeout | string | number | undefined //ReturnValue<typeof setTimeout>;
   const killTimer = () => {
     if (timer) {
-      clearTimeout(timer);
-      timer = undefined;
+      clearTimeout(timer)
+      timer = undefined
     }
-  };
+  }
   const scheduleClearMessage = () => {
-    killTimer();
+    killTimer()
     timer = setTimeout(() => {
-      result = '';
+      result = ''
       if (msgEl) {
-        msgEl.innerText = '';
+        msgEl.innerText = ''
       }
-    }, 2000);
-  };
+    }, 2000)
+  }
   const showResult = () => {
-    scheduleClearMessage();
-    return result;
-  };
+    scheduleClearMessage()
+    return result
+  }
   let [userName, role] = $derived.by(() => {
-    let user = users?.filter((u) => u.id === selectedUserId)[0] as UserPartial;
+    let user = users?.filter((u) => u.id === selectedUserId)[0] as UserPartial
     if (user) {
-      return [`${user?.firstName} ${user?.lastName}`, user.role];
+      return [`${user?.firstName} ${user?.lastName}`, user.role]
     } else {
-      return ['not available', 'VISITOR'];
+      return ['not available', 'VISITOR']
     }
-  });
+  })
 
   onMount(() => {
-    selectedUserId = user.id as string;
-  });
+    selectedUserId = user.id as string
+  })
 </script>
 
 <svelte:head>

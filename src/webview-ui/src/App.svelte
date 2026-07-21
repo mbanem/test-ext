@@ -17,6 +17,12 @@
     | typeof import('./OrmTwo.svelte')
     | typeof import('./OrmThree.svelte')
 
+  export const handleTryCatch = (err: unknown, info?: string) => {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.log(info, msg)
+  }
+  // Attach the actual function to the global scope
+  ;(globalThis as any).handleTryCatch = handleTryCatch
   const pageLoaders = {
     OrmOne: () => import('./OrmOne.svelte'),
     OrmTwo: () => import('./OrmTwo.svelte'),
@@ -44,13 +50,13 @@
 
   async function loadPage(pageKey: PageKey) {
     if (key === pageKey && Current) {
-      console.log(
-        '[App] loadPage multiple calls with the same pageKey',
-        pageKey,
-      )
+      //      console.log(
+      //   '[App] loadPage multiple calls with the same pageKey',
+      //   pageKey,
+      // )
       return
     }
-    console.log('[App] loadPage', pageKey)
+    //    console.log('[App] loadPage', pageKey)
     isLoading = true
     loadError = null
     key = pageKey
@@ -59,7 +65,7 @@
       const loader = pageLoaders[pageKey]
       const module = await loader() // { default: Component, ... }
       Current = module.default // This is the Svelte component constructor
-      console.log(`[App] loadPage set ${pageKey} as the Current`)
+      //      console.log(`[App] loadPage set ${pageKey} as the Current`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[App] loadPage error for', pageKey, msg)
@@ -72,11 +78,11 @@
   // Trigger initial load
   function getInitialPage(): PageKey {
     let initialPage: PageKey = 'OrmOne' // default
-    // console.log('[App] getInitialPage() called set OrmOne as default')
+    //// console.log('[App] getInitialPage() called set OrmOne as default')
     // Priority 1: Global variable (injected by extension)
     if ((window as any).__INITIAL_PAGE) {
       initialPage = (window as any).__INITIAL_PAGE as PageKey
-      console.log(`[App] Found window.__INITIAL_PAGE = ${initialPage}`)
+      //      console.log(`[App] Found window.__INITIAL_PAGE = ${initialPage}`)
 
       // Clean up
       delete (window as any).__INITIAL_PAGE
@@ -84,52 +90,52 @@
     else {
       const appDiv = document.getElementById('app')
       initialPage = (appDiv?.dataset.initialPage as PageKey) || 'OrmOne'
-      console.log(`[App] Used data-initial-page: ${initialPage}`)
+      //      console.log(`[App] Used data-initial-page: ${initialPage}`)
     }
-    // console.log(`[App] getInitialPage → ${initialPage}`)
+    //// console.log(`[App] getInitialPage → ${initialPage}`)
     return initialPage
   }
   onMount(() => {
-    console.log('[App] onMount - timestamp:', new Date().toISOString())
+    //    console.log('[App] onMount - timestamp:', new Date().toISOString())
     theme = getInitialTheme()
     applyTheme(theme)
 
     const initialPage: PageKey = getInitialPage()
-    console.log('[App] got initialPage', initialPage)
+    //    console.log('[App] got initialPage', initialPage)
 
     loadPage(initialPage)
-    console.log('[App] after loadPage', initialPage)
+    //    console.log('[App] after loadPage', initialPage)
     // listener for server-side messages
     const handler = (event: MessageEvent) => {
       try {
         const msg = event.data
         switch (msg.command) {
           case 'showPage':
-            console.log('[App] showPage', msg)
+            //            console.log('[App] showPage', msg)
             const page = msg.page as PageKey
             if (['OrmOne', 'OrmTwo', 'OrmThree'].includes(page)) {
-              console.log('[App] calling loadPage', page)
+              //              console.log('[App] calling loadPage', page)
               loadPage(page)
             }
             break
           case 'prismaInitDone':
-            console.log('[App] prismaInitDone display OrmThree', msg.payload)
+            //            console.log('[App] prismaInitDone display OrmThree', msg.payload)
             loadPage('OrmThree')
             break
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.log('[App] listenner error msg and event.data', msg)
+        //        console.log('[App] listenner error msg and event.data', msg)
       }
     }
     window.addEventListener('message', handler)
     // vscode.postMessage({
     //   command: 'AppSvelteReady',
     // })
-    console.log('[App] set up event listener for "message"')
+    //    console.log('[App] set up event listener for "message"')
 
     return () => {
-      console.log('[App] removing listener')
+      //      console.log('[App] removing listener')
       window.removeEventListener('message', handler)
     }
   })

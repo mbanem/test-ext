@@ -13,7 +13,7 @@ export const vscode =
       acquireVsCodeApi()
     : {
         postMessage: (msg: any) => {
-          console.log(`[DEV] ${msg.command} in progress...`)
+          //          console.log(`[DEV] ${msg.command} in progress...`)
           setTimeout(() => {
             console.log(
               `${msg.command} is done`,
@@ -23,10 +23,6 @@ export const vscode =
         },
       }
 
-// export const handleTryCatch = (err: unknown, info?: string) => {
-//   const msg = err instanceof Error ? err.message : String(err)
-//   console.log(info, msg)
-// }
 // src/webview-ui/src/lib/utils/vscode.ts
 
 export interface ConfirmationOptions {
@@ -49,7 +45,7 @@ export interface ConfirmationResponse {
 export function showConfirmation(
   options: ConfirmationOptions,
 ): Promise<boolean> {
-  console.log('get promise showConfirmation options')
+  //  console.log('get promise showConfirmation options')
   return new Promise((resolve) => {
     const id = `confirm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 
@@ -58,10 +54,10 @@ export function showConfirmation(
     // and upon receiving the message with the correct id should be removed and resolve the promise with the confirmation result
     const messageHandler = (event: MessageEvent) => {
       const msg = event.data
-      console.log('event-handler.browser got response', msg)
+      //      console.log('event-handler.browser got response', msg)
 
       if (msg.command === 'confirmationResponse' && msg.payload?.id === id) {
-        console.log('command name OK', msg.payload.confirmed)
+        //        console.log('command name OK', msg.payload.confirmed)
         // though the emitter window would do it we would be removing the listener
         window.removeEventListener('message', messageHandler)
         resolve(msg.payload.confirmed)
@@ -261,7 +257,7 @@ export const createEventHandler = () => {
     },
 
     remove(element: HTMLElement | string, eventType: TEventType) {
-      console.log('remove', element, eventType)
+      //      console.log('remove', element, eventType)
       const wrapperEl = resolveElement(element)
       const map = wrapperListeners.get(wrapperEl as HTMLElement)
 

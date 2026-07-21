@@ -14,6 +14,7 @@ declare global {
     attrs?: string
     permissions?: string
   }
+  function myGlobalFunction(param: string): number
   // no name; it should be part of Models with their name as a key
   export type Model = {
     fields: Field[]
@@ -34,7 +35,13 @@ declare global {
   export type Payload = Record<
     string,
     SelectedModels | Model | Components | string
-  > // { route: string | null } = { route: null };
+  >
+  export type Role = 'User' | 'Admin' | 'Moderator' | 'Visitor' | 'Customer'
+  export type UserOartial = {
+    firstName: string
+    lastName: string
+    role: Role
+  }
   export type RouteName = string
   export type SelectedModels = Record<RouteName, Model>
   export type Payload = Record<

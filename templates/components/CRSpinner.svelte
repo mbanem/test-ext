@@ -46,23 +46,23 @@
 -->
 <script lang="ts">
   // components/CRSpinner.svelte
-  export type TButtonSpinner = HTMLButtonElement & CRSpinner;
+  export type TButtonSpinner = HTMLButtonElement & CRSpinner
 
   type TProps = {
-    caption: string;
-    button: HTMLButtonElement;
-    spinOn: boolean;
-    formaction?: string;
-    hidden?: boolean;
-    disabled?: boolean;
-    cursor?: boolean;
-    color?: string;
-    duration?: string;
-    spinnerSize?: string;
-    top?: string;
-    width?: string;
-    height?: string;
-  };
+    caption: string
+    button: HTMLButtonElement
+    spinOn: boolean
+    formaction?: string
+    hidden?: boolean
+    disabled?: boolean
+    cursor?: boolean
+    color?: string
+    duration?: string
+    spinnerSize?: string
+    top?: string
+    width?: string
+    height?: string
+  }
   let {
     caption = 'button',
     button = $bindable(),
@@ -77,7 +77,7 @@
     top = `0`,
     width = 'max-content',
     height = '2rem',
-  }: TProps = $props();
+  }: TProps = $props()
 </script>
 
 {#snippet spinner(color: string)}
@@ -116,7 +116,7 @@
   </button>
 </p>
 
-<style>
+<style lang-;scss;>
   .spinner {
     position: absolute;
     display: inline-block;

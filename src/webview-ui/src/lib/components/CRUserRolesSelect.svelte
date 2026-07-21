@@ -35,7 +35,7 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       case 'selectedRoles': {
         selectedModel = (el.parentElement as HTMLElement)?.dataset
           .model as string
-        // console.log('switch selectedRoles', selectedModel);
+        //// console.log('switch selectedRoles', selectedModel);
         // in order to position drop down find rect of currently selected role-list
         // const { x, y } = el.getBoundingClientRect();
         Object.assign(dropdownEl.style, {

@@ -18,12 +18,12 @@ export function displayWebview(
   initialPage: 'OrmOne' | 'OrmTwo' | 'OrmThree',
 ): TResult {
   // initialPage = 'index'
-  console.log('[Webview] displayWebview with initialPage', initialPage)
+  //  console.log('[Webview] displayWebview with initialPage', initialPage)
   try {
     const html = loadMainMarkup(context, panel.webview, initialPage)
-    // console.log(`[Webview] Setting panel.webview.html (length: ${html.length})`)
+    //// console.log(`[Webview] Setting panel.webview.html (length: ${html.length})`)
     panel.webview.html = html
-    // console.log(
+    //// console.log(
     //   '[Webview] displayWebview: HTML loaded into panel.webview.html successfully',
     // )
     setTimeout(() => {
@@ -32,7 +32,7 @@ export function displayWebview(
         page: initialPage,
       })
     }, 500)
-    console.log(`[Webview] displayWebview FINISHED successfully`)
+    //    console.log(`[Webview] displayWebview FINISHED successfully`)
     return { success: true }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -46,7 +46,7 @@ function loadMainMarkup(
   webview: vscode.Webview,
   initialPage: string,
 ): string {
-  // console.log(
+  //// console.log(
   //   `[webview] loadMainMarkup: Injecting data-initial-page or window.__INITIAL_PAGE = ${initialPage}`,
   // )
   const nonce = getNonce()
@@ -72,11 +72,11 @@ function loadMainMarkup(
     //   'webview-ui',
     //   'index.html',
     // )
-    // console.log('[webview] loadMainMarkup path', c1) // c2)
+    //// console.log('[webview] loadMainMarkup path', c1) // c2)
     // for (const candidate of [c1, c2]) {
     if (fs.existsSync(c1)) {
       htmlPath = c1
-      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
+      //      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
       break
     }
     // }
@@ -84,14 +84,14 @@ function loadMainMarkup(
     //   break
     // }
   }
-  // console.log('[webview] htmlPath?', htmlPath)
+  //// console.log('[webview] htmlPath?', htmlPath)
   if (!htmlPath) {
     console.log(
       `[Webview] ⚠️ HTML not found for index.html, falling back to dev mode`,
     )
     return getDevHtml(webview, 'index')
   }
-  // console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
+  //// console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
   let html = fs.readFileSync(htmlPath, 'utf-8')
 
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
@@ -119,13 +119,13 @@ function loadMainMarkup(
         )
         return `${attr}="${assetUri}"`
       } catch (err) {
-        console.log(`Failed to convert asset: ${relativePath}`)
+        //        console.log(`Failed to convert asset: ${relativePath}`)
         return fullMatch
       }
     },
   )
 
-  // console.log(`[webview] raw ${initialPage}html length: ${html.length}`)
+  //// console.log(`[webview] raw ${initialPage}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -152,11 +152,11 @@ function loadMainMarkup(
     </script>
     <script type="module"`,
   )
-  // console.log(`[Webview] Final HTML length: ${html.length}`)
-  console.log(
-    `[Webview] HTML contains __INITIAL_PAGE:`,
-    html.includes(initialPage),
-  )
+  //// console.log(`[Webview] Final HTML length: ${html.length}`)
+  //  console.log(
+  //   `[Webview] HTML contains __INITIAL_PAGE:`,
+  //   html.includes(initialPage),
+  // )
   return html
 }
 

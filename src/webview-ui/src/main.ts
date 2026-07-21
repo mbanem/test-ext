@@ -8,7 +8,7 @@ const app = mount(App, {
 console.log('[main] App.svelte mounted successfully', new Date().toISOString())
 // Optional: expose for cleanup / HMR in dev
 if (import.meta.hot) {
-  console.log('[main] disposing')
+  //  console.log('[main] disposing')
   import.meta.hot.accept()
   import.meta.hot.dispose(() => unmount(app))
 }

@@ -7,10 +7,9 @@ async function directoryExists(uri: vscode.Uri): Promise<boolean> {
     const result = await vscode.workspace.fs.stat(uri)
     // Check if the URI points to a directory
     return result.type === vscode.FileType.Directory
-  } catch {
+  } catch (err: unknown) {
     // If stat throws, the file or directory does not exist
-    return false
-  }
+  handleTryCatch(false, 'directoryExists') 
 }
 
 async function fileExists(uri: vscode.Uri): Promise<boolean> {
@@ -29,7 +28,7 @@ export async function copySelectedComponents(
   root: string,
   crComponents: string[],
 ): Promise<void> {
-  console.log('[copyComponents] copySelectedComponents entry')
+  //  console.log('[copyComponents] copySelectedComponents entry')
   // components are not selected
   if (!crComponents?.length) {
     return
@@ -42,7 +41,7 @@ export async function copySelectedComponents(
   try {
     if (!(await directoryExists(targetUri))) {
       await vscode.workspace.fs.createDirectory(targetUri)
-      console.log(`[copyComponents] Created directory: ${componentsTargetDir}`)
+      //      console.log(`[copyComponents] Created directory: ${componentsTargetDir}`)
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -78,18 +77,18 @@ export async function copySelectedComponents(
   }
 
   if (copied.length > 0) {
-    console.log('[copyComponents] copied', copied.length)
+    //    console.log('[copyComponents] copied', copied.length)
     vscode.window.showInformationMessage(
       `✅ Copied ${copied.join(',')} component(s) to src/lib/components`,
     )
   }
 
   if (failed.length > 0) {
-    console.log('[copyComponents] failed', failed.length)
+    //    console.log('[copyComponents] failed', failed.length)
     vscode.window.showWarningMessage(`⚠️ Failed to copy: ${failed.join(', ')}`)
   }
   if (existed.length > 0) {
-    console.log('[copyComponents] Already existed', existed.length)
+    //    console.log('[copyComponents] Already existed', existed.length)
     vscode.window.showWarningMessage(
       `⚠️ Already existed: ${existed.join(', ')}`,
     )

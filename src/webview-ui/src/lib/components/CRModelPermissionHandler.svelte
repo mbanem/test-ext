@@ -84,7 +84,7 @@
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.log(msg)
+        //        console.log(msg)
       }
     }
   }
@@ -122,6 +122,7 @@
       return {
         name: 'password',
         isDataEntry: true,
+        isOptional: false,
         isArray: false,
         attrs: 'saved excrypted',
       } as Field
@@ -169,7 +170,7 @@
       tooltipBlockEl.style.opacity = '0'
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.log('addFieldToModel', msg)
+      //      console.log('addFieldToModel', msg)
     }
     if (anySelected()) {
       exportModels()
