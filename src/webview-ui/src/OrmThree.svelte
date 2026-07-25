@@ -129,7 +129,6 @@
         //        console.log('[OrmThree] got message', msg.command)
         switch (msg.command) {
           case 'sendingModels':
-            //            console.log('[OrmThree] got models', msg.payload)
             const pload = $state.snapshot(JSON.parse(msg.payload))
             models = pload.models
             userRoles = Object.keys(

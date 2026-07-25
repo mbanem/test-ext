@@ -29,41 +29,7 @@ Prisma ORM installation is pending and not yet completed.
 It will be deleted  after the second part of installation is done.
 if you manually finished the second part please delete this file.
 `
-const schemaWhatToDo = `/*
-MAKE YOUR PRISMA SCHEMA MODELS HERE
-As databases could have stronger requests for naming tables and columns
-use Prisma modification operators for renaming TypeScript model names
-into new database names like
-    model User {
-      id      			String   @id @default(uuid())
-      firstName    	String   @map("first_name")
-      createdAt DateTime @default(now())   @map("created_at")
-      @@map("users")
-    }
-Now in your program you use firstName but in db it is the first_name
-and the table in program is User but in db users thanks to the operators
-@map first_name and @@map users, as some db have
-internal user table so we use plural instead.
-*/`
 
-const envWhatToDo = `# Environment variables declared in this file are automatically made available to Prisma.
-// See the documentation for more detail: https://pris.ly/d/prisma-schema//accessing-environment-variables-from-the-schema
-
-// Prisma supports the native connection string format for PostgreSQL, MySQL, SQLite, SQL Server, MongoDB and CockroachDB.
-// See the documentation for all the connection string options: https://pris.ly/d/connection-strings
-
-// example is for PostgreSQL, change values wrapped in
-// username is a Role in PostgreSQL
-// password is username's db password
-// dbName is database name to connect to
-
-DATABASE_URL="postgresql://username:password@localhost:5432/dbName?schema=public"
-
-// see docs for how to use SECRET_API_KEYs
-SECRET_APT_KEY="kiki:kiki@localhost:5432
-SECRET_APT_ENV=development
-SECRET_API_KEY=1234567890
-`
 
 let pm = 'unknown'
 let ex = 'unknown'
@@ -108,16 +74,12 @@ function createPendingFile() {
   fs.writeFileSync(paths.pending, pendingText, 'utf-8')
 }
 function deletePendingFile() {
-  //  console.log('[ormOne] tries to delete pending file')
   if (fs.existsSync(paths.pending)) {
-    //    console.log('[ormOne] pending fils exists')
     fs.unlink(paths.pending, (err) => {
       if (err) {
         console.log(
           'Could not delete installPartTwo.pending file at App Root. Delete it yourself',
         )
-      } else {
-        //        console.log('[ormOne] pending file deleted')
       }
     })
   }
@@ -126,38 +88,35 @@ function deletePendingFile() {
 async function openFilesInEditorTabs(
   thePaths: string[],
   webview?: vscode.Webview,
+  beside: boolean = false,
 ): Promise<CommandResultTracker<boolean>> {
   let result = new CommandResultTracker<boolean>(true)
   try {
     // pin extension tab to make reak estate for two editor tabs schena & .env
     await vscode.commands.executeCommand('workbench.action.pinEditor')
-    console.log('[ormOne] openFilesInEditorTabs: pinEditor')
     thePaths.forEach(async (p) => {
-      console.log('[ormOne] try to make uri from path:', p)
       let uri = vscode.Uri.file(p)
       // Open schema content in new tab (beside current editor)
-      console.log('[ormOne] try showTextDocument', uri)
       const pDoc = await vscode.window.showTextDocument(uri, {
-        viewColumn: vscode.ViewColumn.Active, // Opens beside active editor
+        viewColumn: beside
+          ? vscode.ViewColumn.Beside
+          : vscode.ViewColumn.Active, // Opens beside active editor
         preview: false, // Optional: Force a new tab (not preview mode)
       })
 
       // Programmatically trigger a "dirty" state by appending and removing a space
-      console.log('[ormOne] try ti make doc dirty')
       await pDoc.edit((editBuilder) => {
         // 1. Get the position at the very end of the document
         const endPosition = pDoc.document.positionAt(
           pDoc.document.getText().length,
         )
-
-        // 2. Insert a temporary character (e.g., a space)
+        // 2. Insert a space to make the file dirty for saving
         editBuilder.insert(endPosition, ' ')
       })
 
       // At this point, the document is officially marked as dirty.
       // Now, remove temporary character so the actual text isn't fundamentally altered.
       // Some editors would ignore saving as nothing was actually changed
-      console.log('[ormOne] remove dirty char, doc stay dirty')
       await pDoc.edit((editBuilder) => {
         const textLength = pDoc.document.getText().length
         const lastCharPosition = pDoc.document.positionAt(textLength - 1)
@@ -167,24 +126,18 @@ async function openFilesInEditorTabs(
         const rangeToRemove = new vscode.Range(lastCharPosition, endPosition)
         editBuilder.delete(rangeToRemove)
       })
-      console.log('[ormOne] after delete dirty char')
       // 1. Create a range at the very start of the document (Line 0, Column 0)
       const startPosition = new vscode.Position(0, 0)
-      const startRange = new vscode.Range(startPosition, startPosition)
+      const startRange = new vscode.Range(
+        new vscode.Position(0, 0),
+        new vscode.Position(0, 1),
+      )
 
-      console.log('[ormOne] reveal top range')
       // 2. Reveal that range at the top of the editor
       pDoc.revealRange(startRange, vscode.TextEditorRevealType.AtTop)
-      console.log('[ormOne] after reveal top range')
     })
-    console.log('[ormOne] wanted to post schemaAndEnvInEditorTabs')
-    // webview?.postMessage({
-    //   command: 'schemaAndEnvInEditorTabs',
-    //   payload: 'show requirements for schema and .env',
-    // })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.log('[ormOne] openFilesInEditorTabs', err)
     result.setSuccess(false)
   }
   return result
@@ -306,16 +259,11 @@ export async function setupOrmOneMessageHandler(
   // 1. Listen for the save event
   const saveListener = vscode.workspace.onDidSaveTextDocument(
     (document: vscode.TextDocument) => {
-      // const saveDocUri = document.uri.toString()
-      //      console.log('[ormOne] onDidSaveTextDocument saved', document.fileName)
       set.add(path.basename(document.fileName))
-      //      console.log('[ormOne] onDidSaveTextDocument saved documents', set)
 
       if (set.has('schema.prisma') && set.has('.env')) {
         const { models, connOK } = areSchemaAndEnvOK()
-        //        console.log('[ormOne] models', models, connOK)
         if (models && connOK) {
-          //          console.log('[ormOne] schema and connection string are OK and')
           try {
             webview.postMessage({
               command: 'showPage',
@@ -339,7 +287,6 @@ export async function setupOrmOneMessageHandler(
     },
   )
   context.subscriptions.push(saveListener)
-  //  console.log('[ormOne] set onDidReceiveMessage')
   paths = thepaths
   let messageListener: any
   let dispose = false
@@ -354,9 +301,7 @@ export async function setupOrmOneMessageHandler(
     messageListener = webview.onDidReceiveMessage(async (msg) => {
       switch (msg.command) {
         case 'checkOnPendingFile':
-          //          console.log('[ormOne] got checkOnPendingFile')
           if (fs.existsSync(paths.pending)) {
-            // console.log('[ormOne] pending file found')
             pendingFileFound = true
             const result = await openFilesInEditorTabs([
               paths.schema,
@@ -370,9 +315,6 @@ export async function setupOrmOneMessageHandler(
           }
           break
         case 'ready':
-          console.log(
-            '[ormOne] got "ready" from OrmThree, reading schema.prisma',
-          )
           let schema = ''
           schema = fs.readFileSync(paths.schema, 'utf-8')
           if (!schema) {
@@ -384,15 +326,11 @@ export async function setupOrmOneMessageHandler(
             console.log('[ormOne] parse schema.prisma returned no models')
             return
           }
-          //          console.log('[extension] models.length?', Object.keys(models).length)
-          //          console.log('[extension] postMessage "sendingModels" stringified')
-          //          console.log('[ormOne] extracting appName from', paths.root)
           const appName = paths.root.match(
             /\/?([a-zA-z0-9_-]+)$/,
           )?.[1] as string
 
           const videoUris = getVideoUris(videoNames)
-          console.log('[ormOne] post videoUris', videoUris)
           panel!.webview.postMessage({
             command: 'sendingModels',
             payload: JSON.stringify({
@@ -404,35 +342,21 @@ export async function setupOrmOneMessageHandler(
           })
           break
         case 'close':
-          //          console.log('[ormOne]  extension is closing, panel!.dispose()')
           saveListener.dispose()
           messageListener.dispose()
           panel!.dispose()
           break
         case 'prismaPartOne':
           if (pendingFileFound) {
-            console.log(
-              '[ormOne] got prismaPartOne but ignored as pendigFileFound',
-              pendingFileFound,
-            )
             break
           }
-          //          console.log('[ormOne] received prismaPartOne message', msg)
           if (!initial) {
-            console.log(
-              '[ormOne] get prismaPartOne but initial is false, will return success',
-            )
             result.setSuccess(true)
             return result
-          } else {
-            //  console.log(
-            //   '[ormOne] command prismaPartOne received, initial is true',
-            // )
           }
           initial = false
           if (msg.dbParams) {
             db = JSON.parse(msg.dbParams)
-            //            console.log('[ormOne] got prismaPartOne received db ', db)
           }
           pm = detectPackageManager()
 
@@ -441,10 +365,8 @@ export async function setupOrmOneMessageHandler(
             result.setSuccess(false)
             return result
           } else {
-            //            console.log('[ormOne] package manager is', pm)
             ex = xPackageManager(pm)
           }
-          // console.log('[ormOne] installPrisma first call')
           result = await installPrisma(
             webview,
             {
@@ -463,7 +385,6 @@ export async function setupOrmOneMessageHandler(
             )
             return result
           }
-          // console.log('[ormOne] installPrisma second call')
           result = await installPrisma(
             webview,
             {
@@ -483,13 +404,11 @@ export async function setupOrmOneMessageHandler(
             return result
           }
 
-          //          console.log('[ormOne] NEXT -- IMPORTANT PRISMA INIT MESSAGE')
           // ===================================================================
 
           const execFileAsync = promisify(execFile)
 
           // ... inside prismaPartOne case, after installing packages:
-          //          console.log('[ormOne] Starting Prisma init with direct spawn...')
 
           async function executeCommand(
             args: string[],
@@ -501,7 +420,7 @@ export async function setupOrmOneMessageHandler(
               })
 
               if (stdout) {
-                //                console.log('[ormOne] prisma stdout', stdout)
+                console.log('[ormOne] prisma stdout', stdout)
               }
               if (stderr) {
                 console.log(
@@ -536,19 +455,13 @@ export async function setupOrmOneMessageHandler(
           }
 
           const args = getPrismaComandArgs()
-          //          console.log('[ormOne]  getPrismaComandArgs treturned', args)
           if (!(await executeCommand(args.init))) {
-            //            console.log('[ormOne] prisma init failed')
             result.setSuccess(false)
             return result
           }
           // ===================================================================
           const dblink = `DATABASE_URL=postgresql://${db.owner}:${db.password}@localhost:${db.port}/${db.name}?schema=public`
-          //          console.log('[ormOne] preparing dblink for .env file', dblink)
           if (fs.existsSync(paths.env)) {
-            // console.log(
-            //   '[ormOne] .env file exists, now checking for DATABASE_URL in it',
-            // )
             // read .env file content
             let envContent = fs.readFileSync(paths.env, 'utf-8')
 
@@ -570,26 +483,16 @@ export async function setupOrmOneMessageHandler(
               fs.appendFileSync(paths.env, '\n' + dblink, 'utf-8')
             }
           } else {
-            // console.log(
-            //   '[ormOne] .env file does not exist, creating it with the new connection string',
-            // )
             // .env file does not exist, create it with the new connection string
             fs.writeFileSync(paths.env, dblink, 'utf-8')
           }
-          //          console.log('[ormOne] waitForNewFile prisma.config.ts')
           let configOK = false
 
           configOK = await waitForNewFile(
             path.join(paths.root, 'prisma.config.ts'),
             30000,
           )
-          if (configOK) {
-            //            console.log(
-            //   `[ormOne] Prisma prisma.config.ts created at ${paths.root}`,
-            // )
-          } else {
-            //            console.log(`[ormOne] prisma.config.ts is not created in 30 sec`)
-          }
+
           result.setSuccess(configOK)
           result = await createRoleAndDb()
           if (!result.success) {
@@ -606,15 +509,6 @@ export async function setupOrmOneMessageHandler(
           // +++++++++++++++ Create Uri for the schema file  +++++++++++++++++++++
           openFilesInEditorTabs([paths.schema, paths.env])
 
-          // createPendingFile()
-          console.log(
-            '[ormOne] end of installPrismaPartOne -- return result.success',
-            result.success,
-          )
-
-          //          console.log(
-          //   '[ormOne] clear multiple /src/generated/prisma messages from .gitignore',
-          // )
           // clear multiple /src/generated/prisma messages from .gitignore
           const gitignorePath = path.join(paths.root, '.gitignore')
           if (fs.existsSync(gitignorePath)) {
@@ -646,7 +540,6 @@ export async function setupOrmOneMessageHandler(
           break // TODO return result or break?
 
         case 'approveAllBuildPackages':
-          //          console.log('[ormOne] command approveAllBuildPackage received')
           // Run pnpm approve-builds (approves everything pending)
           await runCommandStream('pnpm', ['approve-builds'], {
             cwd: paths.root,
@@ -654,7 +547,6 @@ export async function setupOrmOneMessageHandler(
           break
 
         case 'approveBuildPackage':
-          //          console.log('[ormOne] command approveBuildPackage received')
           await runCommandStream('pnpm', ['approve-builds', msg.package], {
             cwd: paths.root,
           })
@@ -662,49 +554,17 @@ export async function setupOrmOneMessageHandler(
       }
     })
   } finally {
-    //    console.log('[ormOne] try/finaly is finaly executing')
-
-    if (result.success) {
-      //      console.log('[ormOne] try/finaly success is true')
-      //// console.log('[ormOne] postMessage prismaPartOneDone to ormOne')
-      // if (displayWebview(context, panel!, 'OrmTwo').success) {
-      //   const res = await setupOrmTwoMessageHandler(
-      //     context,
-      //     panel!.webview,
-      //     paths,
-      //     schemaDoc,
-      //     envDoc,
-      //   )
-      // } else {
-      ////   console.log(
-      //     '[ormOne] closing displayWebview OrmTwo return result.success false',
-      //   )
-      // }
-      // webview.postMessage({
-      //   command: 'prismaPartOneDone',
-      //   payload: 'the finally part',
-      // })
-    } else {
-      //      console.log('[ormOne] prismaPartOne failed')
+    if (!result.success) {
       webview.postMessage({
         command: 'prismaPartOneFailed',
       })
     }
-    // setTimeout(() => {
-    //   if (dispose) {
-    ////     console.log(
-    //       '[ormOne] setupOrmOneMessageHandler onDidReceiveMessage: disposing',
-    //     )
-    //     messageListener.dispose()
-    //   }
-    // }, 200)
   }
   return result
 }
 
 async function createRoleAndDb(): Promise<CommandResultTracker<boolean>> {
   let result = new CommandResultTracker<boolean>(true)
-  //  console.log(`[ormOne] createRoleAndDb ENTRY POINT`)
   // db admin must login in order to create role and database for the user,
   // so we connect to postgres with admin credentials
   const client = new Client({
@@ -714,26 +574,18 @@ async function createRoleAndDb(): Promise<CommandResultTracker<boolean>> {
     password: 'kiki',
     database: 'postgres',
   })
-  //  console.log('[ormOne] createRoleAndDb CLIENT CONNECT')
-  //  console.log([
-  //   '[ormOne] createRoleAndDb Connecting to Postgres with admin credentials...',
-  //   JSON.stringify(client),
-  // ])
-  // await client.connect()
+
   try {
     // This resolves to undefined; do not assign it to a variable
     await client.connect()
-    //    console.log('[ormOne] client.connect successful')
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.stack : String(err)
-    //    console.log(`[ormOne] Failed to connect to pg Client: ${msg}`)
     result.error = err as Error
     result.setSuccess(false)
     return result
   }
 
   try {
-    //    console.log(`[ormOne] Creating role ${db.owner}...`)
     const roleExists = await client.query(
       `SELECT 1 FROM pg_roles WHERE rolname = $1`,
       [db.owner],
@@ -741,15 +593,11 @@ async function createRoleAndDb(): Promise<CommandResultTracker<boolean>> {
 
     // role not found
     if (roleExists.rowCount === 0) {
-      //      console.log('[ormOne] role does not exist, create one')
       await client.query(
         `CREATE ROLE "${db.owner}" LOGIN PASSWORD '${db.password}' CREATEDB`,
       )
-    } else {
-      //      console.log('[ormOne] role already exists, skipping creation')
     }
 
-    //    console.log(`[ormOne] Does database ${db.name}... exists?`)
     // check existence
     const res = await client.query(
       `SELECT 1 FROM pg_database WHERE datname = $1`,
@@ -757,11 +605,9 @@ async function createRoleAndDb(): Promise<CommandResultTracker<boolean>> {
     )
 
     if (res.rowCount === 0) {
-      //      console.log(`[ormOne] no database found; create ${db.name}`)
       await client.query(`CREATE DATABASE "${db.name}" OWNER "${db.owner}"`)
     }
 
-    //    console.log(`[ormOne] client.end()`)
     await client.end()
 
     result.setSuccess(true)
@@ -785,14 +631,12 @@ async function installPrisma(
 ): Promise<CommandResultTracker<boolean>> {
   let result = new CommandResultTracker<boolean>(false)
   let installArgs = dd === '' ? ['i', ...packages] : ['i', dd, ...packages]
-  //  console.log('[ormOne] installArgs', installArgs)
   // if (options.useOnlyBuiltDependencies) {
   //   installArgs.push(
   //     '--config.onlyBuiltDependencies=prisma,@prisma/client,esbuild,sharp,@swc/core,better-sqlite3',
   //   )
   // }
   try {
-    //// console.log('[ormOne] installPrisma')
     webview.postMessage({
       command: 'prismaInstallStart',
       message: `Starting Prisma at ${paths.root} dependencies installation...`,
@@ -804,7 +648,6 @@ async function installPrisma(
       useNdjson: false,
 
       onProgress: (p) => {
-        //        console.log('[ormOne] onProgress', p)
         webview.postMessage({
           command: 'prismaProgress',
           percent: p.percent ?? 0,
@@ -854,7 +697,6 @@ async function installPrisma(
         }
       },
       onStderr: (text: string) => {
-        //        console.log('[ormOne] onStderr', text)
         webview.postMessage({
           command: 'prismaLog',
           type: 'stderr',
@@ -884,7 +726,6 @@ async function installPrisma(
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.stack : String(err)
-    //    console.log(`[ormOne] Error occurred during installation: ${msg}`)
     result.error = err as Error
     result.setSuccess(false)
   }
