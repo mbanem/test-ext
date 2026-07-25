@@ -1,6 +1,10 @@
 import * as vscode from 'vscode'
 import { runCommandStream } from './run-command-stream' // your file with the function
-import { waitForNewFile, CommandResultTracker } from './extension.js'
+import {
+  waitForNewFile,
+  CommandResultTracker,
+  getVideoUris,
+} from './extension.js'
 import * as fs from 'fs'
 import * as path from 'path'
 import { Client } from 'pg'
@@ -11,6 +15,14 @@ import { SvelteSet } from 'svelte/reactivity'
 
 let db: DbParams = {}
 let paths: TPaths
+const videoNames = [
+  'CRInput',
+  'CRSpinner',
+  'CRActivity',
+  'CRTooltip',
+  'CRSummaryDetails',
+  'CRModelPermissioins',
+]
 const pendingText = `
 This file is used as a flag to indicate that the second part of
 Prisma ORM installation is pending and not yet completed.
@@ -119,15 +131,19 @@ async function openFilesInEditorTabs(
   try {
     // pin extension tab to make reak estate for two editor tabs schena & .env
     await vscode.commands.executeCommand('workbench.action.pinEditor')
+    console.log('[ormOne] openFilesInEditorTabs: pinEditor')
     thePaths.forEach(async (p) => {
+      console.log('[ormOne] try to make uri from path:', p)
       let uri = vscode.Uri.file(p)
       // Open schema content in new tab (beside current editor)
+      console.log('[ormOne] try showTextDocument', uri)
       const pDoc = await vscode.window.showTextDocument(uri, {
         viewColumn: vscode.ViewColumn.Active, // Opens beside active editor
         preview: false, // Optional: Force a new tab (not preview mode)
       })
 
       // Programmatically trigger a "dirty" state by appending and removing a space
+      console.log('[ormOne] try ti make doc dirty')
       await pDoc.edit((editBuilder) => {
         // 1. Get the position at the very end of the document
         const endPosition = pDoc.document.positionAt(
@@ -141,6 +157,7 @@ async function openFilesInEditorTabs(
       // At this point, the document is officially marked as dirty.
       // Now, remove temporary character so the actual text isn't fundamentally altered.
       // Some editors would ignore saving as nothing was actually changed
+      console.log('[ormOne] remove dirty char, doc stay dirty')
       await pDoc.edit((editBuilder) => {
         const textLength = pDoc.document.getText().length
         const lastCharPosition = pDoc.document.positionAt(textLength - 1)
@@ -150,20 +167,24 @@ async function openFilesInEditorTabs(
         const rangeToRemove = new vscode.Range(lastCharPosition, endPosition)
         editBuilder.delete(rangeToRemove)
       })
+      console.log('[ormOne] after delete dirty char')
       // 1. Create a range at the very start of the document (Line 0, Column 0)
       const startPosition = new vscode.Position(0, 0)
       const startRange = new vscode.Range(startPosition, startPosition)
 
+      console.log('[ormOne] reveal top range')
       // 2. Reveal that range at the top of the editor
       pDoc.revealRange(startRange, vscode.TextEditorRevealType.AtTop)
+      console.log('[ormOne] after reveal top range')
     })
-    webview?.postMessage({
-      command: 'schemaAndEnvInEditorTabs',
-      payload: 'show requirements for schema and .env',
-    })
+    console.log('[ormOne] wanted to post schemaAndEnvInEditorTabs')
+    // webview?.postMessage({
+    //   command: 'schemaAndEnvInEditorTabs',
+    //   payload: 'show requirements for schema and .env',
+    // })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    //    console.log('[ormOne] openFilesInEditorTabs', err)
+    console.log('[ormOne] openFilesInEditorTabs', err)
     result.setSuccess(false)
   }
   return result
@@ -370,12 +391,15 @@ export async function setupOrmOneMessageHandler(
             /\/?([a-zA-z0-9_-]+)$/,
           )?.[1] as string
 
+          const videoUris = getVideoUris(videoNames)
+          console.log('[ormOne] post videoUris', videoUris)
           panel!.webview.postMessage({
             command: 'sendingModels',
             payload: JSON.stringify({
               models,
               enums,
               appName,
+              videoUris: videoUris,
             }),
           })
           break

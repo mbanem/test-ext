@@ -13,6 +13,35 @@
   }
   pageInfo = handlePageInfo as TToggleFunc
 
+  let videoUris = $state<Record<string, string>>({})
+  let videoName = $state('')
+  let dialogEl = $state<HTMLDialogElement | null>(null)
+  function setVideoName(name: string) {
+    videoName = `${name}Video`
+    // Open modal once video name is set
+    dialogEl?.showModal()
+  }
+  function closeModal() {
+    dialogEl?.close()
+    videoName = ''
+  }
+  function handleDialogClick(e: MouseEvent) {
+    if (!dialogEl) return
+
+    // Get the inner bounding rectangle of the dialog
+    const rect = dialogEl.getBoundingClientRect()
+
+    // Check if the click occurred OUTSIDE the dialog's visible boundaries (on the backdrop)
+    const isOutside =
+      e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom
+
+    if (isOutside) {
+      closeModal()
+    }
+  }
   //  console.log('[App] top point after $props()')
   let appName = $state('')
   let isLoading = $state(true)
@@ -107,6 +136,7 @@
               Object.values(pload.enums)[0] as TEnum,
             ).filter(Boolean)
             appName = pload.appName
+            videoUris = pload.videoUris
             break
 
           case 'crudSuportDone':
@@ -137,7 +167,36 @@
 <svelte:head>
   <title>CRUD Support</title>
 </svelte:head>
+<!-- Modal Dialog Component -->
+<dialog
+  bind:this={dialogEl}
+  onclick={handleDialogClick}
+  onclose={() => {
+    videoName = ''
+  }}
+>
+  {#if videoUris[videoName]}
+    <div class="modal-content">
+      <button class="close-btn" onclick={closeModal} aria-label="Close modal"
+        >✕</button
+      >
 
+      <video autoplay loop muted playsinline src={videoUris[videoName]}>
+        <track kind="captions" />
+      </video>
+    </div>
+  {/if}
+</dialog>
+
+<!-- {#snippet playVideo()}
+  <video autoplay loop muted playsinline src={videoUris[videoName]}>
+    <track kind="captions" />
+  </video>
+{/snippet}
+
+{#if videoUris[videoName]}
+  {@render playVideo()}
+{/if} -->
 {#snippet pagePurpose()}
   <pre>
   The main part of this page is on the right.
@@ -231,7 +290,7 @@
 {#snippet pageByPageMiddleColumn()}
   <div class="cr-left-column">
     {@render appIncludes()}
-    <div class="embellishments">
+    <div class="embellishments" aria-hidden={true}>
       {#each ['CRInput', 'CRSpinner', 'CRActivity', 'CRTooltip', 'CRSummaryDetails'] as comp (comp)}
         <div class="checkbox-item">
           <label for={comp}
@@ -241,9 +300,16 @@
               value={comp}
               bind:group={crComponents}
             />
-            {comp} component</label
-          >
+            {comp} component
+          </label>
         </div>
+        <p
+          onclick={() => setVideoName(comp)}
+          onkeyup={() => setVideoName(comp)}
+          aria-hidden={true}
+        >
+          show in action
+        </p>
       {/each}
     </div>
     <div class="buttons-row">
@@ -380,6 +446,19 @@
     border: 1px solid gray;
     border-radius: 6px;
     user-select: none;
+    .checkbox-item {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      width: 13rem;
+    }
+    p {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      color: gray;
+      opacity: 0.8;
+    }
   }
   .notallowed {
     opacity: 0.3;
@@ -420,5 +499,61 @@
 
   .page-info {
     @include page-info();
+  }
+  dialog {
+    border: 1px solid var(--vscode-widget-border, #454545);
+    border-radius: 8px;
+    background: var(--vscode-editor-background, #1e1e1e);
+    padding: 0;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+
+    /* Corner resize enabled */
+    resize: both;
+    overflow: auto;
+
+    /* Initial size limits */
+    width: 550px;
+    height: auto;
+    min-width: 300px;
+    min-height: 200px;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-content video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Keeps aspect ratio clean when resized */
+    display: block;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>

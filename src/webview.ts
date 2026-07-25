@@ -134,6 +134,7 @@ function loadMainMarkup(
     `script-src ${webview.cspSource} 'nonce-${nonce}';`,
     `font-src ${webview.cspSource} data:;`,
     `connect-src ${webview.cspSource};`, // Allows source maps
+    `media-src ${webview.cspSource};`,
   ].join(' ')
 
   html = html.replace(
@@ -152,11 +153,7 @@ function loadMainMarkup(
     </script>
     <script type="module"`,
   )
-  //// console.log(`[Webview] Final HTML length: ${html.length}`)
-  //  console.log(
-  //   `[Webview] HTML contains __INITIAL_PAGE:`,
-  //   html.includes(initialPage),
-  // )
+
   return html
 }
 

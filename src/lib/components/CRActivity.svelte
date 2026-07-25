@@ -7,8 +7,8 @@
     PageName: string
     result: string
     selectedUserId: string
-    user: UserPartial
-    users: UserPartial[] | []
+    user: TUserLogIn
+    users: TUserLogIn[] | []
   }
   let {
     PageName,
@@ -19,7 +19,7 @@
   }: ARGS = $props()
 
   if (users?.length === 0) {
-    users[0] = user as UserPartial
+    users[0] = user as TUserLogIn
   }
   const selectedUserId_ = () => {
     return selectedUserId
@@ -55,7 +55,7 @@
     return result
   }
   let [userName, role] = $derived.by(() => {
-    let user = users?.filter((u) => u.id === selectedUserId)[0] as UserPartial
+    let user = users?.filter((u) => u.id === selectedUserId)[0] as TUserLogIn
     if (user) {
       return [`${user?.firstName} ${user?.lastName}`, user.role]
     } else {

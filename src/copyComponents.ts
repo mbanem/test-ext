@@ -1,24 +1,28 @@
 // src/copyComponents.ts
 import * as vscode from 'vscode'
 import * as path from 'path'
+export const handleTryCatch = (err: unknown, info?: string) => {
+  const msg = err instanceof Error ? err.message : String(err)
+  console.log(info, msg)
+}
 
-async function directoryExists(uri: vscode.Uri): Promise<boolean> {
+async function directoryExists(uri: vscode.Uri): Promise<boolean | undefined> {
   try {
     const result = await vscode.workspace.fs.stat(uri)
     // Check if the URI points to a directory
     return result.type === vscode.FileType.Directory
   } catch (err: unknown) {
     // If stat throws, the file or directory does not exist
-  handleTryCatch(false, 'directoryExists') 
+    handleTryCatch(false, 'directoryExists')
+  }
+  return undefined
 }
-
-async function fileExists(uri: vscode.Uri): Promise<boolean> {
+async function fileExists(uri: vscode.Uri): Promise<boolean | undefined> {
   try {
     const result = await vscode.workspace.fs.stat(uri)
     return result.type === vscode.FileType.File
-  } catch {
-    return false
-  }
+  } catch {}
+  return undefined
 }
 
 export async function copySelectedComponents(

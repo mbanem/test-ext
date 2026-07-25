@@ -5,7 +5,7 @@ import { Paths as PathsClass } from './src/extension.js'
 
 declare global {
   type TPaths = PathsClass
-  export type Field = {
+  type Field = {
     name: string
     type: string
     isArray: boolean
@@ -16,52 +16,51 @@ declare global {
   }
   function myGlobalFunction(param: string): number
   // no name; it should be part of Models with their name as a key
-  export type Model = {
+  type Model = {
     fields: Field[]
     attrs?: string[]
     permissions?: string
   }
-  export type Models = Record<string, Model>
-  export type RouteName = string
-  export type SelectedModel = Record<
-    string /* modelName */,
+  type RouteName = string
+  type ModelName = string
+  type Models = Record<ModelName, Model>
+  type SelectedModel = Record<
+    ModelName,
     {
       routeName: string
       permissions?: string
     }
   >
-  export type SelectedModels = Record<RouteName, SelectedModel>
-  export type Components = string[]
-  export type Payload = Record<
-    string,
-    SelectedModels | Model | Components | string
+  type SelectedModels = Record<RouteName, SelectedModel>
+  type Components = string[]
+  type TypeOfPayload = string
+  type Payload = Record<
+    TypeOfPayload,
+    SelectedModels | Model | Components | string | string[]
   >
-  export type Role = 'User' | 'Admin' | 'Moderator' | 'Visitor' | 'Customer'
-  export type UserOartial = {
+  type Role = 'User' | 'Admin' | 'Moderator' | 'Visitor' | 'Customer'
+  type TUserLogIn = {
     firstName: string
     lastName: string
     role: Role
+    email?: string
+    password?: string
   }
-  export type RouteName = string
-  export type SelectedModels = Record<RouteName, Model>
-  export type Payload = Record<
-    string,
-    SelectedModels | Model | string[] | string
-  >
-  export type TToggleFunc = (() => void) | undefined
-  // export type TPaths = Record<string, string>
-  export type DbParams = Record<string, string | number>
+
+  type TToggleFunc = (() => void) | undefined
+  // type TPaths = Record<string, string>
+  type DbParams = Record<string, string | number>
 
   // props for creating +page.svelte/+page.server.ts route pager
-  export type TCreatePageProps = {
+  type TCreatePageProps = {
     routeName: string
     model: Model
   }
-  export type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
-  export type TEnum = Record<string, string>
-  export type TEnums = Record<string, TEnum>
-  export type TResult = { success: boolean; error?: string }
-  export type TCommandResult<TF extends boolean = false> = {
+  type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
+  type TEnum = Record<string, string>
+  type TEnums = Record<string, TEnum>
+  type TResult = { success: boolean; error?: string }
+  type TCommandResult<TF extends boolean = false> = {
     success: TF
     code: number
     stdout: string
@@ -70,19 +69,22 @@ declare global {
     args: string[]
     error?: Error
   }
-  export type TStickMsgToElement =
+  type TStickMsgToElement =
     'StickLefts' | 'StickRights' | 'StickMiddles' | 'MiddleToLeft'
-  // export type DependencyType = 'dependencies' | 'devDependencies'
+  // type DependencyType = 'dependencies' | 'devDependencies'
   namespace App {
     // interface Error {}
     // interface Locals {
-    // 	user: Types.UserPartial;
+    // 	user: Types.TUserLogIn;
     // }
     // interface PageData {}
     // interface PageState {}
     // interface Platform {}
   }
 }
-
-// Crucial: d.ts files with imports need an empty export to be treated as a module
+// Crucial: d.ts files with imports need an empty to be treated as a module
+declare module '*.mp4' {
+  const src: string
+  export default src
+}
 export {}

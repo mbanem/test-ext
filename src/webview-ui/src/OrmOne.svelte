@@ -3,6 +3,12 @@
   import { onMount } from 'svelte'
   import HoveringDetails from '$lib/components/HoverableDetails.svelte'
   import ConfigurationRequired from '$lib/components/ConfigurationRequired.svelte'
+
+  // import videoUrl from '/Orm3Video.mp4'
+  // Vite will bundle/copy this asset automatically at build time
+
+  // ;<video src={videoUrl} autoplay loop bind:muted={isMuted} controls></video>
+
   const RX =
     /^Progress:|\.\.\.\/node_modules\/|dependencies:|devDependencies:|\+ /
   let currentDetailsEl: HTMLDetailsElement | undefined = $state()
@@ -22,7 +28,7 @@
   // let checkThisEl: HTMLDetailsElement
   // let otherLinesEl: HTMLDetailsElement
   // let dbParamsBlockEl: HTMLDivElement
-  // let gridContainerEl: HTMLDivElement
+  let gridContainerEl: HTMLDivElement
 
   let installPrismaButton: HTMLButtonElement
   let progressCollector = $state<Record<string, string[]>>({})

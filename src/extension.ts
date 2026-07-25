@@ -16,6 +16,62 @@ let appName = ''
 let inDevelopmentMode = false
 
 let panel: vscode.WebviewPanel | undefined = undefined
+let orm3VideoUri: vscode.Uri | undefined = undefined
+// type GenericRecord<KeyLabel extends string, Value extends unknown> = {
+//   [K in string as `${KeyLabel}`]: Value
+// }
+// const videoUris: GenericRecord<string, vscode.Uri> = {}
+// function defineVideoUris(
+//   context: vscode.ExtensionContext,
+//   panel: vscode.WebviewPanel,
+// ) {
+//   const m = [
+//     'CRInput',
+//     'CRSpinner',
+//     'CRActivity',
+//     'CRTooltip',
+//     'CRSummaryDetails',
+//   ].forEach((name) => {
+//     videoUris[name] = `${name}Video`
+//   })
+//   const orm3VideoOnDisk = vscode.Uri.joinPath(
+//     context.extensionUri,
+//     'src',
+//     'webview-ui',
+//     'public',
+//     'Orm3Video.mp4',
+//   )
+//   orm3VideoUri = panel.webview.asWebviewUri(orm3VideoOnDisk) as vscode.Uri
+// }
+
+/**
+ * Returns a map of video names to Webview-compatible URIs.
+ */
+let wView: vscode.Webview | undefined = undefined
+let exUri: vscode.Uri | undefined = undefined
+
+export function getVideoUris(videoNames: string[]): Record<string, string> {
+  const videoUris: Record<string, string> = {}
+
+  for (const name of videoNames) {
+    // 1. Construct absolute disk path to webview-ui/public/<name>.mp4
+    const diskUri = vscode.Uri.joinPath(
+      exUri as vscode.Uri,
+      'src',
+      'webview-ui',
+      'public',
+      `${name}Video.mp4`,
+    )
+
+    // 2. Convert to Webview URI (e.g., https://file+.vscode-resource.vscode-cdn.net/...)
+    const webviewUri = (wView as vscode.Webview).asWebviewUri(diskUri)
+
+    // 3. Store as string so it serializes cleanly via postMessage
+    videoUris[`${name}Video`] = webviewUri.toString()
+  }
+  console.log('[extension] getVideoUris', videoUris)
+  return videoUris
+}
 export const sudoName_ = 'mili'
 export const sleep = async (ms: number) => {
   return new Promise((resolve) => {
@@ -160,6 +216,7 @@ export const info = (msg: string) => {
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
+    exUri = context.extensionUri
     // show('test-ext.crudTest ACTIVATED')
     //    console.log(`CRUD TEST-EXT -- activated`)
     inDevelopmentMode = context.extensionMode === ExtensionMode.Development
@@ -174,6 +231,7 @@ export async function activate(context: vscode.ExtensionContext) {
           panel.reveal(vscode.ViewColumn.One)
           return
         }
+        // extension.ts
         panel = vscode.window.createWebviewPanel(
           'crCrudSupport',
           'CRUD Support',
@@ -181,8 +239,21 @@ export async function activate(context: vscode.ExtensionContext) {
           {
             enableScripts: true,
             retainContextWhenHidden: true,
+            localResourceRoots: [
+              // Allow VS Code to access your source or output folder
+              vscode.Uri.joinPath(
+                context.extensionUri,
+                'src',
+                'webview-ui',
+                'public',
+              ),
+              vscode.Uri.joinPath(context.extensionUri, 'out'),
+            ],
           },
         )
+
+        wView = panel.webview
+        // defineVideoUris(context, panel)
 
         // 4. Register lifecycle IMMEDIATELY after creation
         panel.onDidDispose(() => {

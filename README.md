@@ -4,8 +4,10 @@
 [ormOne] continue to receive messages after it is done
 
 - making video shorter -- in Dev Tools filter enter [CRUD TEST-EXT] to get only extensiion// console.logs
+  // Make vide smaller from Ubuntu Terminal, change here input and output names and copy the line
+  ffmpeg -i modelPermissions.mp4 -vcodec libx265 -crf 28 output.mp4
 
-writig color messages in Firefox terminal from Svelte page
+writing console.log color messages in Firefox terminal from Svelte page
 -// console.log('%c🚀 Running in Webview DEV mode', 'color: lime; font-size: 13px')
 
 - rm -rf out *.vsix node_modules/.cache node_modules/.vite; pnpm ix
@@ -118,7 +120,7 @@ What happens when a message arrives?
 Should a spinner be shown?
 Should a page change?
 
-OrmOne/OrmTwo/OrmThree as MVC Views
+OrmOne/OrmTwo as MVC Views
 They should ideally be mostly:
 
 - display data
