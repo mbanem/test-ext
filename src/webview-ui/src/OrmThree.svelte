@@ -29,20 +29,20 @@
     if (!dialogEl) return
 
     // Get the inner bounding rectangle of the dialog
-    const rect = dialogEl.getBoundingClientRect()
+    // const rect = dialogEl.getBoundingClientRect()
 
     // Check if the click occurred OUTSIDE the dialog's visible boundaries (on the backdrop)
-    const isOutside =
-      e.clientX < rect.left ||
-      e.clientX > rect.right ||
-      e.clientY < rect.top ||
-      e.clientY > rect.bottom
+    // const isOutside =
+    //   e.clientX < rect.left ||
+    //   e.clientX > rect.right + 50 ||
+    //   e.clientY < rect.top ||
+    //   e.clientY > rect.bottom + 50
 
-    if (isOutside) {
-      closeModal()
-    }
+    // if (isOutside) {
+    //   closeModal()
+    // }
   }
-  //  console.log('[App] top point after $props()')
+
   let appName = $state('')
   let isLoading = $state(true)
   // // const vscode = acquireVsCodeApi()
@@ -188,15 +188,6 @@
   {/if}
 </dialog>
 
-<!-- {#snippet playVideo()}
-  <video autoplay loop muted playsinline src={videoUris[videoName]}>
-    <track kind="captions" />
-  </video>
-{/snippet}
-
-{#if videoUris[videoName]}
-  {@render playVideo()}
-{/if} -->
 {#snippet pagePurpose()}
   <pre>
   The main part of this page is on the right.
@@ -512,7 +503,7 @@
     overflow: auto;
 
     /* Initial size limits */
-    width: 550px;
+    width: auto;
     height: auto;
     min-width: 300px;
     min-height: 200px;
