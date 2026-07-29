@@ -52,48 +52,51 @@ function loadMainMarkup(
   const nonce = getNonce()
 
   // Locate the HTML file
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+  // const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
   const extensionRoot = context.extensionUri.fsPath
 
-  const possibleRoots = [workspaceRoot, extensionRoot].filter(
-    Boolean,
-  ) as string[]
+  // const possibleRoots = [workspaceRoot, extensionRoot].filter(
+  //   Boolean,
+  // ) as string[]
 
   let htmlPath = ''
-
-  for (const root of possibleRoots) {
+  let html = ''
+  try {
+    // for (const root of possibleRoots) {
     // const c1 = path.join(root, 'out', 'webview-assets', 'index.html')
-    const c1 = path.join(root, 'out', 'webview-assets', `index.html`)
+    htmlPath = path.join(extensionRoot, 'out', 'webview-assets', `index.html`)
     // const c2 = path.join(
     //   root,
     //   'out',
-    //   'webview-assets',
+    //   'webview-assets',P
     //   'src',
     //   'webview-ui',
     //   'index.html',
     // )
     //// console.log('[webview] loadMainMarkup path', c1) // c2)
     // for (const candidate of [c1, c2]) {
-    if (fs.existsSync(c1)) {
-      htmlPath = c1
-      //      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
-      break
-    }
+    // if (fs.existsSync(c1)) {
+    //   htmlPath = c1
+    //      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
+    // break
+    // }
     // }
     // if (htmlPath) {
     //   break
     // }
+    // }
+    //// console.log('[webview] htmlPath?', htmlPath)
+    if (!htmlPath) {
+      console.log(
+        `[Webview] ⚠️ HTML not found for index.html, falling back to dev mode`,
+      )
+      return getDevHtml(webview, 'index')
+    }
+    //// console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
+    html = fs.readFileSync(htmlPath, 'utf-8')
+  } catch (err: unknown) {
+    console.log('[ormOne] loadMarkup', err)
   }
-  //// console.log('[webview] htmlPath?', htmlPath)
-  if (!htmlPath) {
-    console.log(
-      `[Webview] ⚠️ HTML not found for index.html, falling back to dev mode`,
-    )
-    return getDevHtml(webview, 'index')
-  }
-  //// console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
-  let html = fs.readFileSync(htmlPath, 'utf-8')
-
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
   const assetsFolder = vscode.Uri.joinPath(
     context.extensionUri,
@@ -119,7 +122,7 @@ function loadMainMarkup(
         )
         return `${attr}="${assetUri}"`
       } catch (err) {
-        //        console.log(`Failed to convert asset: ${relativePath}`)
+        console.log(`Failed to convert asset: ${relativePath}`)
         return fullMatch
       }
     },

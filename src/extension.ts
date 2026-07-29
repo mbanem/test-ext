@@ -17,32 +17,18 @@ let inDevelopmentMode = false
 
 let panel: vscode.WebviewPanel | undefined = undefined
 let orm3VideoUri: vscode.Uri | undefined = undefined
-// type GenericRecord<KeyLabel extends string, Value extends unknown> = {
-//   [K in string as `${KeyLabel}`]: Value
-// }
-// const videoUris: GenericRecord<string, vscode.Uri> = {}
-// function defineVideoUris(
-//   context: vscode.ExtensionContext,
-//   panel: vscode.WebviewPanel,
-// ) {
-//   const m = [
-//     'CRInput',
-//     'CRSpinner',
-//     'CRActivity',
-//     'CRTooltip',
-//     'CRSummaryDetails',
-//   ].forEach((name) => {
-//     videoUris[name] = `${name}Video`
-//   })
-//   const orm3VideoOnDisk = vscode.Uri.joinPath(
-//     context.extensionUri,
-//     'src',
-//     'webview-ui',
-//     'public',
-//     'Orm3Video.mp4',
-//   )
-//   orm3VideoUri = panel.webview.asWebviewUri(orm3VideoOnDisk) as vscode.Uri
-// }
+export const areShallowEqual = <T extends object>(
+  obj1: T,
+  obj2: T,
+): boolean => {
+  const keys1 = Object.keys(obj1) as (keyof T)[]
+  // const keys1 = Object.keys(obj1) as Array<keyof T>
+  const keys2 = Object.keys(obj2) as (keyof T)[]
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+  return keys1.every((k) => obj1[k] === obj2[k])
+}
 
 /**
  * Returns a map of video names to Webview-compatible URIs.

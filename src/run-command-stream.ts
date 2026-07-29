@@ -39,6 +39,7 @@ export function runCommandStream(
     onStderr?: (data: string) => void
     onProgress?: (progress: ProgressInfo) => void
     terminal?: vscode.Terminal
+    useReporter?: boolean
   } = {},
 ): Promise<CommandResultTracker<boolean>> {
   // let result = new CommandResultTracker<boolean>(false)
@@ -114,7 +115,9 @@ export function runCommandStream(
               progress.total = json.data?.total ?? json.data?.resolved ?? 1
               progress.done = json.status === 'done' || json.data?.done === true
             }
-          } catch (e) {}
+          } catch (err) {
+            console.log('[ormOne] run-command-stream', err)
+          }
         }
         // ==================== append-only fallback ====================
         else {

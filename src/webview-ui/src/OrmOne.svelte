@@ -22,13 +22,13 @@
   let progressPercents = $state(0)
   let statusMessage = $state('Ready to install Prisma')
   let isInstalling = $state(false)
+  let isOpen = $state(false)
   let logs: { type: 'stdout' | 'stderr'; text: string }[] = $state([])
   // let progressLineEl: HTMLParagraphElement
   // let nodeModulesEl: HTMLDetailsElement
   // let checkThisEl: HTMLDetailsElement
   // let otherLinesEl: HTMLDetailsElement
   // let dbParamsBlockEl: HTMLDivElement
-  let gridContainerEl: HTMLDivElement
 
   let installPrismaButton: HTMLButtonElement
   let progressCollector = $state<Record<string, string[]>>({})
@@ -46,7 +46,7 @@
   //   !(db.name && db.owner && db.password) || isInstalling,
   // )
 
-  let pEl: HTMLParagraphElement
+  // let pEl: HTMLParagraphElement
   // begin of parsing progress rawLine for kind ot output
   // what does this page do handler
   type TProps = {
@@ -66,9 +66,13 @@
 
   function startPrismaInstall() {
     isInstalling = true
+    if (isOpen) {
+      isOpen = false
+    }
     progressPercents = 0
     logs = []
     statusMessage = 'Starting installation...'
+    installPrismaButton.disabled = true
     const db_: DbParams = {
       name: db.name,
       owner: db.owner,
@@ -137,7 +141,7 @@
     vscode.postMessage({
       command: 'checkOnPendingFile',
     })
-    window.addEventListener('message', (event) => {
+    const handler = (event: MessageEvent) => {
       const msg = event.data
       switch (msg.command) {
         case 'prismaInstallStart':
@@ -244,7 +248,13 @@
           //// console.log('[OrmOne] got prismaPartOne failed')
           break
       }
-    })
+    }
+    window.addEventListener('message', handler)
+
+    // Return cleanup function run on destroy
+    return () => {
+      window.removeEventListener('message', handler)
+    }
   })
 </script>
 
@@ -294,7 +304,7 @@ Package Manager e.g. pnpm.
   >
 {:else}
   <div class="db-params-block">
-    <details style="position:relative;z-index:2;">
+    <details bind:open={isOpen} style="position:relative;z-index:2;">
       <summary class="summary">Parameters for Creating Database </summary>
       <div
         class="dbname-block"
@@ -364,7 +374,7 @@ Package Manager e.g. pnpm.
   </div>
 
   <!-- <div style="border:1px solid red;height:36rem;"> -->
-  <div bind:this={gridContainerEl} class="grid-container">
+  <div class="grid-container">
     <div class="left-column">
       <label class="dependencies-label">
         <input

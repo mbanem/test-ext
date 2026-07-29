@@ -1,9 +1,12 @@
 import * as vscode from 'vscode'
+import { exec } from 'child_process'
+import * as util from 'util'
 import { runCommandStream } from './run-command-stream' // your file with the function
 import {
   waitForNewFile,
   CommandResultTracker,
   getVideoUris,
+  areShallowEqual,
 } from './extension.js'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -30,9 +33,9 @@ It will be deleted  after the second part of installation is done.
 if you manually finished the second part please delete this file.
 `
 
-
 let pm = 'unknown'
 let ex = 'unknown'
+// property names are according to pg.client
 interface DatabaseConfig {
   provider: string
   user: string
@@ -42,33 +45,128 @@ interface DatabaseConfig {
   database: string
 }
 
-function isConnectionStringOK(url: string): boolean {
+function isConnectionStringOK(): boolean {
   let result = true
-  // NOTE in connection string schema is optional
+  const envDb: { [key: string]: string | number } = {}
+  const envContent = fs.readFileSync(paths.env, 'utf-8')
+  // NOTE in the DATABASE_URL schema entry is optional so we do not parse for it
   const regex =
     /^\s*DATABASE_URL=(?<provider>[^:]+):\/\/(?<user>[^:]+):(?<password>[^@]+)@(?<host>[^:]+):(?<port>[^/]+)\/(?<database>[^?]+)/m
 
-  const match = url.match(regex)
+  const match = envContent.match(regex)
   if (!match || !match.groups) {
     return false
   }
-  for (const v of Object.values(
+  // any missing <group name> renders invalid DATABASE_URL
+  for (const [k, v] of Object.entries(
     match.groups as Partial<DatabaseConfig>,
-  ) as string[]) {
+  )) {
     if ((v as string).trim() === '') {
       result = false
     }
+    envDb[k] = v
   }
+  if (result && !areShallowEqual(db, envDb)) {
+    db = envDb
+  }
+
   return result
 }
 
-function areSchemaAndEnvOK(): { models: Models; connOK: boolean } {
-  const { models, enums } = parsePrismaSchema(
-    fs.readFileSync(paths.schema, 'utf-8'),
-  )
-  const envContent = fs.readFileSync(paths.env, 'utf-8')
-  const connOK = isConnectionStringOK(envContent)
-  return { models, connOK: connOK }
+// function areSchemaAndEnvOK(): { models: Models; connOK: boolean } {
+//   const { models, enums } = parsePrismaSchema(
+//     fs.readFileSync(paths.schema, 'utf-8'),
+//   )
+//   const envContent = fs.readFileSync(paths.env, 'utf-8')
+//   const connOK = isConnectionStringOK(envContent)
+//   return { models, connOK: connOK }
+// }
+
+// Convert exec into a promise-based function
+const execPromise = util.promisify(exec)
+
+export async function validatePrismaSchema(): Promise<{
+  success: boolean
+  message: string
+}> {
+  // 1. Get the current workspace root folder
+  // const workspaceFolders = vscode.workspace.workspaceFolders
+  // if (!workspaceFolders) {
+  //   return { success: false, message: 'No workspace folder open.' }
+  // }
+  // const workspaceRoot = workspaceFolders[0].uri.fsPath
+
+  try {
+    // 2. Run pnpm prisma validate inside the workspace directory
+    // stdout captures the success message, stderr captures warnings
+    const { stdout, stderr } = await execPromise('pnpm prisma validate', {
+      cwd: paths.root, // Sets the execution context to your project root
+    })
+
+    return {
+      success: true,
+      message: stdout || stderr || 'Schema is valid!',
+    }
+  } catch (error: any) {
+    // 3. Prisma returns exit code 1 if validation fails
+    // The validation errors will be caught inside error.stderr or error.message
+    return {
+      success: false,
+      message: error.stderr || error.message || 'Validation failed.',
+    }
+  }
+}
+
+type TConfigState = {
+  modelsOK: boolean
+  connOK: boolean
+  err: string
+}
+// TODO if this does not work replace it with abowr commented out function
+async function areSchemaAndEnvOK(): Promise<TConfigState> {
+  let modelsOK = false
+  let errLines = ''
+
+  // const result = await runCommandStream(
+  //   'pnpm',
+  //   ['exec', 'prisma', 'validate'],
+  //   {
+  //     useReporter: false,
+  //     cwd: paths.root,
+
+  //     onStdout: (text: string) => {
+  //       if (text.includes('is valid') || text.includes('The schema at')) {
+  //         modelsOK = true
+  //       }
+  //     },
+
+  //     onStderr: (text: string) => {
+  //       // Only treat real errors as failure
+  //       if (/^(?:error:|Error:|P\d{4})/m.test(text)) {
+  //         const regex = /^(?:error:|\d+\s+\|).*/gm
+  //         const matches = text.match(regex)
+  //         if (matches) {
+  //           errLines = matches.join('\n')
+  //           modelsOK = false
+  //         }
+  //       }
+  //       // Ignore "Loaded config", "schema loaded", etc.
+  //     },
+  //   },
+  // )
+  const result = await validatePrismaSchema()
+  // Safety net
+  if (result.success && !errLines) {
+    modelsOK = true
+  }
+
+  const connOK = isConnectionStringOK()
+
+  return {
+    modelsOK,
+    connOK,
+    err: errLines,
+  }
 }
 function createPendingFile() {
   fs.writeFileSync(paths.pending, pendingText, 'utf-8')
@@ -107,34 +205,34 @@ async function openFilesInEditorTabs(
       // Programmatically trigger a "dirty" state by appending and removing a space
       await pDoc.edit((editBuilder) => {
         // 1. Get the position at the very end of the document
-        const endPosition = pDoc.document.positionAt(
-          pDoc.document.getText().length,
-        )
+        const position = pDoc.document.positionAt(0)
+        //   pDoc.document.getText().length,
+        // )
         // 2. Insert a space to make the file dirty for saving
-        editBuilder.insert(endPosition, ' ')
+        editBuilder.insert(position, ' ')
       })
 
       // At this point, the document is officially marked as dirty.
       // Now, remove temporary character so the actual text isn't fundamentally altered.
       // Some editors would ignore saving as nothing was actually changed
-      await pDoc.edit((editBuilder) => {
-        const textLength = pDoc.document.getText().length
-        const lastCharPosition = pDoc.document.positionAt(textLength - 1)
-        const endPosition = pDoc.document.positionAt(textLength)
+      // await pDoc.edit((editBuilder) => {
+      //   // const textLength = pDoc.document.getText().length
+      //   const position = pDoc.document.positionAt(0)
+      //   // const endPosition = pDoc.document.positionAt(textLength)
 
-        // Create a range over that temporary space and delete it
-        const rangeToRemove = new vscode.Range(lastCharPosition, endPosition)
-        editBuilder.delete(rangeToRemove)
-      })
+      //   // Create a range over that temporary space and delete it
+      //   const rangeToRemove = new vscode.Range(position, position)
+      //   editBuilder.delete(rangeToRemove)
+      // })
       // 1. Create a range at the very start of the document (Line 0, Column 0)
-      const startPosition = new vscode.Position(0, 0)
-      const startRange = new vscode.Range(
-        new vscode.Position(0, 0),
-        new vscode.Position(0, 1),
-      )
-
+      // const position = new vscode.Position(0, 0)
+      // const range = new vscode.Range(position, position)
+      //   new vscode.Position(0, 0),
+      //   new vscode.Position(0, 1),
+      // )
+      const range = new vscode.Range(0, 0, 0, 0)
       // 2. Reveal that range at the top of the editor
-      pDoc.revealRange(startRange, vscode.TextEditorRevealType.AtTop)
+      pDoc.revealRange(range, vscode.TextEditorRevealType.AtTop)
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -258,12 +356,12 @@ export async function setupOrmOneMessageHandler(
   const set = new SvelteSet<string>()
   // 1. Listen for the save event
   const saveListener = vscode.workspace.onDidSaveTextDocument(
-    (document: vscode.TextDocument) => {
+    async (document: vscode.TextDocument) => {
       set.add(path.basename(document.fileName))
 
       if (set.has('schema.prisma') && set.has('.env')) {
-        const { models, connOK } = areSchemaAndEnvOK()
-        if (models && connOK) {
+        const { modelsOK, connOK, err } = await areSchemaAndEnvOK()
+        if (modelsOK && connOK) {
           try {
             webview.postMessage({
               command: 'showPage',
@@ -279,7 +377,7 @@ export async function setupOrmOneMessageHandler(
         } else {
           webview.postMessage({
             command: 'notValidSchemaOrEnv',
-            payload: { models, connOK },
+            payload: { modelsOK, connOK },
           })
           // openSchemaAndEnvAgain()
         }
@@ -385,24 +483,6 @@ export async function setupOrmOneMessageHandler(
             )
             return result
           }
-          result = await installPrisma(
-            webview,
-            {
-              useOnlyBuiltDependencies: msg.useOnlyBuiltDependencies ?? true,
-            },
-            deps,
-            '',
-          )
-          if (!result.success) {
-            webview.postMessage({
-              command: 'prismaInstallError',
-              message: '❌ Install dependencies failed',
-            })
-            console.log(
-              '[ormOne] setupOrmOneMessageHandler install dependencies failed',
-            )
-            return result
-          }
 
           // ===================================================================
 
@@ -416,7 +496,7 @@ export async function setupOrmOneMessageHandler(
             try {
               const { stdout, stderr } = await execFileAsync('pnpm', args, {
                 cwd: paths.root,
-                timeout: 30000, // 🚀 Raised to 30 seconds for absolute safety
+                timeout: 30000,
               })
 
               if (stdout) {
@@ -492,19 +572,22 @@ export async function setupOrmOneMessageHandler(
             path.join(paths.root, 'prisma.config.ts'),
             30000,
           )
-
-          result.setSuccess(configOK)
-          result = await createRoleAndDb()
-          if (!result.success) {
-            webview.postMessage({
-              command: 'prismaInstallError',
-              message:
+          let res = await areSchemaAndEnvOK()
+          // if user did not fill dbparams valid we open .env and schema to make them vLID
+          if (res.modelsOK && res.connOK) {
+            result.setSuccess(configOK)
+            result = await createRoleAndDb()
+            if (!result.success) {
+              webview.postMessage({
+                command: 'prismaInstallError',
+                message:
+                  '[ormOne] ❌ Creating PostgresSQL Role and database failed',
+              })
+              console.log(
                 '[ormOne] ❌ Creating PostgresSQL Role and database failed',
-            })
-            console.log(
-              '[ormOne] ❌ Creating PostgresSQL Role and database failed',
-            )
-            return result
+              )
+              return result
+            }
           }
           // +++++++++++++++ Create Uri for the schema file  +++++++++++++++++++++
           openFilesInEditorTabs([paths.schema, paths.env])
