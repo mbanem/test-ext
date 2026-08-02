@@ -4,7 +4,7 @@
 [ormOne] continue to receive messages after it is done
 
 - making video shorter -- in Dev Tools filter enter [CRUD TEST-EXT] to get only extensiion// console.logs
-  // Make vide smaller from Ubuntu Terminal, change here input and output names and copy the line
+  // Make video smaller from Ubuntu Terminal, change here input and output names and copy the line
   ffmpeg -i modelPermissions.mp4 -vcodec libx265 -crf 28 output.mp4
 
 writing console.log color messages in Firefox terminal from Svelte page
@@ -75,7 +75,7 @@ Things that belong in App.svelte are:
 - theme initialization
 - global styles
 - application state shared by all pages
-- page navigation (OrmOne → OrmTwo → OrmThree)
+- page navigation (OrmOne → OrmThree)
 - message handling from VS Code
 - modal dialogs used throughout the app
 - loading overlays

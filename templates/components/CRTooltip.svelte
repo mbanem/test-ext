@@ -390,7 +390,7 @@ CRTooltip could accept the following props, though all are optional
   {@render children?.()}
 </div>
 
-<style lang-;scss;>
+<style lang="scss">
   .child-wrapper {
     display: inline-block;
     margin: 0;

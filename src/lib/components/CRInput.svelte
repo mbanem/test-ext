@@ -262,7 +262,7 @@
     --INPUT-BOX-LABEL-TOP-POS: -1px;
     --INPUT-COMRUNNER-HEIGHT: 2rem !important;
     --INPUT-COMRUNNER-FONT-SIZE: 16px;
-    // --BACKGROUND-COLOR: white;
+    /* --BACKGROUND-COLOR: white;*/
   }
 
   .input-wrapper {

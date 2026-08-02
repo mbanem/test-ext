@@ -56,7 +56,7 @@ declare global {
     routeName: string
     model: Model
   }
-  type PageKey = 'OrmOne' | 'OrmTwo' | 'OrmThree'
+  type PageKey = 'OrmOne' | 'OrmThree'
   type TEnum = Record<string, string>
   type TEnums = Record<string, TEnum>
   type TResult = { success: boolean; error?: string }
@@ -69,8 +69,8 @@ declare global {
     args: string[]
     error?: Error
   }
-  type TStickMsgToElement =
-    'StickLefts' | 'StickRights' | 'StickMiddles' | 'MiddleToLeft'
+  type TStick =
+    'left' | 'right' | 'middle' | 'middle-over-left' | 'below' | 'above'
   // type DependencyType = 'dependencies' | 'devDependencies'
   namespace App {
     // interface Error {}

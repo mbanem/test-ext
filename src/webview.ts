@@ -12,90 +12,62 @@ function getNonce(): string {
   return text
 }
 
-export function displayWebview(
+export async function displayWebview(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  initialPage: 'OrmOne' | 'OrmTwo' | 'OrmThree',
-): TResult {
-  // initialPage = 'index'
-  //  console.log('[Webview] displayWebview with initialPage', initialPage)
+  initialPage: 'OrmOne' | 'OrmThree',
+): Promise<TResult> {
+  const isDev = context.extensionMode === vscode.ExtensionMode.Development
+
   try {
-    const html = loadMainMarkup(context, panel.webview, initialPage)
-    //// console.log(`[Webview] Setting panel.webview.html (length: ${html.length})`)
-    panel.webview.html = html
-    //// console.log(
-    //   '[Webview] displayWebview: HTML loaded into panel.webview.html successfully',
-    // )
+    const html = isDev
+      ? getDevHtml(panel.webview, initialPage)
+      : await loadMainMarkup(context, panel.webview, initialPage)
+
+    panel.webview.html = html //
+    ;(panel as any)._currentPage = initialPage
+
     setTimeout(() => {
       panel.webview.postMessage({
         command: 'showPage',
         page: initialPage,
       })
-    }, 500)
-    //    console.log(`[Webview] displayWebview FINISHED successfully`)
+    }, 300)
+
+    if (isDev) {
+      setupDevHotReload(panel)
+    }
+
     return { success: true }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[Webview] CRITICAL ERROR in displayWebview:`, msg)
+    console.error(`[Webview] CRITICAL ERROR:`, msg)
     return { success: false, error: msg }
   }
 }
 
-function loadMainMarkup(
+async function loadMainMarkup(
   context: vscode.ExtensionContext,
   webview: vscode.Webview,
   initialPage: string,
-): string {
-  //// console.log(
-  //   `[webview] loadMainMarkup: Injecting data-initial-page or window.__INITIAL_PAGE = ${initialPage}`,
-  // )
+): Promise<string> {
   const nonce = getNonce()
 
-  // Locate the HTML file
-  // const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-  const extensionRoot = context.extensionUri.fsPath
+  // Define target using standard URI logic
+  const htmlUri = vscode.Uri.joinPath(
+    context.extensionUri,
+    'out',
+    'webview-assets',
+    'index.html',
+  )
 
-  // const possibleRoots = [workspaceRoot, extensionRoot].filter(
-  //   Boolean,
-  // ) as string[]
-
-  let htmlPath = ''
   let html = ''
   try {
-    // for (const root of possibleRoots) {
-    // const c1 = path.join(root, 'out', 'webview-assets', 'index.html')
-    htmlPath = path.join(extensionRoot, 'out', 'webview-assets', `index.html`)
-    // const c2 = path.join(
-    //   root,
-    //   'out',
-    //   'webview-assets',P
-    //   'src',
-    //   'webview-ui',
-    //   'index.html',
-    // )
-    //// console.log('[webview] loadMainMarkup path', c1) // c2)
-    // for (const candidate of [c1, c2]) {
-    // if (fs.existsSync(c1)) {
-    //   htmlPath = c1
-    //      console.log(`[Webview] ✅ FOUND HTML: ${htmlPath}`)
-    // break
-    // }
-    // }
-    // if (htmlPath) {
-    //   break
-    // }
-    // }
-    //// console.log('[webview] htmlPath?', htmlPath)
-    if (!htmlPath) {
-      console.log(
-        `[Webview] ⚠️ HTML not found for index.html, falling back to dev mode`,
-      )
-      return getDevHtml(webview, 'index')
-    }
-    //// console.log(`[Webview] ✅ Using HTML: ${htmlPath}`)
-    html = fs.readFileSync(htmlPath, 'utf-8')
-  } catch (err: unknown) {
-    console.log('[ormOne] loadMarkup', err)
+    const rawData = await vscode.workspace.fs.readFile(htmlUri)
+    html = new TextDecoder('utf-8').decode(rawData)
+  } catch (err) {
+    console.error('[ormOne] Webview Failed to read production index.html:', err)
+    return getDevHtml(webview, initialPage)
   }
   // === BEST FIX: Rebuild all asset URLs using asWebviewUri ===
   const assetsFolder = vscode.Uri.joinPath(
@@ -105,9 +77,9 @@ function loadMainMarkup(
   )
 
   html = html.replace(
-    /(src|href)=["'](\.\/)?([^"']+)["']/gi,
-    (fullMatch, attr, dotSlash, relativePath) => {
-      // Skip external or already-processed URLs
+    /(src|href)=["']\/??(?:\.\/)?([^"']+)["']/gi, // Gracefully handles leading /, ./, or direct path names
+    (fullMatch, attr, relativePath) => {
+      // Skip remote external protocols, inline fragments, and explicit data payloads
       if (
         relativePath.startsWith('http') ||
         relativePath.startsWith('data:') ||
@@ -117,18 +89,21 @@ function loadMainMarkup(
       }
 
       try {
+        // Correctly computes nested routes like 'assets/index-DlR18Vur.js' inside the out/webview-assets context
         const assetUri = webview.asWebviewUri(
           vscode.Uri.joinPath(assetsFolder, relativePath),
         )
         return `${attr}="${assetUri}"`
       } catch (err) {
-        console.log(`Failed to convert asset: ${relativePath}`)
+        console.error(
+          `[Webview] Path transformation failed for: ${relativePath}`,
+          err,
+        )
         return fullMatch
       }
     },
   )
 
-  //// console.log(`[webview] raw ${initialPage}html length: ${html.length}`)
   // Inject CSP
   const csp = [
     `default-src 'none';`,
@@ -161,20 +136,75 @@ function loadMainMarkup(
 }
 
 function getDevHtml(webview: vscode.Webview, initialPage: string): string {
-  const devUrl = `http://localhost:5174/${initialPage}.html`
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-eval' 'unsafe-inline' http://localhost:5174; connect-src http://localhost:5174 ws://localhost:5174;">
-  <title>CRUD DEV — ${initialPage}</title>
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    img-src ${webview.cspSource} https: data: blob:;
+    style-src ${webview.cspSource} 'unsafe-inline' http://localhost:5174 http://127.0.0.1:5174;
+    script-src ${webview.cspSource} 'unsafe-eval' 'unsafe-inline' http://localhost:5174 http://127.0.0.1:5174;
+    connect-src http://localhost:5174 http://127.0.0.1:5174 ws://localhost:5174 ws://127.0.0.1:5174;
+    font-src ${webview.cspSource} data:;
+  ">
+  <title>CRUD DEV</title>
 </head>
 <body>
-  <div id="app"></div>
-  <!-- this src as a prop for <script is new for me -->
-  <script type="module" src="${devUrl}"></script>
+  <div id="app" data-initial-page="${initialPage}"></div>
+  <script type="module" src="http://localhost:5174/@vite/client"></script>
+  <script type="module" src="http://localhost:5174/src/main.ts"></script>
 </body>
-</html>
-`
+</html>`
+}
+
+function setupDevHotReload(panel: vscode.WebviewPanel) {
+  // Optional: You can still watch files if you want extra safety
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    '**/src/webview-ui/**/*.{svelte,ts,js,css}',
+  )
+
+  watcher.onDidChange(() => {
+    console.log('[HMR] Change detected - Vite should handle it')
+    // Vite HMR usually handles it automatically
+  })
+
+  panel.onDidDispose(() => watcher.dispose())
+}
+function setupWebviewHotReload(
+  panel: vscode.WebviewPanel,
+  context: vscode.ExtensionContext,
+) {
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(
+      context.extensionUri,
+      'out/webview-assets/**/*.{js,css}', // Adjust if your output path is different
+    ),
+  )
+
+  watcher.onDidChange(async () => {
+    console.log('[Hot Reload] Webview assets changed → reloading...')
+
+    const currentPage = (panel as any)._currentPage || 'OrmOne'
+
+    const html = await loadMainMarkup(context, panel.webview, currentPage)
+    panel.webview.html = html
+    if (context.extensionMode === vscode.ExtensionMode.Development) {
+      setupWebviewHotReload(panel, context)
+    }
+
+    // Re-send the page command after a small delay
+    setTimeout(() => {
+      panel.webview.postMessage({
+        command: 'showPage',
+        page: currentPage,
+      })
+    }, 400)
+  })
+
+  // Cleanup
+  panel.onDidDispose(() => {
+    watcher.dispose()
+  })
 }

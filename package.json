@@ -1,11 +1,10 @@
 {
   "name": "test-ext",
-  "displayName": "test-ext",
+  "displayName": "CRUD TEST-EXT",
   "description": "schema to crud app",
   "version": "0.0.1",
   "type": "commonjs",
   "extensionKind": [
-    "ui",
     "workspace"
   ],
   "engines": {
@@ -14,8 +13,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
-  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:test-ext.crudTest"
+  ],
+  "main": "out/extension.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/mbanem/test-ext.git"
@@ -26,32 +27,24 @@
     "commands": [
       {
         "command": "test-ext.crudTest",
-        "title": "CRUD TEST-EXT"
+        "title": "CRUD TEST-EXT",
+        "category": "CRUD Support"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run build",
-    "check": "clear; tsc --noEmit && pnpm --filter ./src/webview-ui check",
-    "build-grok": "tsc -p ./",
-    "pack": "vsce package",
+    "vscode:preprep": "pnpm run build",
+    "check": "tsc --noEmit && pnpm --filter ./src/webview-ui check",
+    "compile": "node esbuild.config.mjs",
+    "compile:watch": "node esbuild.config.mjs --watch",
     "build:webview": "cd src/webview-ui && pnpm run build",
-    "build": "clear; pnpm compile && pnpm build:webview",
-    "publish": "vsce publish",
-    "compile": "tsc -p .",
-    "package-grok": "vsce package --no-dependencies --ignore-file .vscodeignore",
-    "package": "pnpm build && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file",
-    "x": "rm -rf out *.vsix node_modules/.cache node_modules/.vite; pnpm ix",
-    "ix": "pnpm build; pnpm run package && VERSION=$(jq -r '.version' package.json) && code --install-extension test-ext-${VERSION}.vsix --force",
-    "rx": "rm -rf *.vsix out .env prisma prisma.config.ts node_modules/.cache node_modules/.vite; printf \"NODE_ENV=development\\nDATABASE_URL=postgresql://mili:kiki-fake@localhost:5432/forms?schema=public\" > .env; pnpm ix",
-    "rm": "rm -rf .env prisma prisma.config.ts"
+    "build": "clear && pnpm compile && pnpm build:webview",
+    "package": "pnpm build && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
     "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/config": "^7.8.0",
-    "@prisma/internals": "^7.8.0",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/kit": "^2.69.1",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
@@ -89,8 +82,10 @@
   "dependencies": {
     "@dflare/svelte-page-navigation": "^1.0.7",
     "@prisma/client": "^7.8.0",
+    "@prisma/internals": "^7.8.0",
+    "@prisma/config": "^7.8.0",
+    "pg": "^8.22.0",
     "bcrypt": "^6.0.0",
-    "dotenv": "^17.4.2",
-    "pg": "^8.22.0"
+    "dotenv": "^17.4.2"
   }
 }

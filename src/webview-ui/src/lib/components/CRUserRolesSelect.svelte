@@ -145,7 +145,6 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       display: flex;
       gap: 4px;
 
-      // border: 1px solid lightgray;
       width: 100%;
       line-height: 10px;
       height: 1rem;
@@ -153,12 +152,9 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       color: var(--candidate-color);
       border: 1px solid gray;
       border-radius: 4px;
-      // background-color: var(--candidate-bg-color);
       z-index: 20;
       .badge {
         display: inline-block;
-        // color: var(--candidate-color);
-        // background-color: var(--candidate-bg-color);
         font-size: 11px;
         border: 1px solid gray;
         border-radius: 4px;
@@ -192,21 +188,16 @@ Ctrl+Shift+P   Local History: Find Entry to Restore
       font-size: 10px;
       margin: 0;
       padding: 1px 0;
-      /*color: var(--clickable-label-color);
-			background-color: var(--candidate-bg-color);*/
       &:hover {
         width: 100%;
         background-color: cornsilk;
       }
     }
     .letter {
-      // 	color: var(--candidate-color);
-      // 	background-color: var(--candidate-bg-color);
       font-size: 11px;
       border: 1px solid gray;
       border-radius: 4px;
       padding: 0 4px;
-      // margin: 0 4px;
       pointer-events: none;
     }
   }

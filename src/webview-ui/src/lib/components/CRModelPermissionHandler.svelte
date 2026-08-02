@@ -8,10 +8,10 @@
   import { SvelteSet } from 'svelte/reactivity'
   import { capitalize } from '$lib/utils'
   import { showConfirmation } from '$lib/utils'
-  import ShowMessage from '$lib/components/CRShowMessage.svelte'
+  import CRShowTooltip from '$lib/components/CRShowTooltip.svelte'
   import CRUserRolesSelect from '$lib/components/CRUserRolesSelect.svelte'
 
-  let crShowMessage: ShowMessage
+  let crShowTooltip: CRShowTooltip
 
   export type TProps = {
     models: Models
@@ -203,66 +203,66 @@
       opacity: '1',
     })
   }
-  async function showTooltip(e: MouseEvent) {
-    e.preventDefault()
-    killTimeout()
-    timer = null
-    if (isInside(e, modelWrapperEl)) {
-      if (!extraModels.size) {
-        return
-      }
-      tooltipBlockEl.style.opacity = '0'
-    }
+  // async function showTooltip(e: MouseEvent) {
+  //   e.preventDefault()
+  //   killTimeout()
+  //   timer = null
+  //   if (isInside(e, modelWrapperEl)) {
+  //     if (!extraModels.size) {
+  //       return
+  //     }
+  //     tooltipBlockEl.style.opacity = '0'
+  //   }
 
-    if (
-      (e.target as HTMLElement).tagName !== 'SECTION' &&
-      isInside(e, tooltipBlockEl)
-    ) {
-      tooltipBlockEl.style.opacity = '0'
-      return
-    }
-    if (e.type === 'mouseover') {
-      // offer no copy field to extra model(s) as no extra models are defined
-      if (extraModels.size === 0) {
-        return
-      }
-      // there are extra data models for radio-button block to offer copy field
-      const dataset = (e.target as HTMLElement).dataset
-      const { x, y } = (e.target as HTMLElement).getBoundingClientRect()
+  //   if (
+  //     (e.target as HTMLElement).tagName !== 'SECTION' &&
+  //     isInside(e, tooltipBlockEl)
+  //   ) {
+  //     tooltipBlockEl.style.opacity = '0'
+  //     return
+  //   }
+  //   if (e.type === 'mouseover') {
+  //     // offer no copy field to extra model(s) as no extra models are defined
+  //     if (extraModels.size === 0) {
+  //       return
+  //     }
+  //     // there are extra data models for radio-button block to offer copy field
+  //     const dataset = (e.target as HTMLElement).dataset
+  //     const { x, y } = (e.target as HTMLElement).getBoundingClientRect()
 
-      // not a data entry field so no radio-block but info no-dataa-entry
-      // or remove field if extraModel field is hovered
-      if (dataset.entry === 'false' || dataset.extra === 'true') {
-        if (dataset.entry === 'false') {
-          tooltipMessage = notDataEntry
-        } else {
-          tooltipMessage = clickToRemove
-        }
-        showNoDataEntry(x, y)
-        return
-      }
-      hoveredEl = e.target as HTMLElement
-      timer = setTimeout(() => {
-        busy = false
-      }, 100)
-      busy = true
-      Object.assign(tooltipBlockEl.style, {
-        position: 'fixed',
-        top: `${y - 8}px`,
-        left: `${x}px`,
-        zIndex: '9999',
-        pointerEvents: 'auto',
-        opacity: '1',
-        cursor: 'pointer',
-      })
-    } else {
-      if (busy) {
-        return
-      }
-      tooltipBlockEl.style.opacity = '0'
-      notDataEntryEl.style.opacity = '0'
-    }
-  }
+  //     // not a data entry field so no radio-block but info no-dataa-entry
+  //     // or remove field if extraModel field is hovered
+  //     if (dataset.entry === 'false' || dataset.extra === 'true') {
+  //       if (dataset.entry === 'false') {
+  //         tooltipMessage = notDataEntry
+  //       } else {
+  //         tooltipMessage = clickToRemove
+  //       }
+  //       showNoDataEntry(x, y)
+  //       return
+  //     }
+  //     hoveredEl = e.target as HTMLElement
+  //     timer = setTimeout(() => {
+  //       busy = false
+  //     }, 100)
+  //     busy = true
+  //     Object.assign(tooltipBlockEl.style, {
+  //       position: 'fixed',
+  //       top: `${y - 8}px`,
+  //       left: `${x}px`,
+  //       zIndex: '9999',
+  //       pointerEvents: 'auto',
+  //       opacity: '1',
+  //       cursor: 'pointer',
+  //     })
+  //   } else {
+  //     if (busy) {
+  //       return
+  //     }
+  //     tooltipBlockEl.style.opacity = '0'
+  //     notDataEntryEl.style.opacity = '0'
+  //   }
+  // }
   async function toggleSummary(e: MouseEvent) {
     // e.preventDefault();
     const el = e.target as HTMLElement
@@ -296,13 +296,13 @@
         }
         if (det.open) {
           if (modelWrapperEl.onmouseover) {
-            modelWrapperEl.removeEventListener('mouseover', showTooltip)
-            modelWrapperEl.removeEventListener('mouseout', showTooltip)
+            modelWrapperEl.removeEventListener('mouseenter', handleTooltip)
+            modelWrapperEl.removeEventListener('mouseleave', handleTooltip)
           }
         } else {
           if (!modelWrapperEl.onmouseover) {
-            modelWrapperEl.addEventListener('mouseover', showTooltip)
-            modelWrapperEl.addEventListener('mouseout', showTooltip)
+            modelWrapperEl.addEventListener('mouseenter', handleTooltip)
+            modelWrapperEl.addEventListener('mouseleave', handleTooltip)
           }
         }
         return
@@ -359,11 +359,12 @@
     }
   }
   async function deleteModel(e: MouseEvent, modelName: string) {
-    crShowMessage.showMessage(
+    crShowTooltip.showTooltip(
       e,
       `Model "${modelName}" to be removed.`,
-      'StickRights',
+      'right',
       { backgroundColor: 'navy', color: 'tomato' },
+      2000,
     )
     const confirmed = await showConfirmation({
       message: `Remove model "${modelName}"?`,
@@ -374,17 +375,17 @@
     if (confirmed) {
       delete models[modelName]
       if (models[modelName]) {
-        crShowMessage.showMessage(
+        crShowTooltip.showTooltip(
           e,
           `Model "${modelName}" has been removed.`,
-          'StickLefts',
+          'left',
           { backgroundColor: 'black', color: 'lightgreem' },
         )
       } else {
-        crShowMessage.showMessage(
+        crShowTooltip.showTooltip(
           e,
           `Model "${modelName}" is removed.`,
-          'StickMiddles',
+          'middle',
           { backgroundColor: 'navy', color: 'white' },
         )
       }
@@ -407,10 +408,10 @@
     if (models[model]) {
       deleteModel(e, model)
       // Optional: notify user inside webview
-      crShowMessage.showMessage(
+      crShowTooltip.showTooltip(
         e,
         `Model "${modelName}" has been removed.`,
-        'StickLefts',
+        'left',
         { backgroundColor: 'navy', color: 'white' },
       )
     }
@@ -560,8 +561,8 @@
     >
   </div>
 </div>
-<!-- no display just a showMessage utils with markup -->
-<ShowMessage bind:this={crShowMessage} />
+<!-- no display just a showTooltip utils with markup -->
+<CRShowTooltip bind:this={crShowTooltip} />
 
 <style lang="scss">
   *,

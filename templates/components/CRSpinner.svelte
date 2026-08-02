@@ -116,7 +116,7 @@
   </button>
 </p>
 
-<style lang-;scss;>
+<style lang="scss">
   .spinner {
     position: absolute;
     display: inline-block;
